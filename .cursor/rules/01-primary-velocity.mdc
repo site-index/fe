@@ -1,0 +1,20 @@
+---
+description: Rule #1 — ship fast; no legacy; breaking changes OK
+alwaysApply: true
+---
+
+# Rule 1 — Velocity over compatibility
+
+This project optimizes for **speed of delivery**. Treat this as the top constraint in every change.
+
+## Non-negotiables
+
+- **No legacy methods**: Do not introduce, preserve, or recommend deprecated APIs, compatibility shims, dual code paths, or “we support both old and new” patterns unless the user explicitly asks for backward compatibility.
+- **Breaking changes are allowed**: Prefer clean, modern interfaces. Remove obsolete entry points, flags, and indirection instead of layering adapters to keep old behavior alive.
+- **Delete over wrap**: When replacing behavior, remove the old implementation rather than keeping it “just in case.”
+
+## For the agent
+
+- Default to the **current** canonical approach for the stack (framework APIs, module layout, config shape).
+- If a choice is “safe for old callers” vs “simpler for new code,” choose **simpler for new code** unless told otherwise.
+- Do not block refactors with hypothetical external consumers; this repo accepts breakage.
