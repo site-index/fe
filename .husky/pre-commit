@@ -1,1 +1,1 @@
-npm run full-check
+npx lint-staged
