@@ -1,5 +1,6 @@
 import js from "@eslint/js";
 import globals from "globals";
+import react from "eslint-plugin-react";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
@@ -8,6 +9,15 @@ export default tseslint.config(
   { ignores: ["dist", "scripts/**"] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
+  {
+    files: ["**/*.{jsx,tsx}"],
+    ...react.configs.flat["jsx-runtime"],
+    settings: {
+      react: {
+        version: "detect",
+      },
+    },
+  },
   {
     files: ["**/*.{ts,tsx}"],
     languageOptions: {

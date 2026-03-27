@@ -1,3 +1,3 @@
-# Welcome to your Lovable project
+# SITE INDEX
 
-TODO: Document your project here
+Frontend for SITE INDEX — construction project dashboard, metrics, and related workflows.
