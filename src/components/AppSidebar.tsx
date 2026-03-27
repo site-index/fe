@@ -2,7 +2,7 @@ import { LayoutDashboard, Calculator, ClipboardCheck, AlertTriangle, Settings, B
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-import { useProject, PROJECTS } from "@/contexts/ProjectContext";
+import { useProject } from "@/contexts/ProjectContext";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -14,7 +14,7 @@ const navItems = [
 
 export default function AppSidebar() {
   const location = useLocation();
-  const { activeProject, setActiveProject } = useProject();
+  const { activeProject, setActiveProject, projects } = useProject();
   const [projectMenuOpen, setProjectMenuOpen] = useState(false);
 
   return (
@@ -43,7 +43,7 @@ export default function AppSidebar() {
         </button>
         {projectMenuOpen && (
           <div className="absolute left-0 right-0 top-full mt-1 rounded-md border border-sidebar-border bg-sidebar shadow-lg z-10">
-            {PROJECTS.map((p) => (
+            {projects.map((p) => (
               <button
                 key={p.id}
                 onClick={() => { setActiveProject(p); setProjectMenuOpen(false); }}

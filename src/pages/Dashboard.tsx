@@ -6,7 +6,7 @@ import { useProject } from "@/contexts/ProjectContext";
 import { dashboardByProject } from "@/data/projectData";
 
 export default function Dashboard() {
-  const { activeProject } = useProject();
+  const { activeProject, projectsSource } = useProject();
   const data = dashboardByProject[activeProject.id];
 
   return (
@@ -18,6 +18,15 @@ export default function Dashboard() {
         </p>
       </div>
 
+      {projectsSource === "api" && !data && (
+        <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+          Métricas de demostración solo están cargadas para los proyectos de ejemplo. Este proyecto viene
+          de la API; el tablero numérico se conectará cuando existan endpoints en el backend.
+        </div>
+      )}
+
+      {!data ? null : (
+        <>
       {/* Cash Health */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <CashHealthIndicator
@@ -77,6 +86,8 @@ export default function Dashboard() {
           ))}
         </ul>
       </div>
+        </>
+      )}
     </div>
   );
 }
