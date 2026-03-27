@@ -1,13 +1,71 @@
+import { useQuery } from "@tanstack/react-query";
 import { DollarSign, TrendingUp, AlertTriangle, Package } from "lucide-react";
 import MetricCard from "@/components/MetricCard";
 import CashHealthIndicator from "@/components/CashHealthIndicator";
 import BudgetChart from "@/components/BudgetChart";
 import { useProject } from "@/contexts/ProjectContext";
-import { dashboardByProject } from "@/data/projectData";
+import { useAuth } from "@/contexts/AuthContext";
+import { apiFetch, getApiErrorMessage } from "@/lib/api";
+import type { DashboardData } from "@/types/dashboard";
 
 export default function Dashboard() {
-  const { activeProject, projectsSource } = useProject();
-  const data = dashboardByProject[activeProject.id];
+  const { activeProject, projectsLoading } = useProject();
+  const { accessToken, studioSlug } = useAuth();
+
+  const emptyProject = activeProject.id === "__empty__";
+
+  const { data, isPending, error } = useQuery({
+    queryKey: ["dashboard", activeProject.id, accessToken, studioSlug],
+    queryFn: () =>
+      apiFetch<DashboardData>(`/v1/projects/${activeProject.id}/dashboard`, {
+        token: accessToken,
+        studioSlug,
+      }),
+    enabled:
+      Boolean(accessToken && studioSlug.trim()) &&
+      !emptyProject &&
+      !projectsLoading,
+  });
+
+  if (projectsLoading) {
+    return (
+      <div className="text-sm text-muted-foreground">Cargando proyectos…</div>
+    );
+  }
+
+  if (emptyProject) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-2xl font-black tracking-tight">Dashboard</h1>
+        <div className="rounded-lg border border-border bg-muted/40 px-4 py-6 text-sm text-muted-foreground">
+          No hay proyectos en este estudio. Creá uno desde la API o desde el
+          flujo de registro, o verificá el slug del estudio en Configuración.
+        </div>
+      </div>
+    );
+  }
+
+  if (isPending) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-2xl font-black tracking-tight">Dashboard</h1>
+        <p className="text-sm text-muted-foreground">Cargando métricas…</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-2xl font-black tracking-tight">Dashboard</h1>
+        <p className="text-sm text-destructive">{getApiErrorMessage(error)}</p>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return null;
+  }
 
   return (
     <div className="space-y-6">
@@ -18,16 +76,6 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {projectsSource === "api" && !data && (
-        <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-          Métricas de demostración solo están cargadas para los proyectos de ejemplo. Este proyecto viene
-          de la API; el tablero numérico se conectará cuando existan endpoints en el backend.
-        </div>
-      )}
-
-      {!data ? null : (
-        <>
-      {/* Cash Health */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <CashHealthIndicator
           status={data.cashStatus}
@@ -57,37 +105,35 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Budget vs Actual chart */}
       <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
-        <h2 className="text-base font-bold mb-4">Presupuesto vs. Real — Top rubros</h2>
+        <h2 className="text-base font-bold mb-4">
+          Presupuesto vs. Real — Top rubros
+        </h2>
         <BudgetChart data={data.chartItems} />
       </div>
 
-      {/* Recent assumptions */}
       <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
-        <h2 className="text-base font-bold mb-3">Últimos supuestos del sistema</h2>
+        <h2 className="text-base font-bold mb-3">
+          Últimos supuestos del sistema
+        </h2>
         <ul className="space-y-2">
-          {data.recentAssumptions.map((a, i) => (
-            <li
-              key={i}
-              className="flex items-start gap-3 rounded-md border border-border px-4 py-3 text-sm"
-            >
-              <Package className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-              <span className="flex-1">{a.text}</span>
-              <div className="flex gap-2 shrink-0">
-                <button className="rounded-md bg-positive/15 px-3 py-1 text-xs font-semibold text-positive hover:bg-positive/25 transition-colors">
-                  Confirmar
-                </button>
-                <button className="rounded-md bg-secondary px-3 py-1 text-xs font-semibold text-muted-foreground hover:bg-secondary/80 transition-colors">
-                  Editar
-                </button>
-              </div>
+          {data.recentAssumptions.length === 0 ? (
+            <li className="text-sm text-muted-foreground">
+              No hay supuestos abiertos recientes.
             </li>
-          ))}
+          ) : (
+            data.recentAssumptions.map((a, i) => (
+              <li
+                key={i}
+                className="flex items-start gap-3 rounded-md border border-border px-4 py-3 text-sm"
+              >
+                <Package className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="flex-1">{a.text}</span>
+              </li>
+            ))
+          )}
         </ul>
       </div>
-        </>
-      )}
     </div>
   );
 }
