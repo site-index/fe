@@ -23,12 +23,53 @@ export type ApiFetchOptions = {
     studioSlug?: string | null
 }
 
-function buildRequestHeaders(options: ApiFetchOptions): Record<string, string> {
+type ApiFetchInternalOptions = ApiFetchOptions & { _retry?: boolean }
+
+/** In-memory access token fallback when callers omit `token` (synced from AuthContext). */
+let apiAccessTokenRef: string | null = null
+
+let persistAccessTokenHandler: ((token: string) => void) | null = null
+
+/** Called from AuthContext when the stored access token changes. */
+export function syncApiAccessToken(token: string | null): void {
+    apiAccessTokenRef = token
+}
+
+/** Refresh flow persists the new access token via this handler (e.g. React state + localStorage). */
+export function registerAccessTokenPersistence(
+    onPersist: (token: string) => void
+): () => void {
+    persistAccessTokenHandler = onPersist
+    return () => {
+        persistAccessTokenHandler = null
+    }
+}
+
+async function tryRefreshAccessToken(): Promise<string | null> {
+    const base = getApiBase()
+    const res = await fetch(`${base}/v1/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+    })
+    if (!res.ok) {
+        return null
+    }
+    const data = (await res.json()) as { accessToken: string }
+    persistAccessTokenHandler?.(data.accessToken)
+    apiAccessTokenRef = data.accessToken
+    return data.accessToken
+}
+
+function buildRequestHeaders(
+    options: ApiFetchOptions,
+    token: string | null | undefined
+): Record<string, string> {
     const headers: Record<string, string> = {
         'Content-Type': 'application/json',
     }
-    if (options.token) {
-        headers.Authorization = `Bearer ${options.token}`
+    if (token) {
+        headers.Authorization = `Bearer ${token}`
     }
     const slug = options.studioSlug?.trim()
     if (slug) {
@@ -56,26 +97,59 @@ async function readSuccessBody<T>(res: Response): Promise<T> {
     return JSON.parse(text) as T
 }
 
+function buildUrl(path: string): string {
+    const base = getApiBase()
+    return `${base}${path.startsWith('/') ? path : `/${path}`}`
+}
+
+async function apiFetchOnce(
+    url: string,
+    rest: ApiFetchOptions,
+    token: string | null | undefined
+): Promise<Response> {
+    return fetch(url, {
+        method: rest.method ?? 'GET',
+        credentials: 'include',
+        headers: buildRequestHeaders(rest, token ?? undefined),
+        body: rest.body !== undefined ? JSON.stringify(rest.body) : undefined,
+    })
+}
+
 export async function apiFetch<T>(
     path: string,
-    options: ApiFetchOptions = {}
+    options: ApiFetchInternalOptions = {}
 ): Promise<T> {
-    const base = getApiBase()
-    const url = `${base}${path.startsWith('/') ? path : `/${path}`}`
-    const res = await fetch(url, {
-        method: options.method ?? 'GET',
-        headers: buildRequestHeaders(options),
-        body:
-            options.body !== undefined
-                ? JSON.stringify(options.body)
-                : undefined,
-    })
+    const { _retry, ...rest } = options
+    const url = buildUrl(path)
+    const token = rest.token ?? apiAccessTokenRef
+    const res = await apiFetchOnce(url, rest, token)
+
+    if (res.status === 401 && !_retry) {
+        const newToken = await tryRefreshAccessToken()
+        if (newToken) {
+            return apiFetch<T>(path, {
+                ...rest,
+                _retry: true,
+                token: newToken,
+            })
+        }
+    }
 
     if (!res.ok) {
         throw new ApiError(res.status, await readErrorBody(res))
     }
 
     return readSuccessBody<T>(res)
+}
+
+/** Clears the httpOnly refresh session (best-effort). */
+export async function apiLogout(): Promise<void> {
+    const base = getApiBase()
+    await fetch(`${base}/v1/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+    })
 }
 
 export function getHealthUrl(): string {

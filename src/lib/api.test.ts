@@ -48,7 +48,10 @@ describe('apiFetch', () => {
         expect(data).toEqual({ x: 1 })
         expect(fetch).toHaveBeenCalledWith(
             '/api/foo',
-            expect.objectContaining({ method: 'GET' })
+            expect.objectContaining({
+                method: 'GET',
+                credentials: 'include',
+            })
         )
     })
 
@@ -66,7 +69,7 @@ describe('apiFetch', () => {
         await apiFetch('bar')
         expect(fetch).toHaveBeenCalledWith(
             'http://localhost:3000/bar',
-            expect.anything()
+            expect.objectContaining({ credentials: 'include' })
         )
     })
 
@@ -122,11 +125,53 @@ describe('apiFetch', () => {
         expect(fetch).toHaveBeenCalledWith(
             '/api/p',
             expect.objectContaining({
+                credentials: 'include',
                 headers: expect.objectContaining({
                     Authorization: 'Bearer tok',
                     'X-Studio-Slug': 'acme',
                 }),
                 body: '{"a":1}',
+            })
+        )
+    })
+
+    it('retries once after 401 when refresh returns a new access token', async () => {
+        vi.stubEnv('VITE_API_URL', '')
+        const okBody = {
+            ok: true,
+            status: 200,
+            text: () => Promise.resolve('{"ok":true}'),
+        }
+        const unauthorized = {
+            ok: false,
+            status: 401,
+            text: async () => '',
+            json: async () => ({}),
+        }
+        const refreshOk = {
+            ok: true,
+            status: 200,
+            text: () => Promise.resolve('{"accessToken":"fresh"}'),
+            json: () => Promise.resolve({ accessToken: 'fresh' }),
+        }
+        vi.stubGlobal(
+            'fetch',
+            vi
+                .fn()
+                .mockResolvedValueOnce(unauthorized)
+                .mockResolvedValueOnce(refreshOk)
+                .mockResolvedValueOnce(okBody)
+        )
+
+        const data = await apiFetch<{ ok: boolean }>('/r', { token: 'stale' })
+        expect(data).toEqual({ ok: true })
+        expect(fetch).toHaveBeenCalledTimes(3)
+        expect(fetch).toHaveBeenNthCalledWith(
+            2,
+            '/api/v1/auth/refresh',
+            expect.objectContaining({
+                method: 'POST',
+                credentials: 'include',
             })
         )
     })

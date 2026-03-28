@@ -8,7 +8,12 @@ import {
     useState,
 } from 'react'
 
-import { apiFetch } from '@/lib/api'
+import {
+    apiFetch,
+    apiLogout,
+    registerAccessTokenPersistence,
+    syncApiAccessToken,
+} from '@/lib/api'
 
 const LS_TOKEN = 'siteindex_access_token'
 const LS_SLUG = 'siteindex_studio_slug'
@@ -29,7 +34,7 @@ type AuthContextValue = {
         studioSlug: string
         studioName: string
     }) => Promise<void>
-    logout: () => void
+    logout: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -43,6 +48,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (fromLs) return fromLs
         return import.meta.env.VITE_STUDIO_SLUG?.trim() ?? ''
     })
+
+    useEffect(() => {
+        syncApiAccessToken(accessToken)
+    }, [accessToken])
+
+    useEffect(() => {
+        return registerAccessTokenPersistence((token) => {
+            setAccessToken(token)
+            localStorage.setItem(LS_TOKEN, token)
+        })
+    }, [])
 
     useEffect(() => {
         const s = studioSlug.trim().toLowerCase()
@@ -105,9 +121,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         []
     )
 
-    const logout = useCallback(() => {
+    const logout = useCallback(async () => {
+        try {
+            await apiLogout()
+        } catch {
+            /* still clear client state */
+        }
         setAccessToken(null)
         localStorage.removeItem(LS_TOKEN)
+        localStorage.removeItem(LS_SLUG)
+        setStudioSlugState('')
     }, [])
 
     const value = useMemo<AuthContextValue>(
