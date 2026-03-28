@@ -1,5 +1,5 @@
 import js from '@eslint/js'
-import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended'
+import eslintConfigPrettier from 'eslint-config-prettier/flat'
 import { importX } from 'eslint-plugin-import-x'
 import react from 'eslint-plugin-react'
 import reactHooks from 'eslint-plugin-react-hooks'
@@ -9,7 +9,9 @@ import globals from 'globals'
 import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
-    { ignores: ['dist', 'scripts/**'] },
+    {
+        ignores: ['dist', 'dev-dist', 'coverage', '.tsbuild', 'scripts/**'],
+    },
     js.configs.recommended,
     ...tseslint.configs.recommended,
     {
@@ -97,10 +99,5 @@ export default tseslint.config(
             'react-refresh/only-export-components': 'off',
         },
     },
-    eslintPluginPrettierRecommended,
-    {
-        rules: {
-            'prettier/prettier': ['error', { endOfLine: 'auto' }],
-        },
-    }
+    eslintConfigPrettier
 )

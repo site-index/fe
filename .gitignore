@@ -1,5 +1,7 @@
 .env
 tsconfig.app.tsbuildinfo
+tsconfig.node.tsbuildinfo
+.tsbuild
 # Logs
 logs
 *.log
