@@ -23,12 +23,7 @@ export type ApiFetchOptions = {
   studioSlug?: string | null;
 };
 
-export async function apiFetch<T>(
-  path: string,
-  options: ApiFetchOptions = {}
-): Promise<T> {
-  const base = getApiBase();
-  const url = `${base}${path.startsWith("/") ? path : `/${path}`}`;
+function buildRequestHeaders(options: ApiFetchOptions): Record<string, string> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
@@ -39,33 +34,45 @@ export async function apiFetch<T>(
   if (slug) {
     headers["X-Studio-Slug"] = slug;
   }
+  return headers;
+}
 
-  const res = await fetch(url, {
-    method: options.method ?? "GET",
-    headers,
-    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
-  });
-
-  if (!res.ok) {
-    let body: unknown;
-    try {
-      body = await res.json();
-    } catch {
-      body = await res.text();
-    }
-    throw new ApiError(res.status, body);
+async function readErrorBody(res: Response): Promise<unknown> {
+  try {
+    return await res.json();
+  } catch {
+    return await res.text();
   }
+}
 
+async function readSuccessBody<T>(res: Response): Promise<T> {
   if (res.status === 204) {
     return undefined as T;
   }
-
   const text = await res.text();
   if (!text) {
     return undefined as T;
   }
-
   return JSON.parse(text) as T;
+}
+
+export async function apiFetch<T>(
+  path: string,
+  options: ApiFetchOptions = {}
+): Promise<T> {
+  const base = getApiBase();
+  const url = `${base}${path.startsWith("/") ? path : `/${path}`}`;
+  const res = await fetch(url, {
+    method: options.method ?? "GET",
+    headers: buildRequestHeaders(options),
+    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+  });
+
+  if (!res.ok) {
+    throw new ApiError(res.status, await readErrorBody(res));
+  }
+
+  return readSuccessBody<T>(res);
 }
 
 export function getHealthUrl(): string {

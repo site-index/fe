@@ -12,7 +12,7 @@ import { useProject } from "@/contexts/ProjectContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiFetch, getApiErrorMessage } from "@/lib/api";
 
-export type ComputoItemRow = {
+export type BoqItemRow = {
   id: string;
   rubro: string;
   item: string;
@@ -54,18 +54,18 @@ function PillarBar({
   );
 }
 
-export default function Computos() {
+export default function BoqItems() {
   const { activeProject, projectsLoading } = useProject();
   const { accessToken, studioSlug } = useAuth();
   const empty = activeProject.id === "__empty__";
 
   const { data, isPending, error } = useQuery({
-    queryKey: ["computo-items", activeProject.id, accessToken, studioSlug],
+    queryKey: ["boq-items", activeProject.id, accessToken, studioSlug],
     queryFn: () =>
-      apiFetch<ComputoItemRow[]>(
-        `/v1/projects/${activeProject.id}/computo-items`,
-        { token: accessToken, studioSlug },
-      ),
+      apiFetch<BoqItemRow[]>(`/v1/projects/${activeProject.id}/boq-items`, {
+        token: accessToken,
+        studioSlug,
+      }),
     enabled:
       Boolean(accessToken && studioSlug.trim()) && !empty && !projectsLoading,
   });
@@ -219,7 +219,7 @@ export default function Computos() {
       </div>
 
       <Link
-        to="/dosificaciones"
+        to="/mix-designs"
         className="flex items-center gap-3 rounded-lg border border-border bg-card p-5 shadow-sm hover:shadow-md hover:border-primary/30 transition-all"
       >
         <FlaskConical className="h-6 w-6 text-muted-foreground" />

@@ -29,6 +29,7 @@ export default tseslint.config(
       "react-refresh": reactRefresh,
     },
     rules: {
+      complexity: ["error", 10],
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": [
         "warn",

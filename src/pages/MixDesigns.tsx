@@ -12,36 +12,33 @@ import { useProject } from "@/contexts/ProjectContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiFetch, getApiErrorMessage } from "@/lib/api";
 
-// --- Types ---
-interface DosificacionComponent {
+interface MixDesignLine {
   id: string;
-  insumo: string;
-  unidad: string;
-  cantidadPorUnidad: number; // quantity per unit of output
-  unidadCompra: string; // purchasing unit
-  rendimientoPorCompra: number; // how many output-units one purchase-unit covers
-  desperdicioP: number; // waste %
+  material: string;
+  unit: string;
+  quantityPerUnit: number;
+  purchaseUnit: string;
+  yieldPerPurchase: number;
+  wastePercent: number;
 }
 
-interface Dosificacion {
+interface MixDesign {
   id: string;
-  nombre: string;
-  descripcion: string;
-  unidadSalida: string; // output unit (e.g. m³)
-  componentes: DosificacionComponent[];
-  linkedItems: string[]; // IDs of cómputo items using this dosificación
+  name: string;
+  description: string;
+  outputUnit: string;
+  components: MixDesignLine[];
+  linkedItems: string[];
 }
 
-// --- Converter helper ---
-function calcCompra(comp: DosificacionComponent, cantidadSalida: number) {
-  const neto = comp.cantidadPorUnidad * cantidadSalida;
-  const conDesperdicio = neto * (1 + comp.desperdicioP / 100);
-  const unidadesCompra = Math.ceil(conDesperdicio / comp.rendimientoPorCompra);
+function calcPurchase(comp: MixDesignLine, outputQty: number) {
+  const neto = comp.quantityPerUnit * outputQty;
+  const conDesperdicio = neto * (1 + comp.wastePercent / 100);
+  const unidadesCompra = Math.ceil(conDesperdicio / comp.yieldPerPurchase);
   return { neto, conDesperdicio, unidadesCompra };
 }
 
-// --- Sub-components ---
-function ConverterWidget({ dosificacion }: { dosificacion: Dosificacion }) {
+function ConverterWidget({ mixDesign }: { mixDesign: MixDesign }) {
   const [cantidad, setCantidad] = useState(10);
 
   return (
@@ -58,7 +55,7 @@ function ConverterWidget({ dosificacion }: { dosificacion: Dosificacion }) {
           step={1}
         />
         <span className="text-sm font-mono text-muted-foreground">
-          {dosificacion.unidadSalida}
+          {mixDesign.outputUnit}
         </span>
       </div>
 
@@ -72,22 +69,22 @@ function ConverterWidget({ dosificacion }: { dosificacion: Dosificacion }) {
           </tr>
         </thead>
         <tbody>
-          {dosificacion.componentes.map((comp) => {
-            const { neto, conDesperdicio, unidadesCompra } = calcCompra(
+          {mixDesign.components.map((comp) => {
+            const { neto, conDesperdicio, unidadesCompra } = calcPurchase(
               comp,
               cantidad,
             );
             return (
               <tr key={comp.id} className="border-t border-border">
-                <td className="py-1.5">{comp.insumo}</td>
+                <td className="py-1.5">{comp.material}</td>
                 <td className="py-1.5 text-right font-mono">
-                  {neto.toFixed(1)} {comp.unidad}
+                  {neto.toFixed(1)} {comp.unit}
                 </td>
                 <td className="py-1.5 text-right font-mono">
-                  {conDesperdicio.toFixed(1)} {comp.unidad}
+                  {conDesperdicio.toFixed(1)} {comp.unit}
                 </td>
                 <td className="py-1.5 text-right font-mono font-semibold">
-                  {unidadesCompra} {comp.unidadCompra}
+                  {unidadesCompra} {comp.purchaseUnit}
                 </td>
               </tr>
             );
@@ -98,13 +95,7 @@ function ConverterWidget({ dosificacion }: { dosificacion: Dosificacion }) {
   );
 }
 
-function DosificacionDetail({
-  d,
-  onBack,
-}: {
-  d: Dosificacion;
-  onBack: () => void;
-}) {
+function MixDesignDetail({ d, onBack }: { d: MixDesign; onBack: () => void }) {
   return (
     <div className="space-y-6">
       <button
@@ -115,14 +106,13 @@ function DosificacionDetail({
       </button>
 
       <div>
-        <h1 className="text-2xl font-black tracking-tight">{d.nombre}</h1>
-        <p className="text-sm text-muted-foreground">{d.descripcion}</p>
+        <h1 className="text-2xl font-black tracking-tight">{d.name}</h1>
+        <p className="text-sm text-muted-foreground">{d.description}</p>
         <span className="inline-block mt-1 rounded bg-muted px-2 py-0.5 text-xs font-mono">
-          Unidad de salida: {d.unidadSalida}
+          Unidad de salida: {d.outputUnit}
         </span>
       </div>
 
-      {/* Components table */}
       <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -131,7 +121,7 @@ function DosificacionDetail({
                 Insumo
               </th>
               <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                Cant / {d.unidadSalida}
+                Cant / {d.outputUnit}
               </th>
               <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
                 Unidad
@@ -148,26 +138,26 @@ function DosificacionDetail({
             </tr>
           </thead>
           <tbody>
-            {d.componentes.map((comp) => (
+            {d.components.map((comp) => (
               <tr
                 key={comp.id}
                 className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors"
               >
-                <td className="px-4 py-3 font-medium">{comp.insumo}</td>
+                <td className="px-4 py-3 font-medium">{comp.material}</td>
                 <td className="px-4 py-3 text-right font-mono">
-                  {comp.cantidadPorUnidad}
+                  {comp.quantityPerUnit}
                 </td>
                 <td className="px-4 py-3 text-right font-mono text-xs">
-                  {comp.unidad}
+                  {comp.unit}
                 </td>
                 <td className="px-4 py-3 text-right font-mono text-xs">
-                  {comp.unidadCompra}
+                  {comp.purchaseUnit}
                 </td>
                 <td className="px-4 py-3 text-right font-mono">
-                  {comp.rendimientoPorCompra}
+                  {comp.yieldPerPurchase}
                 </td>
                 <td className="px-4 py-3 text-right font-mono">
-                  {comp.desperdicioP}%
+                  {comp.wastePercent}%
                 </td>
               </tr>
             ))}
@@ -175,10 +165,8 @@ function DosificacionDetail({
         </table>
       </div>
 
-      {/* Parametric converter */}
-      <ConverterWidget dosificacion={d} />
+      <ConverterWidget mixDesign={d} />
 
-      {/* Linked items */}
       {d.linkedItems.length > 0 && (
         <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
           <p className="text-sm font-semibold mb-2 flex items-center gap-2">
@@ -189,7 +177,7 @@ function DosificacionDetail({
             {d.linkedItems.map((id) => (
               <Link
                 key={id}
-                to="/computos"
+                to="/boq-items"
                 className="block text-sm text-primary hover:underline"
               >
                 Ítem #{id} → Ver en Cómputos
@@ -202,29 +190,73 @@ function DosificacionDetail({
   );
 }
 
-// --- Main page ---
-export default function Dosificaciones() {
+function MixDesignsGrid({
+  mixDesigns,
+  onSelect,
+}: {
+  mixDesigns: MixDesign[];
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {mixDesigns.length === 0 ? (
+        <p className="text-sm text-muted-foreground col-span-full">
+          No hay dosificaciones. Creá una vía API o seed.
+        </p>
+      ) : (
+        mixDesigns.map((d) => (
+          <button
+            key={d.id}
+            type="button"
+            onClick={() => onSelect(d.id)}
+            className="rounded-lg border border-border bg-card p-5 shadow-sm text-left hover:shadow-md hover:border-primary/30 transition-all group"
+          >
+            <div className="flex items-start justify-between mb-2">
+              <FlaskConical className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+              <span className="rounded bg-muted px-2 py-0.5 text-xs font-mono">
+                {d.outputUnit}
+              </span>
+            </div>
+            <h3 className="font-bold mb-1">{d.name}</h3>
+            <p className="text-xs text-muted-foreground line-clamp-2">
+              {d.description}
+            </p>
+            <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+              <span>{d.components.length} componentes</span>
+              <span className="flex items-center gap-1">
+                {d.linkedItems.length} ítems{" "}
+                <ChevronRight className="h-3 w-3" />
+              </span>
+            </div>
+          </button>
+        ))
+      )}
+    </div>
+  );
+}
+
+export default function MixDesigns() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const { activeProject, projectsLoading } = useProject();
   const { accessToken, studioSlug } = useAuth();
   const empty = activeProject.id === "__empty__";
 
   const {
-    data: dosificaciones = [],
+    data: mixDesigns = [],
     isPending,
     error,
   } = useQuery({
-    queryKey: ["dosificaciones", activeProject.id, accessToken, studioSlug],
+    queryKey: ["mix-designs", activeProject.id, accessToken, studioSlug],
     queryFn: () =>
-      apiFetch<Dosificacion[]>(
-        `/v1/projects/${activeProject.id}/dosificaciones`,
-        { token: accessToken, studioSlug },
-      ),
+      apiFetch<MixDesign[]>(`/v1/projects/${activeProject.id}/mix-designs`, {
+        token: accessToken,
+        studioSlug,
+      }),
     enabled:
       Boolean(accessToken && studioSlug.trim()) && !empty && !projectsLoading,
   });
 
-  const selected = dosificaciones.find((d) => d.id === selectedId);
+  const selected = mixDesigns.find((d) => d.id === selectedId);
 
   if (projectsLoading) {
     return (
@@ -262,9 +294,7 @@ export default function Dosificaciones() {
   }
 
   if (selected) {
-    return (
-      <DosificacionDetail d={selected} onBack={() => setSelectedId(null)} />
-    );
+    return <MixDesignDetail d={selected} onBack={() => setSelectedId(null)} />;
   }
 
   return (
@@ -287,40 +317,7 @@ export default function Dosificaciones() {
         </button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {dosificaciones.length === 0 ? (
-          <p className="text-sm text-muted-foreground col-span-full">
-            No hay dosificaciones. Creá una vía API o seed.
-          </p>
-        ) : (
-          dosificaciones.map((d) => (
-            <button
-              key={d.id}
-              type="button"
-              onClick={() => setSelectedId(d.id)}
-              className="rounded-lg border border-border bg-card p-5 shadow-sm text-left hover:shadow-md hover:border-primary/30 transition-all group"
-            >
-              <div className="flex items-start justify-between mb-2">
-                <FlaskConical className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                <span className="rounded bg-muted px-2 py-0.5 text-xs font-mono">
-                  {d.unidadSalida}
-                </span>
-              </div>
-              <h3 className="font-bold mb-1">{d.nombre}</h3>
-              <p className="text-xs text-muted-foreground line-clamp-2">
-                {d.descripcion}
-              </p>
-              <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-                <span>{d.componentes.length} componentes</span>
-                <span className="flex items-center gap-1">
-                  {d.linkedItems.length} ítems{" "}
-                  <ChevronRight className="h-3 w-3" />
-                </span>
-              </div>
-            </button>
-          ))
-        )}
-      </div>
+      <MixDesignsGrid mixDesigns={mixDesigns} onSelect={setSelectedId} />
     </div>
   );
 }

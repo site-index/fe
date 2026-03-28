@@ -3,6 +3,7 @@ import { CheckCircle2, Clock } from "lucide-react";
 import { useProject } from "@/contexts/ProjectContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiFetch, getApiErrorMessage } from "@/lib/api";
+import type { ReactNode } from "react";
 
 type CertRow = {
   item: string;
@@ -47,10 +48,41 @@ function formatDate(iso: string | null): string {
   }
 }
 
-export default function Certificacion() {
+function CertificationSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="space-y-4">
+      <h1 className="text-2xl font-black tracking-tight">{title}</h1>
+      {children}
+    </div>
+  );
+}
+
+type CertificationViewState =
+  | { kind: "loading-projects" }
+  | { kind: "empty-project" }
+  | { kind: "loading-data" }
+  | { kind: "error"; message: string }
+  | { kind: "ready"; rows: CertRow[]; summary: CertSummary | undefined };
+
+function certQueriesArePending(
+  qRows: { isPending: boolean },
+  qSummary: { isPending: boolean },
+): boolean {
+  return qRows.isPending || qSummary.isPending;
+}
+
+function useCertificationView(): CertificationViewState {
   const { activeProject, projectsLoading } = useProject();
   const { accessToken, studioSlug } = useAuth();
   const empty = activeProject.id === "__empty__";
+  const queriesEnabled =
+    Boolean(accessToken && studioSlug.trim()) && !empty && !projectsLoading;
 
   const qRows = useQuery({
     queryKey: ["certifications", activeProject.id, accessToken, studioSlug],
@@ -59,8 +91,7 @@ export default function Certificacion() {
         token: accessToken,
         studioSlug,
       }),
-    enabled:
-      Boolean(accessToken && studioSlug.trim()) && !empty && !projectsLoading,
+    enabled: queriesEnabled,
   });
 
   const qSummary = useQuery({
@@ -75,49 +106,36 @@ export default function Certificacion() {
         `/v1/projects/${activeProject.id}/certifications/summary`,
         { token: accessToken, studioSlug },
       ),
-    enabled:
-      Boolean(accessToken && studioSlug.trim()) && !empty && !projectsLoading,
+    enabled: queriesEnabled,
   });
 
   if (projectsLoading) {
-    return (
-      <div className="text-sm text-muted-foreground">Cargando proyectos…</div>
-    );
+    return { kind: "loading-projects" };
   }
-
   if (empty) {
-    return (
-      <div className="space-y-4">
-        <h1 className="text-2xl font-black tracking-tight">Certificación</h1>
-        <p className="text-sm text-muted-foreground">
-          Elegí un proyecto para ver certificaciones.
-        </p>
-      </div>
-    );
+    return { kind: "empty-project" };
   }
-
-  if (qRows.isPending || qSummary.isPending) {
-    return (
-      <div className="space-y-4">
-        <h1 className="text-2xl font-black tracking-tight">Certificación</h1>
-        <p className="text-sm text-muted-foreground">Cargando…</p>
-      </div>
-    );
+  if (certQueriesArePending(qRows, qSummary)) {
+    return { kind: "loading-data" };
   }
-
   const err = qRows.error ?? qSummary.error;
   if (err) {
-    return (
-      <div className="space-y-4">
-        <h1 className="text-2xl font-black tracking-tight">Certificación</h1>
-        <p className="text-sm text-destructive">{getApiErrorMessage(err)}</p>
-      </div>
-    );
+    return { kind: "error", message: getApiErrorMessage(err) };
   }
+  return {
+    kind: "ready",
+    rows: qRows.data ?? [],
+    summary: qSummary.data,
+  };
+}
 
-  const rows = qRows.data ?? [];
-  const summary = qSummary.data;
-
+function CertificationReady({
+  rows,
+  summary,
+}: {
+  rows: CertRow[];
+  summary: CertSummary | undefined;
+}) {
   return (
     <div className="space-y-6">
       <div>
@@ -208,4 +226,36 @@ export default function Certificacion() {
       </div>
     </div>
   );
+}
+
+export default function Certification() {
+  const view = useCertificationView();
+  switch (view.kind) {
+    case "loading-projects":
+      return (
+        <div className="text-sm text-muted-foreground">Cargando proyectos…</div>
+      );
+    case "empty-project":
+      return (
+        <CertificationSection title="Certificación">
+          <p className="text-sm text-muted-foreground">
+            Elegí un proyecto para ver certificaciones.
+          </p>
+        </CertificationSection>
+      );
+    case "loading-data":
+      return (
+        <CertificationSection title="Certificación">
+          <p className="text-sm text-muted-foreground">Cargando…</p>
+        </CertificationSection>
+      );
+    case "error":
+      return (
+        <CertificationSection title="Certificación">
+          <p className="text-sm text-destructive">{view.message}</p>
+        </CertificationSection>
+      );
+    case "ready":
+      return <CertificationReady rows={view.rows} summary={view.summary} />;
+  }
 }

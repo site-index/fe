@@ -31,7 +31,7 @@ const impactoColors = {
   bajo: "text-muted-foreground",
 };
 
-export default function Supuestos() {
+export default function Assumptions() {
   const queryClient = useQueryClient();
   const { activeProject, projectsLoading } = useProject();
   const { accessToken, studioSlug } = useAuth();

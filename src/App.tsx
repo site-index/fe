@@ -8,10 +8,10 @@ import { ProjectProvider } from "@/contexts/ProjectContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AppLayout from "@/components/AppLayout";
 import Dashboard from "@/pages/Dashboard";
-import Computos from "@/pages/Computos";
-import Certificacion from "@/pages/Certificacion";
-import Supuestos from "@/pages/Supuestos";
-import Dosificaciones from "@/pages/Dosificaciones";
+import BoqItems from "@/pages/BoqItems";
+import Certification from "@/pages/Certification";
+import Assumptions from "@/pages/Assumptions";
+import MixDesigns from "@/pages/MixDesigns";
 import SettingsPage from "@/pages/Settings";
 import Login from "@/pages/Login";
 import NotFound from "@/pages/NotFound";
@@ -36,10 +36,10 @@ const App = () => (
                 }
               >
                 <Route path="/" element={<Dashboard />} />
-                <Route path="/computos" element={<Computos />} />
-                <Route path="/dosificaciones" element={<Dosificaciones />} />
-                <Route path="/certificacion" element={<Certificacion />} />
-                <Route path="/supuestos" element={<Supuestos />} />
+                <Route path="/boq-items" element={<BoqItems />} />
+                <Route path="/mix-designs" element={<MixDesigns />} />
+                <Route path="/certifications" element={<Certification />} />
+                <Route path="/assumptions" element={<Assumptions />} />
                 <Route path="/configuracion" element={<SettingsPage />} />
               </Route>
             </Route>

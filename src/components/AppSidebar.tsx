@@ -1,4 +1,13 @@
-import { LayoutDashboard, Calculator, ClipboardCheck, AlertTriangle, Settings, Building2, FlaskConical, ChevronDown } from "lucide-react";
+import {
+  LayoutDashboard,
+  Calculator,
+  ClipboardCheck,
+  AlertTriangle,
+  Settings,
+  Building2,
+  FlaskConical,
+  ChevronDown,
+} from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -6,10 +15,10 @@ import { useProject } from "@/contexts/ProjectContext";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/computos", label: "Cómputos / APU", icon: Calculator },
-  { to: "/dosificaciones", label: "Dosificaciones", icon: FlaskConical },
-  { to: "/certificacion", label: "Certificación", icon: ClipboardCheck },
-  { to: "/supuestos", label: "Supuestos", icon: AlertTriangle },
+  { to: "/boq-items", label: "Cómputos / APU", icon: Calculator },
+  { to: "/mix-designs", label: "Dosificaciones", icon: FlaskConical },
+  { to: "/certifications", label: "Certificación", icon: ClipboardCheck },
+  { to: "/assumptions", label: "Supuestos", icon: AlertTriangle },
 ];
 
 export default function AppSidebar() {
@@ -38,7 +47,12 @@ export default function AppSidebar() {
             <p className="text-sm font-semibold text-sidebar-foreground truncate">
               {activeProject.name}
             </p>
-            <ChevronDown className={cn("h-3.5 w-3.5 text-sidebar-muted shrink-0 transition-transform", projectMenuOpen && "rotate-180")} />
+            <ChevronDown
+              className={cn(
+                "h-3.5 w-3.5 text-sidebar-muted shrink-0 transition-transform",
+                projectMenuOpen && "rotate-180",
+              )}
+            />
           </div>
         </button>
         {projectMenuOpen && (
@@ -46,12 +60,15 @@ export default function AppSidebar() {
             {projects.map((p) => (
               <button
                 key={p.id}
-                onClick={() => { setActiveProject(p); setProjectMenuOpen(false); }}
+                onClick={() => {
+                  setActiveProject(p);
+                  setProjectMenuOpen(false);
+                }}
                 className={cn(
                   "w-full px-3 py-2.5 text-left text-sm transition-colors",
                   p.id === activeProject.id
                     ? "bg-sidebar-accent text-sidebar-primary font-semibold"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
                 )}
               >
                 {p.name}
@@ -73,7 +90,7 @@ export default function AppSidebar() {
                 "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
                 active
                   ? "bg-sidebar-accent text-sidebar-primary"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
               )}
             >
               <item.icon className="h-4.5 w-4.5 shrink-0" />
