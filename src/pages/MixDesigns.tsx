@@ -9,6 +9,7 @@ import {
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
+import CreateMixDesignDialog from '@/components/CreateMixDesignDialog'
 import PageDataWrapper from '@/components/PageDataWrapper'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
@@ -41,19 +42,19 @@ function calcPurchase(comp: MixDesignLine, outputQty: number) {
 }
 
 function ConverterWidget({ mixDesign }: { mixDesign: MixDesign }) {
-    const [cantidad, setCantidad] = useState(10)
+    const [quantity, setQuantity] = useState(10)
 
     return (
         <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
-            <p className="text-sm font-semibold">Conversor paramétrico</p>
+            <p className="text-sm font-semibold">Parametric converter</p>
             <div className="flex items-center gap-3">
                 <label className="text-sm text-muted-foreground">
-                    Cantidad:
+                    Quantity:
                 </label>
                 <input
                     type="number"
-                    value={cantidad}
-                    onChange={(e) => setCantidad(Number(e.target.value))}
+                    value={quantity}
+                    onChange={(e) => setQuantity(Number(e.target.value))}
                     className="w-24 rounded-md border border-input bg-card px-3 py-1.5 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                     min={0}
                     step={1}
@@ -66,16 +67,16 @@ function ConverterWidget({ mixDesign }: { mixDesign: MixDesign }) {
             <table className="w-full text-sm">
                 <thead>
                     <tr className="text-xs text-muted-foreground">
-                        <th className="text-left py-1">Insumo</th>
-                        <th className="text-right py-1">Neto</th>
-                        <th className="text-right py-1">+Desperdicio</th>
-                        <th className="text-right py-1">Compra</th>
+                        <th className="text-left py-1">Material</th>
+                        <th className="text-right py-1">Net</th>
+                        <th className="text-right py-1">+Waste</th>
+                        <th className="text-right py-1">Purchase</th>
                     </tr>
                 </thead>
                 <tbody>
                     {mixDesign.components.map((comp) => {
                         const { neto, conDesperdicio, unidadesCompra } =
-                            calcPurchase(comp, cantidad)
+                            calcPurchase(comp, quantity)
                         return (
                             <tr
                                 key={comp.id}
@@ -107,14 +108,14 @@ function MixDesignDetail({ d, onBack }: { d: MixDesign; onBack: () => void }) {
                 onClick={onBack}
                 className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-                <ArrowLeft className="h-4 w-4" /> Volver a dosificaciones
+                <ArrowLeft className="h-4 w-4" /> Back to mix designs
             </button>
 
             <div>
                 <h1 className="text-2xl font-black tracking-tight">{d.name}</h1>
                 <p className="text-sm text-muted-foreground">{d.description}</p>
                 <span className="inline-block mt-1 rounded bg-muted px-2 py-0.5 text-xs font-mono">
-                    Unidad de salida: {d.outputUnit}
+                    Output unit: {d.outputUnit}
                 </span>
             </div>
 
@@ -124,22 +125,22 @@ function MixDesignDetail({ d, onBack }: { d: MixDesign; onBack: () => void }) {
                         <thead>
                             <tr className="border-b border-border bg-muted/50">
                                 <th className="px-4 py-3 text-left font-semibold text-muted-foreground">
-                                    Insumo
+                                    Material
                                 </th>
                                 <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                    Cant / {d.outputUnit}
+                                    Qty / {d.outputUnit}
                                 </th>
                                 <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                    Unidad
+                                    Unit
                                 </th>
                                 <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                    Und. Compra
+                                    Purchase unit
                                 </th>
                                 <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                    Rend./Compra
+                                    Yield / purchase
                                 </th>
                                 <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                    Desperdicio
+                                    Waste %
                                 </th>
                             </tr>
                         </thead>
@@ -180,16 +181,16 @@ function MixDesignDetail({ d, onBack }: { d: MixDesign; onBack: () => void }) {
                 <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
                     <p className="text-sm font-semibold mb-2 flex items-center gap-2">
                         <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                        Ítems vinculados en Cómputos
+                        Líneas de presupuesto vinculadas
                     </p>
                     <div className="space-y-1">
                         {d.linkedItems.map((id) => (
                             <Link
                                 key={id}
-                                to="/boq-items"
+                                to="/budget-lines"
                                 className="block text-sm text-primary hover:underline"
                             >
-                                Ítem #{id} → Ver en Cómputos
+                                Línea #{id} → Ver en presupuesto
                             </Link>
                         ))}
                     </div>
@@ -210,7 +211,8 @@ function MixDesignsGrid({
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {mixDesigns.length === 0 ? (
                 <p className="text-sm text-muted-foreground col-span-full">
-                    No hay dosificaciones. Creá una vía API o seed.
+                    No mix designs yet. Create one with the button above or via
+                    the API.
                 </p>
             ) : (
                 mixDesigns.map((d) => (
@@ -231,9 +233,9 @@ function MixDesignsGrid({
                             {d.description}
                         </p>
                         <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-                            <span>{d.components.length} componentes</span>
+                            <span>{d.components.length} components</span>
                             <span className="flex items-center gap-1">
-                                {d.linkedItems.length} ítems{' '}
+                                {d.linkedItems.length} lines{' '}
                                 <ChevronRight className="h-3 w-3" />
                             </span>
                         </div>
@@ -255,7 +257,7 @@ export default function MixDesigns() {
         isPending,
         error,
     } = useQuery({
-        queryKey: ['mix-designs', activeProject.id],
+        queryKey: ['mix-designs', activeProject.id, accessToken, studioSlug],
         queryFn: () =>
             apiFetch<MixDesign[]>(
                 `/v1/projects/${activeProject.id}/mix-designs`,
@@ -280,10 +282,10 @@ export default function MixDesigns() {
 
     return (
         <PageDataWrapper
-            title="Dosificaciones"
+            title="Mezclas"
             projectsLoading={projectsLoading}
             emptyProject={empty}
-            emptyMessage="Elegí un proyecto para ver dosificaciones."
+            emptyMessage="Elegí un proyecto para ver las mezclas."
             isPending={isPending}
             error={error}
         >
@@ -291,22 +293,25 @@ export default function MixDesigns() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h1 className="text-xl sm:text-2xl font-black tracking-tight">
-                            Dosificaciones
+                            Mezclas
                         </h1>
                         <p className="text-sm text-muted-foreground">
-                            Mezclas y conversiones paramétricas — ingreso manual
-                            (Phase 1)
+                            Composición y conversiones paramétricas — carga
+                            manual (fase 1)
                         </p>
                     </div>
-                    <button
-                        type="button"
-                        className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground opacity-60 cursor-not-allowed"
-                        disabled
-                        title="Alta vía API próximamente"
-                    >
-                        <Plus className="h-4 w-4" />
-                        Nueva dosificación
-                    </button>
+                    <CreateMixDesignDialog
+                        onCreated={setSelectedId}
+                        trigger={
+                            <button
+                                type="button"
+                                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+                            >
+                                <Plus className="h-4 w-4" />
+                                Nueva mezcla
+                            </button>
+                        }
+                    />
                 </div>
 
                 <MixDesignsGrid

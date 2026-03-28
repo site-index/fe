@@ -38,7 +38,7 @@ export default function Dashboard() {
                 title="Dashboard"
                 projectsLoading={projectsLoading}
                 emptyProject={emptyProject}
-                emptyMessage="No hay proyectos en este estudio."
+                emptyMessage="No projects in this studio."
                 isPending={isPending}
                 error={error}
             >
@@ -54,7 +54,7 @@ export default function Dashboard() {
                     Dashboard
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                    {activeProject.name} — Resumen general
+                    {activeProject.name} — overview
                 </p>
             </div>
 
@@ -66,22 +66,22 @@ export default function Dashboard() {
                 />
                 <MetricCard
                     label="Presupuesto total"
-                    value={data.presupuestoTotal}
-                    subtitle={data.presupuestoSubtitle}
+                    value={data.budgetTotal}
+                    subtitle={data.budgetSubtitle}
                     icon={DollarSign}
                     flaky
                 />
                 <MetricCard
-                    label="Gastado a la fecha"
-                    value={data.gastado}
-                    subtitle={data.gastadoPct}
+                    label="Spend to date"
+                    value={data.spent}
+                    subtitle={data.spentPercent}
                     icon={TrendingUp}
                     trend="neutral"
                 />
                 <MetricCard
-                    label="Supuestos pendientes"
-                    value={String(data.supuestosPendientes)}
-                    subtitle={`${data.supuestosAlto} de alto impacto`}
+                    label="Open assumptions"
+                    value={String(data.openAssumptionsCount)}
+                    subtitle={`${data.highImpactAssumptionsCount} high impact`}
                     icon={AlertTriangle}
                     trend="negative"
                 />
@@ -89,19 +89,19 @@ export default function Dashboard() {
 
             <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
                 <h2 className="text-base font-bold mb-4">
-                    Presupuesto vs. Real — Top rubros
+                    Presupuesto vs real — principales líneas
                 </h2>
-                <BudgetChart data={data.chartItems} />
+                <BudgetChart data={data.chartRows} />
             </div>
 
             <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
                 <h2 className="text-base font-bold mb-3">
-                    Últimos supuestos del sistema
+                    Latest system assumptions
                 </h2>
                 <ul className="space-y-2">
                     {data.recentAssumptions.length === 0 ? (
                         <li className="text-sm text-muted-foreground">
-                            No hay supuestos abiertos recientes.
+                            No recent open assumptions.
                         </li>
                     ) : (
                         data.recentAssumptions.map((a, i) => (

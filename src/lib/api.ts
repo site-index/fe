@@ -89,5 +89,5 @@ export function getApiErrorMessage(err: unknown): string {
         if (typeof b?.message === 'string') return b.message
     }
     if (err instanceof Error) return err.message
-    return 'Error desconocido'
+    return 'Unknown error'
 }

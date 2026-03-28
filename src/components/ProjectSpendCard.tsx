@@ -22,7 +22,7 @@ type Props = {
     enabled: boolean
 }
 
-/** Declared actual spend vs BOQ budget (Spanish UI). */
+/** Declared actual spend vs aggregated budget lines total. */
 export function ProjectSpendCard({
     projectId,
     projectName,
@@ -74,16 +74,16 @@ export function ProjectSpendCard({
             <div className="flex items-center gap-2">
                 <Wallet className="h-5 w-5 text-muted-foreground" />
                 <h2 className="font-bold text-sm">
-                    Gasto real (proyecto activo)
+                    Actual spend (active project)
                 </h2>
             </div>
             <p className="text-xs text-muted-foreground">
-                Proyecto:{' '}
+                Project:{' '}
                 <span className="font-semibold text-foreground">
                     {projectName}
                 </span>
-                . Declaración manual vs. presupuesto agregado de cómputo; si
-                supera el total, se generan alerta y supuesto.
+                . Declaración manual vs. presupuesto agregado de las líneas; si
+                supera el total, se crean alerta y supuesto.
             </p>
             {projectError && (
                 <p className="text-sm text-destructive">
@@ -92,9 +92,7 @@ export function ProjectSpendCard({
             )}
             <div className="flex flex-wrap items-end gap-3 max-w-md">
                 <div className="space-y-2 flex-1 min-w-[12rem]">
-                    <Label htmlFor="actual-spend">
-                        Gasto declarado a la fecha
-                    </Label>
+                    <Label htmlFor="actual-spend">Declared spend to date</Label>
                     <Input
                         key={`${projectId}-${defaultSpend}`}
                         ref={inputRef}
@@ -123,7 +121,7 @@ export function ProjectSpendCard({
                     {saveSpendMutation.isPending ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                        'Guardar'
+                        'Save'
                     )}
                 </Button>
             </div>

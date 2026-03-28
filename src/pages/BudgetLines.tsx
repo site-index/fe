@@ -7,50 +7,53 @@ import {
     Plus,
     Wrench,
 } from 'lucide-react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
-import { BoqMixDesignSelect } from '@/components/BoqMixDesignSelect'
+import { BudgetLineMixDesignSelect } from '@/components/BudgetLineMixDesignSelect'
+import CreateBudgetLineDialog from '@/components/CreateBudgetLineDialog'
+import EditBudgetLinePricingSheet from '@/components/EditBudgetLinePricingSheet'
 import PageDataWrapper from '@/components/PageDataWrapper'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
 import { apiFetch } from '@/lib/api'
-import type { BoqItemRow } from '@/types/boq-item'
+import type { BudgetLineRow } from '@/types/budget-line'
 
-export type { BoqItemRow } from '@/types/boq-item'
+export type { BudgetLineRow } from '@/types/budget-line'
 
 type MixRow = { id: string; name: string }
 
-function PillarBar({
-    materiales,
-    manoDeObra,
-    equipo,
+function CategorySplitBar({
+    materials,
+    labor,
+    equipment,
 }: {
-    materiales: number
-    manoDeObra: number
-    equipo: number
+    materials: number
+    labor: number
+    equipment: number
 }) {
     return (
         <div className="flex h-2 w-full overflow-hidden rounded-full">
             <div
                 className="bg-graphite"
-                style={{ width: `${materiales}%` }}
-                title={`Materiales ${materiales}%`}
+                style={{ width: `${materials}%` }}
+                title={`Materiales ${materials}%`}
             />
             <div
                 className="bg-positive"
-                style={{ width: `${manoDeObra}%` }}
-                title={`M.O. ${manoDeObra}%`}
+                style={{ width: `${labor}%` }}
+                title={`Mano de obra ${labor}%`}
             />
             <div
                 className="bg-muted-foreground/40"
-                style={{ width: `${equipo}%` }}
-                title={`Equipo ${equipo}%`}
+                style={{ width: `${equipment}%` }}
+                title={`Equipo ${equipment}%`}
             />
         </div>
     )
 }
 
-function useBoqItemsVm() {
+function useBudgetLinesVm() {
     const queryClient = useQueryClient()
     const { activeProject, projectsLoading } = useProject()
     const { accessToken, studioSlug } = useAuth()
@@ -59,10 +62,10 @@ function useBoqItemsVm() {
         Boolean(accessToken && studioSlug.trim()) && !empty && !projectsLoading
 
     const { data, isPending, error } = useQuery({
-        queryKey: ['boq-items', activeProject.id, accessToken, studioSlug],
+        queryKey: ['budget-lines', activeProject.id, accessToken, studioSlug],
         queryFn: () =>
-            apiFetch<BoqItemRow[]>(
-                `/v1/projects/${activeProject.id}/boq-items`,
+            apiFetch<BudgetLineRow[]>(
+                `/v1/projects/${activeProject.id}/budget-lines`,
                 {
                     token: accessToken,
                     studioSlug,
@@ -83,14 +86,14 @@ function useBoqItemsVm() {
 
     const patchMixMutation = useMutation({
         mutationFn: ({
-            boqItemId,
+            budgetLineId,
             mixDesignId,
         }: {
-            boqItemId: string
+            budgetLineId: string
             mixDesignId: string | null
         }) =>
-            apiFetch<BoqItemRow>(
-                `/v1/projects/${activeProject.id}/boq-items/${boqItemId}`,
+            apiFetch<BudgetLineRow>(
+                `/v1/projects/${activeProject.id}/budget-lines/${budgetLineId}`,
                 {
                     method: 'PATCH',
                     token: accessToken,
@@ -100,7 +103,7 @@ function useBoqItemsVm() {
             ),
         onSuccess: () => {
             void queryClient.invalidateQueries({
-                queryKey: ['boq-items', activeProject.id],
+                queryKey: ['budget-lines', activeProject.id],
             })
         },
     })
@@ -116,7 +119,7 @@ function useBoqItemsVm() {
     }
 }
 
-function BoqItemsBody({
+function BudgetLinesBody({
     projectsLoading,
     empty,
     isPending,
@@ -124,36 +127,49 @@ function BoqItemsBody({
     rows,
     mixes,
     patchMixMutation,
-}: ReturnType<typeof useBoqItemsVm>) {
+}: ReturnType<typeof useBudgetLinesVm>) {
+    const [pricingLine, setPricingLine] = useState<BudgetLineRow | null>(null)
+
     return (
         <PageDataWrapper
-            title="Cómputos & APU"
+            title="Líneas de presupuesto"
             projectsLoading={projectsLoading}
             emptyProject={empty}
-            emptyMessage="Elegí o creá un proyecto para ver ítems de cómputo."
+            emptyMessage="Elegí o creá un proyecto para ver las líneas de presupuesto."
             isPending={isPending}
             error={error}
         >
+            <EditBudgetLinePricingSheet
+                line={pricingLine}
+                open={pricingLine != null}
+                onOpenChange={(o) => {
+                    if (!o) {
+                        setPricingLine(null)
+                    }
+                }}
+            />
             <div className="space-y-6">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h1 className="text-xl sm:text-2xl font-black tracking-tight">
-                            Cómputos & APU
+                            Líneas de presupuesto y APU
                         </h1>
                         <p className="text-sm text-muted-foreground">
-                            Análisis de precios unitarios — 3 pilares:
-                            Materiales · M.O. · Equipo
+                            Análisis de precio unitario — desglose: materiales ·
+                            mano de obra · equipo
                         </p>
                     </div>
-                    <button
-                        type="button"
-                        className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors opacity-60 cursor-not-allowed"
-                        disabled
-                        title="Creación por API próximamente"
-                    >
-                        <Plus className="h-4 w-4" />
-                        Nuevo ítem
-                    </button>
+                    <CreateBudgetLineDialog
+                        trigger={
+                            <button
+                                type="button"
+                                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+                            >
+                                <Plus className="h-4 w-4" />
+                                Nueva línea
+                            </button>
+                        }
+                    />
                 </div>
 
                 <div className="flex gap-4 text-xs text-muted-foreground">
@@ -163,7 +179,7 @@ function BoqItemsBody({
                     </span>
                     <span className="flex items-center gap-1.5">
                         <HardHat className="h-3.5 w-3.5 text-positive" /> Mano
-                        de Obra
+                        de obra
                     </span>
                     <span className="flex items-center gap-1.5">
                         <Wrench className="h-3.5 w-3.5 text-muted-foreground/60" />{' '}
@@ -171,37 +187,36 @@ function BoqItemsBody({
                     </span>
                 </div>
 
-                {/* Mobile card view */}
                 <div className="space-y-3 md:hidden">
                     {rows.length === 0 ? (
                         <p className="text-sm text-muted-foreground">
-                            No hay ítems de cómputo. Creálos vía API o seed de
-                            desarrollo.
+                            Todavía no hay líneas. Creá una con el botón de
+                            arriba o vía API.
                         </p>
                     ) : (
-                        rows.map((item) => (
+                        rows.map((line) => (
                             <div
-                                key={item.id}
+                                key={line.id}
                                 className="rounded-lg border border-border bg-card p-4 shadow-sm space-y-2"
                             >
                                 <p className="text-xs text-muted-foreground">
-                                    {item.rubro}
+                                    {line.trade}
                                 </p>
                                 <p
-                                    className={`font-medium text-sm ${item.flaky ? 'data-flaky' : ''}`}
+                                    className={`font-medium text-sm ${line.flaky ? 'data-flaky' : ''}`}
                                 >
-                                    {item.item}
+                                    {line.description}
                                 </p>
                                 <div className="grid grid-cols-2 gap-2 text-xs">
                                     <div>
                                         <span className="text-muted-foreground">
-                                            Cant:
+                                            Cant.:
                                         </span>{' '}
                                         <span className="font-mono">
-                                            {item.cantidad.toLocaleString(
+                                            {line.quantity.toLocaleString(
                                                 'es-AR'
                                             )}{' '}
-                                            {item.unidad}
+                                            {line.unit}
                                         </span>
                                     </div>
                                     <div>
@@ -210,7 +225,7 @@ function BoqItemsBody({
                                         </span>{' '}
                                         <span className="font-mono">
                                             $
-                                            {item.precioUnit.toLocaleString(
+                                            {line.unitPrice.toLocaleString(
                                                 'es-AR'
                                             )}
                                         </span>
@@ -218,42 +233,48 @@ function BoqItemsBody({
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <span
-                                        className={`text-sm font-mono font-semibold ${item.flaky ? 'data-flaky' : ''}`}
+                                        className={`text-sm font-mono font-semibold ${line.flaky ? 'data-flaky' : ''}`}
                                     >
-                                        ${item.total.toLocaleString('es-AR')}
+                                        ${line.total.toLocaleString('es-AR')}
                                     </span>
                                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                 </div>
-                                <PillarBar {...item.pillars} />
+                                <CategorySplitBar {...line.categoryBreakdown} />
                                 <div className="pt-2 border-t border-border/60 space-y-1">
                                     <p className="text-xs text-muted-foreground">
-                                        Dosificación
+                                        Mezcla (rendimiento)
                                     </p>
-                                    <BoqMixDesignSelect
-                                        item={item}
+                                    <BudgetLineMixDesignSelect
+                                        line={line}
                                         mixes={mixes}
                                         disabled={patchMixMutation.isPending}
-                                        onChange={(boqItemId, mixId) => {
+                                        onChange={(budgetLineId, mixId) => {
                                             patchMixMutation.mutate({
-                                                boqItemId,
+                                                budgetLineId,
                                                 mixDesignId: mixId,
                                             })
                                         }}
                                     />
                                 </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setPricingLine(line)}
+                                    className="text-sm font-medium text-primary hover:underline"
+                                >
+                                    Precios / APU
+                                </button>
                             </div>
                         ))
                     )}
                 </div>
 
-                {/* Desktop table */}
                 <div className="hidden md:block rounded-lg border border-border bg-card shadow-sm overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="border-b border-border bg-muted/50">
                                     <th className="px-4 py-3 text-left font-semibold text-muted-foreground">
-                                        Rubro / Ítem
+                                        Rubro / descripción
                                     </th>
                                     <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
                                         Unidad
@@ -262,18 +283,20 @@ function BoqItemsBody({
                                         Cantidad
                                     </th>
                                     <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                        P. Unitario
+                                        P. unitario
                                     </th>
                                     <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
                                         Total
                                     </th>
                                     <th className="px-4 py-3 text-center font-semibold text-muted-foreground w-32">
-                                        APU Split
+                                        Desglose
                                     </th>
                                     <th className="px-4 py-3 text-left font-semibold text-muted-foreground min-w-[10rem]">
-                                        Dosificación
+                                        Mezcla
                                     </th>
-                                    <th className="w-10" />
+                                    <th className="px-4 py-3 text-left font-semibold text-muted-foreground whitespace-nowrap">
+                                        Precios
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -283,65 +306,67 @@ function BoqItemsBody({
                                             colSpan={8}
                                             className="px-4 py-8 text-center text-muted-foreground"
                                         >
-                                            No hay ítems de cómputo. Creálos vía
-                                            API o seed de desarrollo.
+                                            Todavía no hay líneas. Creá una con
+                                            el botón de arriba o vía API.
                                         </td>
                                     </tr>
                                 ) : (
-                                    rows.map((item) => (
+                                    rows.map((line) => (
                                         <tr
-                                            key={item.id}
+                                            key={line.id}
                                             className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors"
                                         >
                                             <td className="px-4 py-3">
                                                 <p className="text-xs text-muted-foreground">
-                                                    {item.rubro}
+                                                    {line.trade}
                                                 </p>
                                                 <p
-                                                    className={`font-medium ${item.flaky ? 'data-flaky' : ''}`}
+                                                    className={`font-medium ${line.flaky ? 'data-flaky' : ''}`}
                                                 >
-                                                    {item.item}
+                                                    {line.description}
                                                 </p>
                                             </td>
                                             <td className="px-4 py-3 text-right font-mono text-xs">
-                                                {item.unidad}
+                                                {line.unit}
                                             </td>
                                             <td className="px-4 py-3 text-right font-mono">
-                                                {item.cantidad.toLocaleString(
+                                                {line.quantity.toLocaleString(
                                                     'es-AR'
                                                 )}
                                             </td>
                                             <td className="px-4 py-3 text-right font-mono">
                                                 $
-                                                {item.precioUnit.toLocaleString(
+                                                {line.unitPrice.toLocaleString(
                                                     'es-AR'
                                                 )}
                                             </td>
                                             <td
-                                                className={`px-4 py-3 text-right font-mono font-semibold ${item.flaky ? 'data-flaky' : ''}`}
+                                                className={`px-4 py-3 text-right font-mono font-semibold ${line.flaky ? 'data-flaky' : ''}`}
                                             >
                                                 $
-                                                {item.total.toLocaleString(
+                                                {line.total.toLocaleString(
                                                     'es-AR'
                                                 )}
                                             </td>
                                             <td className="px-4 py-3">
-                                                <PillarBar {...item.pillars} />
+                                                <CategorySplitBar
+                                                    {...line.categoryBreakdown}
+                                                />
                                             </td>
                                             <td className="px-4 py-3">
-                                                <BoqMixDesignSelect
-                                                    item={item}
+                                                <BudgetLineMixDesignSelect
+                                                    line={line}
                                                     mixes={mixes}
                                                     disabled={
                                                         patchMixMutation.isPending
                                                     }
                                                     onChange={(
-                                                        boqItemId,
+                                                        budgetLineId,
                                                         mixId
                                                     ) => {
                                                         patchMixMutation.mutate(
                                                             {
-                                                                boqItemId,
+                                                                budgetLineId,
                                                                 mixDesignId:
                                                                     mixId,
                                                             }
@@ -350,7 +375,15 @@ function BoqItemsBody({
                                                 />
                                             </td>
                                             <td className="px-4 py-3">
-                                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setPricingLine(line)
+                                                    }
+                                                    className="text-sm font-medium text-primary hover:underline"
+                                                >
+                                                    Editar
+                                                </button>
                                             </td>
                                         </tr>
                                     ))
@@ -366,9 +399,9 @@ function BoqItemsBody({
                 >
                     <FlaskConical className="h-6 w-6 text-muted-foreground" />
                     <div className="flex-1">
-                        <p className="text-sm font-bold">Dosificaciones</p>
+                        <p className="text-sm font-bold">Mezclas</p>
                         <p className="text-xs text-muted-foreground">
-                            Mezclas y conversiones paramétricas
+                            Composición y conversiones paramétricas
                         </p>
                     </div>
                     <ChevronRight className="h-5 w-5 text-muted-foreground" />
@@ -378,7 +411,7 @@ function BoqItemsBody({
     )
 }
 
-export default function BoqItems() {
-    const vm = useBoqItemsVm()
-    return <BoqItemsBody {...vm} />
+export default function BudgetLines() {
+    const vm = useBudgetLinesVm()
+    return <BudgetLinesBody {...vm} />
 }

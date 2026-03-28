@@ -7,10 +7,10 @@ import { useProject } from '@/contexts/ProjectContext'
 import { apiFetch, getApiErrorMessage } from '@/lib/api'
 
 type CertRow = {
-    item: string
-    unidad: string
-    totalPlan: number
-    certAcum: number
+    description: string
+    unit: string
+    plannedQuantity: number
+    certifiedQuantity: number
     certPct: number
 }
 
@@ -39,7 +39,7 @@ function formatDate(iso: string | null): string {
     if (!iso) return '—'
     try {
         const d = new Date(iso)
-        return d.toLocaleDateString('es-AR', {
+        return d.toLocaleDateString('en-US', {
             day: 'numeric',
             month: 'short',
             year: 'numeric',
@@ -139,10 +139,10 @@ function CertificationReady({
         <div className="space-y-6">
             <div>
                 <h1 className="text-xl sm:text-2xl font-black tracking-tight">
-                    Certificación
+                    Certification
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                    Avance global de obra — certificaciones acumuladas
+                    Job-wide progress — accumulated certifications
                 </p>
             </div>
 
@@ -150,38 +150,41 @@ function CertificationReady({
                 <div className="flex items-center gap-3 mb-3">
                     <CheckCircle2 className="h-5 w-5 text-positive" />
                     <p className="font-bold">
-                        Avance global:{' '}
+                        Overall progress:{' '}
                         <span className="font-mono">{summary?.pct ?? 0}%</span>
                     </p>
                 </div>
                 <ProgressBar pct={summary?.pct ?? 0} />
                 <p className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
-                    <Clock className="h-3 w-3" /> Última certificación:{' '}
+                    <Clock className="h-3 w-3" /> Last certification:{' '}
                     {formatDate(summary?.lastCertLabel ?? null)}
                 </p>
             </div>
 
-            {/* Mobile card view */}
             <div className="space-y-3 md:hidden">
                 {rows.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
-                        No hay ítems de cómputo con cantidad planificada.
+                        No hay líneas de presupuesto con cantidad planificada.
                     </p>
                 ) : (
                     rows.map((row, i) => (
                         <div
-                            key={`${row.item}-${i}`}
+                            key={`${row.description}-${i}`}
                             className="rounded-lg border border-border bg-card p-4 shadow-sm space-y-2"
                         >
-                            <p className="font-medium text-sm">{row.item}</p>
+                            <p className="font-medium text-sm">
+                                {row.description}
+                            </p>
                             <div className="grid grid-cols-2 gap-2 text-xs">
                                 <div>
                                     <span className="text-muted-foreground">
                                         Plan:
                                     </span>{' '}
                                     <span className="font-mono">
-                                        {row.totalPlan.toLocaleString('es-AR')}{' '}
-                                        {row.unidad}
+                                        {row.plannedQuantity.toLocaleString(
+                                            'en-US'
+                                        )}{' '}
+                                        {row.unit}
                                     </span>
                                 </div>
                                 <div>
@@ -189,8 +192,10 @@ function CertificationReady({
                                         Cert.:
                                     </span>{' '}
                                     <span className="font-mono">
-                                        {row.certAcum.toLocaleString('es-AR')}{' '}
-                                        {row.unidad}
+                                        {row.certifiedQuantity.toLocaleString(
+                                            'en-US'
+                                        )}{' '}
+                                        {row.unit}
                                     </span>
                                 </div>
                             </div>
@@ -200,26 +205,25 @@ function CertificationReady({
                 )}
             </div>
 
-            {/* Desktop table */}
             <div className="hidden md:block rounded-lg border border-border bg-card shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="border-b border-border bg-muted/50">
                                 <th className="px-4 py-3 text-left font-semibold text-muted-foreground">
-                                    Ítem
+                                    Line
                                 </th>
                                 <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                    Unidad
+                                    Unit
                                 </th>
                                 <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                    Plan
+                                    Planned
                                 </th>
                                 <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                    Cert. Acum.
+                                    Certified
                                 </th>
                                 <th className="px-4 py-3 font-semibold text-muted-foreground w-48">
-                                    Avance
+                                    Progress
                                 </th>
                             </tr>
                         </thead>
@@ -230,30 +234,30 @@ function CertificationReady({
                                         colSpan={5}
                                         className="px-4 py-8 text-center text-muted-foreground"
                                     >
-                                        No hay ítems de cómputo con cantidad
-                                        planificada.
+                                        No hay líneas de presupuesto con
+                                        cantidad planificada.
                                     </td>
                                 </tr>
                             ) : (
                                 rows.map((row, i) => (
                                     <tr
-                                        key={`${row.item}-${i}`}
+                                        key={`${row.description}-${i}`}
                                         className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors"
                                     >
                                         <td className="px-4 py-3 font-medium">
-                                            {row.item}
+                                            {row.description}
                                         </td>
                                         <td className="px-4 py-3 text-right font-mono text-xs">
-                                            {row.unidad}
+                                            {row.unit}
                                         </td>
                                         <td className="px-4 py-3 text-right font-mono">
-                                            {row.totalPlan.toLocaleString(
-                                                'es-AR'
+                                            {row.plannedQuantity.toLocaleString(
+                                                'en-US'
                                             )}
                                         </td>
                                         <td className="px-4 py-3 text-right font-mono">
-                                            {row.certAcum.toLocaleString(
-                                                'es-AR'
+                                            {row.certifiedQuantity.toLocaleString(
+                                                'en-US'
                                             )}
                                         </td>
                                         <td className="px-4 py-3">
@@ -269,9 +273,9 @@ function CertificationReady({
 
             <div className="rounded-lg border border-dashed border-border bg-muted/30 p-6 text-center">
                 <p className="text-sm text-muted-foreground">
-                    <strong>Certificación detallada:</strong> ingreso de avances
-                    por periodo, aprobación por rubro, y back-calculation de
-                    consumos teóricos se expanden iterativamente.
+                    <strong>Detailed certification:</strong> period entry,
+                    trade-level approval, and theoretical consumption back-calc
+                    will expand in later iterations.
                 </p>
             </div>
         </div>
@@ -284,26 +288,26 @@ export default function Certification() {
         case 'loading-projects':
             return (
                 <div className="text-sm text-muted-foreground">
-                    Cargando proyectos…
+                    Loading projects…
                 </div>
             )
         case 'empty-project':
             return (
-                <CertificationSection title="Certificación">
+                <CertificationSection title="Certification">
                     <p className="text-sm text-muted-foreground">
-                        Elegí un proyecto para ver certificaciones.
+                        Select a project to view certifications.
                     </p>
                 </CertificationSection>
             )
         case 'loading-data':
             return (
-                <CertificationSection title="Certificación">
-                    <p className="text-sm text-muted-foreground">Cargando…</p>
+                <CertificationSection title="Certification">
+                    <p className="text-sm text-muted-foreground">Loading…</p>
                 </CertificationSection>
             )
         case 'error':
             return (
-                <CertificationSection title="Certificación">
+                <CertificationSection title="Certification">
                     <p className="text-sm text-destructive">{view.message}</p>
                 </CertificationSection>
             )

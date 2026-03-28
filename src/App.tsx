@@ -10,7 +10,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ProjectProvider } from '@/contexts/ProjectContext'
 import Assumptions from '@/pages/Assumptions'
-import BoqItems from '@/pages/BoqItems'
+import BudgetLines from '@/pages/BudgetLines'
 import Certification from '@/pages/Certification'
 import Dashboard from '@/pages/Dashboard'
 import Login from '@/pages/Login'
@@ -45,8 +45,8 @@ const App = () => (
                                 >
                                     <Route path="/" element={<Dashboard />} />
                                     <Route
-                                        path="/boq-items"
-                                        element={<BoqItems />}
+                                        path="/budget-lines"
+                                        element={<BudgetLines />}
                                     />
                                     <Route
                                         path="/mix-designs"
@@ -61,7 +61,7 @@ const App = () => (
                                         element={<Assumptions />}
                                     />
                                     <Route
-                                        path="/configuracion"
+                                        path="/settings"
                                         element={<SettingsPage />}
                                     />
                                 </Route>

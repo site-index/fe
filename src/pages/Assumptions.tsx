@@ -17,21 +17,21 @@ type AssumptionRow = {
     id: string
     text: string
     type: 'imputation' | 'deviation' | 'price_alert'
-    montoARS: number
-    impacto: 'alto' | 'medio' | 'bajo'
-    fecha: string
+    amountARS: number
+    impact: 'high' | 'medium' | 'low'
+    date: string
 }
 
 const typeLabels = {
-    imputation: 'Imputación',
-    deviation: 'Desvío',
-    price_alert: 'Precio',
+    imputation: 'Imputation',
+    deviation: 'Variance',
+    price_alert: 'Price',
 }
 
-const impactoColors = {
-    alto: 'text-negative font-semibold',
-    medio: 'text-yellow-600 font-medium',
-    bajo: 'text-muted-foreground',
+const impactColors = {
+    high: 'text-negative font-semibold',
+    medium: 'text-yellow-600 font-medium',
+    low: 'text-muted-foreground',
 }
 
 export default function Assumptions() {
@@ -85,10 +85,10 @@ export default function Assumptions() {
 
     return (
         <PageDataWrapper
-            title="Supuestos"
+            title="Assumptions"
             projectsLoading={projectsLoading}
             emptyProject={empty}
-            emptyMessage="Elegí un proyecto para ver supuestos abiertos."
+            emptyMessage="Select a project to view open assumptions."
             isPending={isPending}
             error={error}
         >
@@ -96,32 +96,30 @@ export default function Assumptions() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h1 className="text-xl sm:text-2xl font-black tracking-tight">
-                            Supuestos
+                            Assumptions
                         </h1>
                         <p className="text-sm text-muted-foreground">
-                            Cola de decisiones del sistema — revisión
-                            asincrónica
+                            System decision queue — async review
                         </p>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <ArrowUpDown className="h-3.5 w-3.5" />
-                        Ordenado por:{' '}
+                        Sort:{' '}
                         <span className="font-semibold text-foreground">
-                            Dinero · Tiempo · Impacto
+                            Money · Time · Impact
                         </span>
                     </div>
                 </div>
 
                 <div className="rounded-lg border border-dashed border-border bg-muted/30 p-4 text-center text-sm text-muted-foreground">
-                    <strong>Mix de ordenamiento personalizable:</strong> sliders
-                    de Dinero / Tiempo / Impacto para rebalancear la prioridad
-                    de la cola. <em>(Phase 2)</em>
+                    <strong>Custom sort mix:</strong> sliders for Money / Time /
+                    Impact to rebalance queue priority. <em>(Phase 2)</em>
                 </div>
 
                 <div className="space-y-3">
                     {rows.length === 0 ? (
                         <p className="text-sm text-muted-foreground">
-                            No hay supuestos abiertos.
+                            No open assumptions.
                         </p>
                     ) : (
                         rows.map((a) => {
@@ -138,18 +136,20 @@ export default function Assumptions() {
                                                 {typeLabels[a.type]}
                                             </span>
                                             <span
-                                                className={`text-xs ${impactoColors[a.impacto]}`}
+                                                className={`text-xs ${impactColors[a.impact]}`}
                                             >
-                                                {a.impacto.toUpperCase()}
+                                                {a.impact.toUpperCase()}
                                             </span>
                                             <span className="text-xs text-muted-foreground ml-auto">
-                                                {a.fecha}
+                                                {a.date}
                                             </span>
                                         </div>
                                         <p className="text-sm">{a.text}</p>
                                         <p className="mt-1 text-xs font-mono text-muted-foreground">
-                                            Monto involucrado: $
-                                            {a.montoARS.toLocaleString('es-AR')}
+                                            Amount involved: $
+                                            {a.amountARS.toLocaleString(
+                                                'en-US'
+                                            )}
                                         </p>
                                     </div>
                                     <div className="flex flex-col gap-1.5 shrink-0">
@@ -166,16 +166,16 @@ export default function Assumptions() {
                                             ) : (
                                                 <CheckCircle2 className="h-3.5 w-3.5" />
                                             )}
-                                            Confirmar
+                                            Confirm
                                         </button>
                                         <button
                                             type="button"
                                             className="inline-flex items-center gap-1.5 rounded-md bg-secondary px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-secondary/80 transition-colors opacity-60 cursor-not-allowed"
                                             disabled
-                                            title="Edición próximamente"
+                                            title="Editing coming soon"
                                         >
                                             <Edit3 className="h-3.5 w-3.5" />
-                                            Editar
+                                            Edit
                                         </button>
                                     </div>
                                 </div>
@@ -190,7 +190,7 @@ export default function Assumptions() {
                         className="rounded-lg border border-border bg-card px-6 py-2.5 text-sm font-semibold text-muted-foreground opacity-60 cursor-not-allowed"
                         disabled
                     >
-                        Confirmar todos los de bajo impacto (Pareto 90%)
+                        Confirm all low-impact (Pareto 90%)
                     </button>
                 </div>
             </div>

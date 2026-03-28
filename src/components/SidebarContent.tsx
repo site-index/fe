@@ -21,10 +21,10 @@ import ThemeToggle from './ThemeToggle'
 
 const navItems = [
     { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-    { to: '/boq-items', label: 'Cómputos / APU', icon: Calculator },
-    { to: '/mix-designs', label: 'Dosificaciones', icon: FlaskConical },
-    { to: '/certifications', label: 'Certificación', icon: ClipboardCheck },
-    { to: '/assumptions', label: 'Supuestos', icon: AlertTriangle },
+    { to: '/budget-lines', label: 'Líneas de presupuesto', icon: Calculator },
+    { to: '/mix-designs', label: 'Mezclas', icon: FlaskConical },
+    { to: '/certifications', label: 'Certification', icon: ClipboardCheck },
+    { to: '/assumptions', label: 'Assumptions', icon: AlertTriangle },
 ]
 
 interface SidebarContentProps {
@@ -58,9 +58,7 @@ export default function SidebarContent({ onNavigate }: SidebarContentProps) {
                         projects.length <= 1 && 'cursor-default'
                     )}
                 >
-                    <p className="text-xs text-sidebar-muted">
-                        Proyecto activo
-                    </p>
+                    <p className="text-xs text-sidebar-muted">Active project</p>
                     <div className="flex items-center justify-between">
                         <p className="text-sm font-semibold text-sidebar-foreground truncate">
                             {activeProject.name}
@@ -129,12 +127,12 @@ export default function SidebarContent({ onNavigate }: SidebarContentProps) {
             <div className="border-t border-sidebar-border p-3 flex items-center gap-1">
                 <ThemeToggle />
                 <NavLink
-                    to="/configuracion"
+                    to="/settings"
                     onClick={onNavigate}
                     className="flex flex-1 items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-muted hover:text-sidebar-foreground transition-colors"
                 >
                     <Settings className="h-4 w-4" />
-                    Configuración
+                    Settings
                 </NavLink>
                 <button
                     onClick={() => {
@@ -142,7 +140,7 @@ export default function SidebarContent({ onNavigate }: SidebarContentProps) {
                         onNavigate?.()
                     }}
                     className="rounded-md p-2 text-sidebar-muted hover:text-destructive transition-colors"
-                    title="Cerrar sesión"
+                    title="Log out"
                 >
                     <LogOut className="h-4 w-4" />
                 </button>

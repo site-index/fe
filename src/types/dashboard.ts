@@ -3,13 +3,13 @@ export interface DashboardData {
     cashStatus: 'ok' | 'warning' | 'critical'
     cashLabel: string
     cashDetail: string
-    presupuestoTotal: string
-    presupuestoSubtitle: string
-    gastado: string
-    gastadoPct: string
-    supuestosPendientes: number
-    supuestosAlto: number
-    chartItems: { name: string; presupuesto: number; real: number }[]
+    budgetTotal: string
+    budgetSubtitle: string
+    spent: string
+    spentPercent: string
+    openAssumptionsCount: number
+    highImpactAssumptionsCount: number
+    chartRows: { name: string; budget: number; actual: number }[]
     recentAssumptions: {
         text: string
         type: 'imputation' | 'alert' | 'deviation'

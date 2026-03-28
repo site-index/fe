@@ -9,13 +9,13 @@ import {
     YAxis,
 } from 'recharts'
 
-interface BudgetItem {
+interface ChartRow {
     name: string
-    presupuesto: number
-    real: number
+    budget: number
+    actual: number
 }
 
-export default function BudgetChart({ data }: { data: BudgetItem[] }) {
+export default function BudgetChart({ data }: { data: ChartRow[] }) {
     return (
         <ResponsiveContainer width="100%" height={280}>
             <BarChart data={data} barCategoryGap="20%">
@@ -37,7 +37,7 @@ export default function BudgetChart({ data }: { data: BudgetItem[] }) {
                 />
                 <Tooltip
                     formatter={(value: number) =>
-                        `$${value.toLocaleString('es-AR')}`
+                        `$${value.toLocaleString('en-US')}`
                     }
                     contentStyle={{
                         borderRadius: '0.5rem',
@@ -48,14 +48,14 @@ export default function BudgetChart({ data }: { data: BudgetItem[] }) {
                 />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Bar
-                    dataKey="presupuesto"
-                    name="Presupuesto"
+                    dataKey="budget"
+                    name="Budget"
                     fill="hsl(var(--primary))"
                     radius={[4, 4, 0, 0]}
                 />
                 <Bar
-                    dataKey="real"
-                    name="Real"
+                    dataKey="actual"
+                    name="Actual"
                     fill="hsl(var(--positive))"
                     radius={[4, 4, 0, 0]}
                 />

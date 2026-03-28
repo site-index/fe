@@ -5,33 +5,41 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import type { BoqItemRow } from '@/types/boq-item'
+import type { BudgetLineRow } from '@/types/budget-line'
 
 type MixRow = { id: string; name: string }
 
 const MIX_NONE = '__none__'
 
 type Props = {
-    item: BoqItemRow
+    line: BudgetLineRow
     mixes: MixRow[]
     disabled: boolean
-    onChange: (boqItemId: string, mixDesignId: string | null) => void
+    onChange: (budgetLineId: string, mixDesignId: string | null) => void
 }
 
-export function BoqMixDesignSelect({ item, mixes, disabled, onChange }: Props) {
+export function BudgetLineMixDesignSelect({
+    line,
+    mixes,
+    disabled,
+    onChange,
+}: Props) {
     return (
         <Select
-            value={item.mixDesignId ?? MIX_NONE}
+            value={line.mixDesignId ?? MIX_NONE}
             disabled={disabled}
             onValueChange={(v) => {
-                onChange(item.id, v === MIX_NONE ? null : v)
+                onChange(line.id, v === MIX_NONE ? null : v)
             }}
         >
-            <SelectTrigger className="h-8 text-xs">
+            <SelectTrigger
+                className="h-8 text-xs"
+                aria-label="Mezcla vinculada"
+            >
                 <SelectValue placeholder="—" />
             </SelectTrigger>
             <SelectContent>
-                <SelectItem value={MIX_NONE}>Sin vínculo</SelectItem>
+                <SelectItem value={MIX_NONE}>Sin mezcla</SelectItem>
                 {mixes.map((m) => (
                     <SelectItem key={m.id} value={m.id}>
                         {m.name}

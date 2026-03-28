@@ -23,7 +23,7 @@ describe('getApiErrorMessage', () => {
     })
 
     it('handles unknown', () => {
-        expect(getApiErrorMessage(null)).toBe('Error desconocido')
+        expect(getApiErrorMessage(null)).toBe('Unknown error')
     })
 })
 
