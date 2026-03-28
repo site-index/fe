@@ -129,7 +129,7 @@ function BudgetLineCard({
                 onClick={() => onOpenPricing(line)}
                 className="text-sm font-medium text-primary hover:underline"
             >
-                Precios / UPA
+                Precios / APU
             </button>
         </div>
     )
