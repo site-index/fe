@@ -35,10 +35,15 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+    const bypassAuth =
+        import.meta.env.VITE_BYPASS_AUTH === 'true' ||
+        localStorage.getItem('bypass_auth') === 'true'
+
     const [accessToken, setAccessToken] = useState<string | null>(() =>
-        localStorage.getItem(LS_TOKEN)
+        bypassAuth ? 'dev-bypass' : localStorage.getItem(LS_TOKEN)
     )
     const [studioSlug, setStudioSlugState] = useState(() => {
+        if (bypassAuth) return 'dev-studio'
         const fromLs = localStorage.getItem(LS_SLUG)
         if (fromLs) return fromLs
         return import.meta.env.VITE_STUDIO_SLUG?.trim() ?? ''

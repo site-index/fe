@@ -17,7 +17,6 @@ export default function RegisterForm({ onSuccess }: Props) {
     const { register } = useAuth()
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
-    const [studioSlug, setStudioSlug] = useState('')
     const [studioName, setStudioName] = useState('')
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -27,11 +26,18 @@ export default function RegisterForm({ onSuccess }: Props) {
         setError(null)
         setSubmitting(true)
         try {
+            const name = studioName.trim()
+            const autoSlug = name
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-|-$/g, '')
             await register({
                 email: email.trim(),
                 password,
-                studioSlug: studioSlug.trim().toLowerCase(),
-                studioName: studioName.trim(),
+                studioSlug: autoSlug,
+                studioName: name,
             })
             await queryClient.invalidateQueries({ queryKey: ['projects'] })
             onSuccess?.()
@@ -68,17 +74,6 @@ export default function RegisterForm({ onSuccess }: Props) {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     minLength={8}
-                    required
-                />
-            </div>
-            <div className="space-y-1.5">
-                <Label htmlFor="register-slug">Slug del estudio</Label>
-                <Input
-                    id="register-slug"
-                    value={studioSlug}
-                    onChange={(e) => setStudioSlug(e.target.value)}
-                    className="font-mono"
-                    placeholder="acme"
                     required
                 />
             </div>
