@@ -3,7 +3,7 @@ export type BudgetLineRow = {
     workCategoryId: string | null
     workCategoryName: string
     description: string
-    unit: string
+    measureUnit: { id: string; code: string; name: string } | null
     quantity: number
     unitPrice: number
     total: number

@@ -66,7 +66,7 @@ const schema = z.object({
         .min(1, 'La descripción es obligatoria')
         .max(2000, 'Máximo 2000 caracteres'),
     workCategoryId: z.union([z.literal(RUBRO_NONE), z.string().uuid()]),
-    unit: z.string().trim().max(32, 'Máximo 32 caracteres'),
+    measureUnitId: z.union([z.literal(UNIT_NONE), z.string().uuid()]),
     quantityStr: optionalNonNegStr,
     unitPriceStr: optionalNonNegStr,
     amountMaterialStr: optionalNonNegStr,
@@ -96,7 +96,7 @@ export default function CreateBudgetLineDialog({
     const defaultForm: FormValues = {
         description: '',
         workCategoryId: RUBRO_NONE,
-        unit: '',
+        measureUnitId: UNIT_NONE,
         quantityStr: '',
         unitPriceStr: '',
         amountMaterialStr: '',
@@ -138,8 +138,8 @@ export default function CreateBudgetLineDialog({
             if (values.workCategoryId !== RUBRO_NONE) {
                 body.workCategoryId = values.workCategoryId
             }
-            if (values.unit.trim() !== '') {
-                body.unit = values.unit.trim()
+            if (values.measureUnitId !== UNIT_NONE) {
+                body.measureUnitId = values.measureUnitId
             }
             if (values.quantityStr.trim() !== '') {
                 body.quantity = toNum(values.quantityStr)
@@ -268,22 +268,14 @@ export default function CreateBudgetLineDialog({
                         />
                         <FormField
                             control={form.control}
-                            name="unit"
+                            name="measureUnitId"
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Unidad (opcional)</FormLabel>
                                     <Select
                                         disabled={measureUnitsLoading}
-                                        onValueChange={(v) =>
-                                            field.onChange(
-                                                v === UNIT_NONE ? '' : v
-                                            )
-                                        }
-                                        value={
-                                            field.value === ''
-                                                ? UNIT_NONE
-                                                : field.value
-                                        }
+                                        onValueChange={field.onChange}
+                                        value={field.value}
                                     >
                                         <FormControl>
                                             <SelectTrigger aria-label="Unidad">
@@ -297,7 +289,7 @@ export default function CreateBudgetLineDialog({
                                             {measureUnits.map((u) => (
                                                 <SelectItem
                                                     key={u.id}
-                                                    value={u.name}
+                                                    value={u.id}
                                                 >
                                                     {u.name}
                                                 </SelectItem>

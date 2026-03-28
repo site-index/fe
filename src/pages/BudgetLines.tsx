@@ -224,7 +224,7 @@ function BudgetLinesBody({
                                             {line.quantity.toLocaleString(
                                                 'es-AR'
                                             )}{' '}
-                                            {line.unit}
+                                            {line.measureUnit?.name ?? '—'}
                                         </span>
                                     </div>
                                     <div>
@@ -337,7 +337,7 @@ function BudgetLinesBody({
                                                 </p>
                                             </td>
                                             <td className="px-4 py-3 text-right font-mono text-xs">
-                                                {line.unit}
+                                                {line.measureUnit?.name ?? '—'}
                                             </td>
                                             <td className="px-4 py-3 text-right font-mono">
                                                 {line.quantity.toLocaleString(
