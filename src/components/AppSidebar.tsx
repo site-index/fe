@@ -14,6 +14,7 @@ import { useProject } from '@/contexts/ProjectContext'
 import { cn } from '@/lib/utils'
 
 import SiteLogo from './SiteLogo'
+import ThemeToggle from './ThemeToggle'
 
 const navItems = [
     { to: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -105,10 +106,11 @@ export default function AppSidebar() {
             </nav>
 
             {/* Footer */}
-            <div className="border-t border-sidebar-border p-3">
+            <div className="border-t border-sidebar-border p-3 flex items-center gap-1">
+                <ThemeToggle />
                 <NavLink
                     to="/configuracion"
-                    className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-muted hover:text-sidebar-foreground transition-colors"
+                    className="flex flex-1 items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-muted hover:text-sidebar-foreground transition-colors"
                 >
                     <Settings className="h-4 w-4" />
                     Configuración

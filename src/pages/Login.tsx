@@ -35,7 +35,7 @@ export default function Login() {
             <div className="w-full max-w-2xl space-y-8">
                 <div className="text-center space-y-2">
                     <div className="flex justify-center">
-                        <SiteLogo className="h-12 w-12 max-w-full" />
+                        <SiteLogo className="h-12 w-12 max-w-full dark:brightness-0 dark:invert" />
                     </div>
                     <h1 className="text-2xl font-black tracking-tight">
                         SITE INDEX
