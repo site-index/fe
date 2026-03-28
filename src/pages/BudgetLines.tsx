@@ -21,7 +21,12 @@ import type { BudgetLineRow } from '@/types/budget-line'
 
 export type { BudgetLineRow } from '@/types/budget-line'
 
-type YieldOptionRow = { id: string; name: string }
+type YieldOptionRow = {
+    id: string
+    name: string
+    workCategoryId: string
+    workCategoryName: string
+}
 
 function CategorySplitBar({
     materials,
@@ -203,7 +208,7 @@ function BudgetLinesBody({
                                 className="rounded-lg border border-border bg-card p-4 shadow-sm space-y-2"
                             >
                                 <p className="text-xs text-muted-foreground">
-                                    {line.trade}
+                                    {line.workCategoryName}
                                 </p>
                                 <p
                                     className={`font-medium text-sm ${line.flaky ? 'data-flaky' : ''}`}
@@ -323,7 +328,7 @@ function BudgetLinesBody({
                                         >
                                             <td className="px-4 py-3">
                                                 <p className="text-xs text-muted-foreground">
-                                                    {line.trade}
+                                                    {line.workCategoryName}
                                                 </p>
                                                 <p
                                                     className={`font-medium ${line.flaky ? 'data-flaky' : ''}`}

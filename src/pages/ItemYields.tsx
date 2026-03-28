@@ -27,6 +27,8 @@ interface ItemYieldLine {
 
 interface ItemYield {
     id: string
+    workCategoryId: string
+    workCategoryName: string
     name: string
     description: string
     outputUnit: string
@@ -112,6 +114,9 @@ function ItemYieldDetail({ d, onBack }: { d: ItemYield; onBack: () => void }) {
             </button>
 
             <div>
+                <p className="text-xs text-muted-foreground mb-1">
+                    {d.workCategoryName}
+                </p>
                 <h1 className="text-2xl font-black tracking-tight">{d.name}</h1>
                 <p className="text-sm text-muted-foreground">{d.description}</p>
                 <span className="inline-block mt-1 rounded bg-muted px-2 py-0.5 text-xs font-mono">
@@ -228,6 +233,9 @@ function ItemYieldsGrid({
                                 {d.outputUnit}
                             </span>
                         </div>
+                        <p className="text-[11px] text-muted-foreground mb-0.5">
+                            {d.workCategoryName}
+                        </p>
                         <h3 className="font-bold mb-1">{d.name}</h3>
                         <p className="text-xs text-muted-foreground line-clamp-2">
                             {d.description}

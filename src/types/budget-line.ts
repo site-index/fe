@@ -1,6 +1,7 @@
 export type BudgetLineRow = {
     id: string
-    trade: string
+    workCategoryId: string | null
+    workCategoryName: string
     description: string
     unit: string
     quantity: number

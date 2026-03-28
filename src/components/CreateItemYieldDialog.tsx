@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -24,12 +24,24 @@ import {
     FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
 import { useToast } from '@/hooks/use-toast'
 import { apiFetch, getApiErrorMessage } from '@/lib/api'
+import {
+    OTHER_WORK_CATEGORY_ID,
+    type WorkCategoryRow,
+} from '@/types/work-category'
 
 const schema = z.object({
+    workCategoryId: z.string().uuid('Elegí un rubro'),
     name: z
         .string()
         .trim()
@@ -47,6 +59,8 @@ type FormValues = z.infer<typeof schema>
 
 export interface CreatedItemYield {
     id: string
+    workCategoryId: string
+    workCategoryName: string
     name: string
     description: string
     outputUnit: string
@@ -77,18 +91,32 @@ export default function CreateItemYieldDialog({
     const queryClient = useQueryClient()
     const { toast } = useToast()
 
+    const resetValues: FormValues = {
+        workCategoryId: OTHER_WORK_CATEGORY_ID,
+        name: '',
+        description: '',
+        outputUnit: 'm³',
+    }
+
     const form = useForm<FormValues>({
         resolver: zodResolver(schema),
-        defaultValues: {
-            name: '',
-            description: '',
-            outputUnit: 'm³',
-        },
+        defaultValues: resetValues,
+    })
+
+    const { data: categories = [], isPending: categoriesLoading } = useQuery({
+        queryKey: ['work-categories', accessToken, studioSlug],
+        queryFn: () =>
+            apiFetch<WorkCategoryRow[]>('/v1/work-categories', {
+                token: accessToken,
+                studioSlug,
+            }),
+        enabled: open && Boolean(accessToken && studioSlug.trim()),
     })
 
     const onSubmit = async (values: FormValues) => {
         try {
             const body: {
+                workCategoryId: string
                 name: string
                 description?: string
                 components: {
@@ -97,6 +125,7 @@ export default function CreateItemYieldDialog({
                     lines: []
                 }
             } = {
+                workCategoryId: values.workCategoryId,
                 name: values.name,
                 components: {
                     outputUnit: values.outputUnit,
@@ -123,11 +152,7 @@ export default function CreateItemYieldDialog({
                 title: 'Rendimiento creado',
                 description: created.name,
             })
-            form.reset({
-                name: '',
-                description: '',
-                outputUnit: 'm³',
-            })
+            form.reset(resetValues)
             setOpen(false)
             onCreated?.(created.id)
         } catch (err) {
@@ -139,17 +164,18 @@ export default function CreateItemYieldDialog({
         }
     }
 
+    const canSubmit =
+        !categoriesLoading &&
+        categories.length > 0 &&
+        !form.formState.isSubmitting
+
     return (
         <Dialog
             open={open}
             onOpenChange={(v) => {
                 setOpen(v)
                 if (!v) {
-                    form.reset({
-                        name: '',
-                        description: '',
-                        outputUnit: 'm³',
-                    })
+                    form.reset(resetValues)
                 }
             }}
         >
@@ -165,8 +191,8 @@ export default function CreateItemYieldDialog({
                 <DialogHeader>
                     <DialogTitle>Nuevo rendimiento</DialogTitle>
                     <DialogDescription>
-                        Podés agregar líneas de materiales después (p. ej. vía
-                        API).
+                        Elegí el rubro y la unidad del ítem. Podés agregar
+                        líneas de materiales después (p. ej. vía API).
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
@@ -174,6 +200,37 @@ export default function CreateItemYieldDialog({
                         onSubmit={form.handleSubmit(onSubmit)}
                         className="space-y-4"
                     >
+                        <FormField
+                            control={form.control}
+                            name="workCategoryId"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Rubro</FormLabel>
+                                    <Select
+                                        disabled={categoriesLoading}
+                                        onValueChange={field.onChange}
+                                        value={field.value}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger aria-label="Rubro">
+                                                <SelectValue placeholder="Cargando rubros…" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {categories.map((c) => (
+                                                <SelectItem
+                                                    key={c.id}
+                                                    value={c.id}
+                                                >
+                                                    {c.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                         <FormField
                             control={form.control}
                             name="name"
@@ -222,10 +279,7 @@ export default function CreateItemYieldDialog({
                             )}
                         />
                         <DialogFooter>
-                            <Button
-                                type="submit"
-                                disabled={form.formState.isSubmitting}
-                            >
+                            <Button type="submit" disabled={!canSubmit}>
                                 {form.formState.isSubmitting
                                     ? 'Creando…'
                                     : 'Crear'}

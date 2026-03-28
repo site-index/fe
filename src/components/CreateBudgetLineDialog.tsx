@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -30,11 +30,21 @@ import {
     FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
 import { useToast } from '@/hooks/use-toast'
 import { apiFetch, getApiErrorMessage } from '@/lib/api'
 import type { BudgetLineRow } from '@/types/budget-line'
+import type { WorkCategoryRow } from '@/types/work-category'
+
+const RUBRO_NONE = '__none__'
 
 const optionalNonNegStr = z
     .string()
@@ -53,7 +63,7 @@ const schema = z.object({
         .trim()
         .min(1, 'La descripción es obligatoria')
         .max(2000, 'Máximo 2000 caracteres'),
-    trade: z.string().trim().max(200, 'Máximo 200 caracteres'),
+    workCategoryId: z.union([z.literal(RUBRO_NONE), z.string().uuid()]),
     unit: z.string().trim().max(32, 'Máximo 32 caracteres'),
     quantityStr: optionalNonNegStr,
     unitPriceStr: optionalNonNegStr,
@@ -83,7 +93,7 @@ export default function CreateBudgetLineDialog({
 
     const defaultForm: FormValues = {
         description: '',
-        trade: '',
+        workCategoryId: RUBRO_NONE,
         unit: '',
         quantityStr: '',
         unitPriceStr: '',
@@ -97,13 +107,23 @@ export default function CreateBudgetLineDialog({
         defaultValues: defaultForm,
     })
 
+    const { data: categories = [], isPending: categoriesLoading } = useQuery({
+        queryKey: ['work-categories', accessToken, studioSlug],
+        queryFn: () =>
+            apiFetch<WorkCategoryRow[]>('/v1/work-categories', {
+                token: accessToken,
+                studioSlug,
+            }),
+        enabled: open && Boolean(accessToken && studioSlug.trim()),
+    })
+
     const onSubmit = async (values: FormValues) => {
         try {
             const body: Record<string, unknown> = {
                 description: values.description,
             }
-            if (values.trade.trim() !== '') {
-                body.trade = values.trade.trim()
+            if (values.workCategoryId !== RUBRO_NONE) {
+                body.workCategoryId = values.workCategoryId
             }
             if (values.unit.trim() !== '') {
                 body.unit = values.unit.trim()
@@ -174,9 +194,8 @@ export default function CreateBudgetLineDialog({
                 <DialogHeader>
                     <DialogTitle>Nueva línea de presupuesto</DialogTitle>
                     <DialogDescription>
-                        La descripción es obligatoria. Precio unitario, cantidad
-                        y desglose por categoría (materiales, mano de obra,
-                        equipo) son opcionales.
+                        La descripción es obligatoria. Rubro, precio unitario,
+                        cantidad y desglose por categoría son opcionales.
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
@@ -202,16 +221,34 @@ export default function CreateBudgetLineDialog({
                         />
                         <FormField
                             control={form.control}
-                            name="trade"
+                            name="workCategoryId"
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Rubro (opcional)</FormLabel>
-                                    <FormControl>
-                                        <Input
-                                            placeholder="Ej. Estructura"
-                                            {...field}
-                                        />
-                                    </FormControl>
+                                    <Select
+                                        disabled={categoriesLoading}
+                                        onValueChange={field.onChange}
+                                        value={field.value}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger aria-label="Rubro">
+                                                <SelectValue placeholder="Cargando…" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value={RUBRO_NONE}>
+                                                Sin rubro
+                                            </SelectItem>
+                                            {categories.map((c) => (
+                                                <SelectItem
+                                                    key={c.id}
+                                                    value={c.id}
+                                                >
+                                                    {c.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                     <FormMessage />
                                 </FormItem>
                             )}
