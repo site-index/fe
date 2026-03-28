@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
     ChevronRight,
     FlaskConical,
@@ -9,22 +9,16 @@ import {
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
+import { BoqMixDesignSelect } from '@/components/BoqMixDesignSelect'
 import PageDataWrapper from '@/components/PageDataWrapper'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
 import { apiFetch } from '@/lib/api'
+import type { BoqItemRow } from '@/types/boq-item'
 
-export type BoqItemRow = {
-    id: string
-    rubro: string
-    item: string
-    unidad: string
-    cantidad: number
-    precioUnit: number
-    total: number
-    flaky: boolean
-    pillars: { materiales: number; manoDeObra: number; equipo: number }
-}
+export type { BoqItemRow } from '@/types/boq-item'
+
+type MixRow = { id: string; name: string }
 
 function PillarBar({
     materiales,
@@ -56,13 +50,16 @@ function PillarBar({
     )
 }
 
-export default function BoqItems() {
+function useBoqItemsVm() {
+    const queryClient = useQueryClient()
     const { activeProject, projectsLoading } = useProject()
     const { accessToken, studioSlug } = useAuth()
     const empty = activeProject.id === '__empty__'
+    const queryEnabled =
+        Boolean(accessToken && studioSlug.trim()) && !empty && !projectsLoading
 
     const { data, isPending, error } = useQuery({
-        queryKey: ['boq-items', activeProject.id],
+        queryKey: ['boq-items', activeProject.id, accessToken, studioSlug],
         queryFn: () =>
             apiFetch<BoqItemRow[]>(
                 `/v1/projects/${activeProject.id}/boq-items`,
@@ -71,14 +68,63 @@ export default function BoqItems() {
                     studioSlug,
                 }
             ),
-        enabled:
-            Boolean(accessToken && studioSlug.trim()) &&
-            !empty &&
-            !projectsLoading,
+        enabled: queryEnabled,
     })
 
-    const rows = data ?? []
+    const { data: mixes = [] } = useQuery({
+        queryKey: ['mix-designs', activeProject.id, accessToken, studioSlug],
+        queryFn: () =>
+            apiFetch<MixRow[]>(`/v1/projects/${activeProject.id}/mix-designs`, {
+                token: accessToken,
+                studioSlug,
+            }),
+        enabled: queryEnabled,
+    })
 
+    const patchMixMutation = useMutation({
+        mutationFn: ({
+            boqItemId,
+            mixDesignId,
+        }: {
+            boqItemId: string
+            mixDesignId: string | null
+        }) =>
+            apiFetch<BoqItemRow>(
+                `/v1/projects/${activeProject.id}/boq-items/${boqItemId}`,
+                {
+                    method: 'PATCH',
+                    token: accessToken,
+                    studioSlug,
+                    body: { mixDesignId },
+                }
+            ),
+        onSuccess: () => {
+            void queryClient.invalidateQueries({
+                queryKey: ['boq-items', activeProject.id],
+            })
+        },
+    })
+
+    return {
+        projectsLoading,
+        empty,
+        isPending,
+        error: error as Error | null,
+        rows: data ?? [],
+        mixes,
+        patchMixMutation,
+    }
+}
+
+function BoqItemsBody({
+    projectsLoading,
+    empty,
+    isPending,
+    error,
+    rows,
+    mixes,
+    patchMixMutation,
+}: ReturnType<typeof useBoqItemsVm>) {
     return (
         <PageDataWrapper
             title="Cómputos & APU"
@@ -179,6 +225,22 @@ export default function BoqItems() {
                                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                 </div>
                                 <PillarBar {...item.pillars} />
+                                <div className="pt-2 border-t border-border/60 space-y-1">
+                                    <p className="text-xs text-muted-foreground">
+                                        Dosificación
+                                    </p>
+                                    <BoqMixDesignSelect
+                                        item={item}
+                                        mixes={mixes}
+                                        disabled={patchMixMutation.isPending}
+                                        onChange={(boqItemId, mixId) => {
+                                            patchMixMutation.mutate({
+                                                boqItemId,
+                                                mixDesignId: mixId,
+                                            })
+                                        }}
+                                    />
+                                </div>
                             </div>
                         ))
                     )}
@@ -208,6 +270,9 @@ export default function BoqItems() {
                                     <th className="px-4 py-3 text-center font-semibold text-muted-foreground w-32">
                                         APU Split
                                     </th>
+                                    <th className="px-4 py-3 text-left font-semibold text-muted-foreground min-w-[10rem]">
+                                        Dosificación
+                                    </th>
                                     <th className="w-10" />
                                 </tr>
                             </thead>
@@ -215,7 +280,7 @@ export default function BoqItems() {
                                 {rows.length === 0 ? (
                                     <tr>
                                         <td
-                                            colSpan={7}
+                                            colSpan={8}
                                             className="px-4 py-8 text-center text-muted-foreground"
                                         >
                                             No hay ítems de cómputo. Creálos vía
@@ -264,6 +329,27 @@ export default function BoqItems() {
                                                 <PillarBar {...item.pillars} />
                                             </td>
                                             <td className="px-4 py-3">
+                                                <BoqMixDesignSelect
+                                                    item={item}
+                                                    mixes={mixes}
+                                                    disabled={
+                                                        patchMixMutation.isPending
+                                                    }
+                                                    onChange={(
+                                                        boqItemId,
+                                                        mixId
+                                                    ) => {
+                                                        patchMixMutation.mutate(
+                                                            {
+                                                                boqItemId,
+                                                                mixDesignId:
+                                                                    mixId,
+                                                            }
+                                                        )
+                                                    }}
+                                                />
+                                            </td>
+                                            <td className="px-4 py-3">
                                                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                             </td>
                                         </tr>
@@ -290,4 +376,9 @@ export default function BoqItems() {
             </div>
         </PageDataWrapper>
     )
+}
+
+export default function BoqItems() {
+    const vm = useBoqItemsVm()
+    return <BoqItemsBody {...vm} />
 }

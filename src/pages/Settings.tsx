@@ -2,16 +2,20 @@ import { useQueryClient } from '@tanstack/react-query'
 import { DollarSign, Globe, Loader2, Settings } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 
+import { ProjectSpendCard } from '@/components/ProjectSpendCard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/contexts/AuthContext'
+import { useProject } from '@/contexts/ProjectContext'
 import { getHealthUrl } from '@/lib/api'
 
 /** Settings / configuration page (UI copy in Spanish). */
 export default function SettingsPage() {
     const queryClient = useQueryClient()
     const { accessToken, studioSlug, setStudioSlug, logout } = useAuth()
+    const { activeProject, projectsLoading } = useProject()
+    const emptyProject = activeProject.id === '__empty__'
 
     const [slugDraft, setSlugDraft] = useState(studioSlug)
     useEffect(() => {
@@ -121,6 +125,19 @@ export default function SettingsPage() {
                     </Button>
                 </div>
             </div>
+
+            {!emptyProject && (
+                <ProjectSpendCard
+                    projectId={activeProject.id}
+                    projectName={activeProject.name}
+                    accessToken={accessToken}
+                    studioSlug={studioSlug}
+                    enabled={
+                        Boolean(accessToken && studioSlug.trim()) &&
+                        !projectsLoading
+                    }
+                />
+            )}
 
             <div className="grid gap-4 md:grid-cols-2">
                 <div className="rounded-lg border border-border bg-card p-5 shadow-sm space-y-3">
