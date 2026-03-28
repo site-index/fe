@@ -182,6 +182,67 @@ describe('apiFetch', () => {
         )
     })
 
+    it('dedupes concurrent refresh: two parallel 401s trigger one POST /auth/refresh', async () => {
+        vi.stubEnv('VITE_API_URL', '')
+        const unauthorized = {
+            ok: false,
+            status: 401,
+            text: async () => '',
+            json: async () => ({}),
+        }
+        const refreshOk = {
+            ok: true,
+            status: 200,
+            text: () => Promise.resolve('{"accessToken":"fresh"}'),
+            json: () => Promise.resolve({ accessToken: 'fresh' }),
+        }
+        const firstHit = { a: true, b: true }
+        vi.stubGlobal(
+            'fetch',
+            vi.fn().mockImplementation((url: string) => {
+                const u = String(url)
+                if (u.includes('/v1/auth/refresh')) {
+                    return Promise.resolve(refreshOk)
+                }
+                if (u.includes('/concurrent-a')) {
+                    if (firstHit.a) {
+                        firstHit.a = false
+                        return Promise.resolve(unauthorized)
+                    }
+                    return Promise.resolve({
+                        ok: true,
+                        status: 200,
+                        text: () => Promise.resolve('{"v":"a"}'),
+                    })
+                }
+                if (u.includes('/concurrent-b')) {
+                    if (firstHit.b) {
+                        firstHit.b = false
+                        return Promise.resolve(unauthorized)
+                    }
+                    return Promise.resolve({
+                        ok: true,
+                        status: 200,
+                        text: () => Promise.resolve('{"v":"b"}'),
+                    })
+                }
+                return Promise.resolve(unauthorized)
+            })
+        )
+
+        const [ra, rb] = await Promise.all([
+            apiFetch<{ v: string }>('/concurrent-a', { token: 'stale' }),
+            apiFetch<{ v: string }>('/concurrent-b', { token: 'stale' }),
+        ])
+        expect(ra).toEqual({ v: 'a' })
+        expect(rb).toEqual({ v: 'b' })
+
+        const refreshCalls = vi
+            .mocked(fetch)
+            .mock.calls.filter((c) => String(c[0]).includes('/v1/auth/refresh'))
+        expect(refreshCalls).toHaveLength(1)
+    })
+
     it('calls session invalidation handler when 401 and refresh fails', async () => {
         vi.stubEnv('VITE_API_URL', '')
         const unauthorized = {

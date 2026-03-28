@@ -29,3 +29,22 @@ export function parseAccessTokenEmail(
     const payload = decodeJwtPayloadSegment(parts[1])
     return emailFromPayload(payload)
 }
+
+/** Skew so we refresh slightly before the server rejects the access JWT. */
+const ACCESS_EXP_SKEW_MS = 30_000
+
+/**
+ * True if the JWT `exp` is missing or in the past (relative to skew). Used for proactive refresh only; signature is not verified.
+ */
+export function isAccessTokenExpired(accessToken: string | null): boolean {
+    if (!accessToken?.length) return false
+    const parts = accessToken.split('.')
+    if (parts.length < 2 || !parts[1]) return true
+    const payload = decodeJwtPayloadSegment(parts[1])
+    if (!payload || typeof payload !== 'object' || !('exp' in payload)) {
+        return true
+    }
+    const exp = (payload as { exp: unknown }).exp
+    if (typeof exp !== 'number' || !Number.isFinite(exp)) return true
+    return Date.now() >= exp * 1000 - ACCESS_EXP_SKEW_MS
+}

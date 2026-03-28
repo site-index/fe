@@ -12,11 +12,12 @@ import {
 import {
     apiFetch,
     apiLogout,
+    refreshAccessToken,
     registerAccessTokenPersistence,
     registerSessionInvalidatedHandler,
     syncApiAccessToken,
 } from '@/lib/api'
-import { parseAccessTokenEmail } from '@/lib/jwt-display'
+import { isAccessTokenExpired, parseAccessTokenEmail } from '@/lib/jwt-display'
 
 const LS_TOKEN = 'siteindex_access_token'
 const LS_SLUG = 'siteindex_studio_slug'
@@ -84,6 +85,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return registerSessionInvalidatedHandler(() => {
             clearClientAuth()
         })
+    }, [clearClientAuth])
+
+    useEffect(() => {
+        const t = localStorage.getItem(LS_TOKEN)
+        if (!t || !isAccessTokenExpired(t)) return
+        void (async () => {
+            const next = await refreshAccessToken()
+            if (!next) clearClientAuth()
+        })()
     }, [clearClientAuth])
 
     const login = useCallback(async (email: string, password: string) => {

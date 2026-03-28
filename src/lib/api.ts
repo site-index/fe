@@ -32,6 +32,9 @@ let persistAccessTokenHandler: ((token: string) => void) | null = null
 
 let sessionInvalidatedHandler: (() => void) | null = null
 
+/** Single-flight refresh so parallel 401s do not hammer `/auth/refresh`. */
+let refreshInFlight: Promise<string | null> | null = null
+
 /** Clears client auth when refresh-after-401 fails (e.g. missing refresh cookie). */
 export function registerSessionInvalidatedHandler(
     onInvalidated: () => void
@@ -58,19 +61,34 @@ export function registerAccessTokenPersistence(
 }
 
 async function tryRefreshAccessToken(): Promise<string | null> {
-    const base = getApiBase()
-    const res = await fetch(`${base}/v1/auth/refresh`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-    })
-    if (!res.ok) {
-        return null
+    if (refreshInFlight) {
+        return refreshInFlight
     }
-    const data = (await res.json()) as { accessToken: string }
-    persistAccessTokenHandler?.(data.accessToken)
-    apiAccessTokenRef = data.accessToken
-    return data.accessToken
+    refreshInFlight = (async () => {
+        try {
+            const base = getApiBase()
+            const res = await fetch(`${base}/v1/auth/refresh`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+            })
+            if (!res.ok) {
+                return null
+            }
+            const data = (await res.json()) as { accessToken: string }
+            persistAccessTokenHandler?.(data.accessToken)
+            apiAccessTokenRef = data.accessToken
+            return data.accessToken
+        } finally {
+            refreshInFlight = null
+        }
+    })()
+    return refreshInFlight
+}
+
+/** Proactive refresh when the access JWT is already expired (e.g. on load). Shares the apiFetch refresh lock. */
+export async function refreshAccessToken(): Promise<string | null> {
+    return tryRefreshAccessToken()
 }
 
 function buildRequestHeaders(
