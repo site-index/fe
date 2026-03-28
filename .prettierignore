@@ -1,8 +1,5 @@
 node_modules
 dist
 coverage
-.playwright
-playwright-report
-test-results
 *.min.js
 *.min.css
