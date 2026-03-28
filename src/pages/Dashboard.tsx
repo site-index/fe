@@ -4,9 +4,10 @@ import { AlertTriangle, DollarSign, Package, TrendingUp } from 'lucide-react'
 import BudgetChart from '@/components/BudgetChart'
 import CashHealthIndicator from '@/components/CashHealthIndicator'
 import MetricCard from '@/components/MetricCard'
+import PageDataWrapper from '@/components/PageDataWrapper'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
-import { apiFetch, getApiErrorMessage } from '@/lib/api'
+import { apiFetch } from '@/lib/api'
 import type { DashboardData } from '@/types/dashboard'
 
 export default function Dashboard() {
@@ -16,7 +17,7 @@ export default function Dashboard() {
     const emptyProject = activeProject.id === '__empty__'
 
     const { data, isPending, error } = useQuery({
-        queryKey: ['dashboard', activeProject.id, accessToken, studioSlug],
+        queryKey: ['dashboard', activeProject.id],
         queryFn: () =>
             apiFetch<DashboardData>(
                 `/v1/projects/${activeProject.id}/dashboard`,
@@ -31,63 +32,25 @@ export default function Dashboard() {
             !projectsLoading,
     })
 
-    if (projectsLoading) {
-        return (
-            <div className="text-sm text-muted-foreground">
-                Cargando proyectos…
-            </div>
-        )
-    }
-
-    if (emptyProject) {
-        return (
-            <div className="space-y-4">
-                <h1 className="text-2xl font-black tracking-tight">
-                    Dashboard
-                </h1>
-                <div className="rounded-lg border border-border bg-muted/40 px-4 py-6 text-sm text-muted-foreground">
-                    No hay proyectos en este estudio. Creá uno desde la API o
-                    desde el flujo de registro, o verificá el slug del estudio
-                    en Configuración.
-                </div>
-            </div>
-        )
-    }
-
-    if (isPending) {
-        return (
-            <div className="space-y-4">
-                <h1 className="text-2xl font-black tracking-tight">
-                    Dashboard
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                    Cargando métricas…
-                </p>
-            </div>
-        )
-    }
-
-    if (error) {
-        return (
-            <div className="space-y-4">
-                <h1 className="text-2xl font-black tracking-tight">
-                    Dashboard
-                </h1>
-                <p className="text-sm text-destructive">
-                    {getApiErrorMessage(error)}
-                </p>
-            </div>
-        )
-    }
-
     if (!data) {
-        return null
+        return (
+            <PageDataWrapper
+                title="Dashboard"
+                projectsLoading={projectsLoading}
+                emptyProject={emptyProject}
+                emptyMessage="No hay proyectos en este estudio. Creá uno desde la API o desde el flujo de registro, o verificá el slug del estudio en Configuración."
+                isPending={isPending}
+                error={error}
+            >
+                {null}
+            </PageDataWrapper>
+        )
     }
 
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-2xl font-black tracking-tight">
+                <h1 className="text-xl sm:text-2xl font-black tracking-tight">
                     Dashboard
                 </h1>
                 <p className="text-sm text-muted-foreground">
@@ -95,7 +58,7 @@ export default function Dashboard() {
                 </p>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                 <CashHealthIndicator
                     status={data.cashStatus}
                     label={data.cashLabel}

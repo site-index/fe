@@ -9,9 +9,10 @@ import {
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
+import PageDataWrapper from '@/components/PageDataWrapper'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
-import { apiFetch, getApiErrorMessage } from '@/lib/api'
+import { apiFetch } from '@/lib/api'
 
 interface MixDesignLine {
     id: string
@@ -118,57 +119,59 @@ function MixDesignDetail({ d, onBack }: { d: MixDesign; onBack: () => void }) {
             </div>
 
             <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden">
-                <table className="w-full text-sm">
-                    <thead>
-                        <tr className="border-b border-border bg-muted/50">
-                            <th className="px-4 py-3 text-left font-semibold text-muted-foreground">
-                                Insumo
-                            </th>
-                            <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                Cant / {d.outputUnit}
-                            </th>
-                            <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                Unidad
-                            </th>
-                            <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                Und. Compra
-                            </th>
-                            <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                Rend./Compra
-                            </th>
-                            <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                Desperdicio
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {d.components.map((comp) => (
-                            <tr
-                                key={comp.id}
-                                className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors"
-                            >
-                                <td className="px-4 py-3 font-medium">
-                                    {comp.material}
-                                </td>
-                                <td className="px-4 py-3 text-right font-mono">
-                                    {comp.quantityPerUnit}
-                                </td>
-                                <td className="px-4 py-3 text-right font-mono text-xs">
-                                    {comp.unit}
-                                </td>
-                                <td className="px-4 py-3 text-right font-mono text-xs">
-                                    {comp.purchaseUnit}
-                                </td>
-                                <td className="px-4 py-3 text-right font-mono">
-                                    {comp.yieldPerPurchase}
-                                </td>
-                                <td className="px-4 py-3 text-right font-mono">
-                                    {comp.wastePercent}%
-                                </td>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="border-b border-border bg-muted/50">
+                                <th className="px-4 py-3 text-left font-semibold text-muted-foreground">
+                                    Insumo
+                                </th>
+                                <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
+                                    Cant / {d.outputUnit}
+                                </th>
+                                <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
+                                    Unidad
+                                </th>
+                                <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
+                                    Und. Compra
+                                </th>
+                                <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
+                                    Rend./Compra
+                                </th>
+                                <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
+                                    Desperdicio
+                                </th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {d.components.map((comp) => (
+                                <tr
+                                    key={comp.id}
+                                    className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors"
+                                >
+                                    <td className="px-4 py-3 font-medium">
+                                        {comp.material}
+                                    </td>
+                                    <td className="px-4 py-3 text-right font-mono">
+                                        {comp.quantityPerUnit}
+                                    </td>
+                                    <td className="px-4 py-3 text-right font-mono text-xs">
+                                        {comp.unit}
+                                    </td>
+                                    <td className="px-4 py-3 text-right font-mono text-xs">
+                                        {comp.purchaseUnit}
+                                    </td>
+                                    <td className="px-4 py-3 text-right font-mono">
+                                        {comp.yieldPerPurchase}
+                                    </td>
+                                    <td className="px-4 py-3 text-right font-mono">
+                                        {comp.wastePercent}%
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <ConverterWidget mixDesign={d} />
@@ -252,7 +255,7 @@ export default function MixDesigns() {
         isPending,
         error,
     } = useQuery({
-        queryKey: ['mix-designs', activeProject.id, accessToken, studioSlug],
+        queryKey: ['mix-designs', activeProject.id],
         queryFn: () =>
             apiFetch<MixDesign[]>(
                 `/v1/projects/${activeProject.id}/mix-designs`,
@@ -269,51 +272,6 @@ export default function MixDesigns() {
 
     const selected = mixDesigns.find((d) => d.id === selectedId)
 
-    if (projectsLoading) {
-        return (
-            <div className="text-sm text-muted-foreground">
-                Cargando proyectos…
-            </div>
-        )
-    }
-
-    if (empty) {
-        return (
-            <div className="space-y-4">
-                <h1 className="text-2xl font-black tracking-tight">
-                    Dosificaciones
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                    Elegí un proyecto para ver dosificaciones.
-                </p>
-            </div>
-        )
-    }
-
-    if (isPending) {
-        return (
-            <div className="space-y-4">
-                <h1 className="text-2xl font-black tracking-tight">
-                    Dosificaciones
-                </h1>
-                <p className="text-sm text-muted-foreground">Cargando…</p>
-            </div>
-        )
-    }
-
-    if (error) {
-        return (
-            <div className="space-y-4">
-                <h1 className="text-2xl font-black tracking-tight">
-                    Dosificaciones
-                </h1>
-                <p className="text-sm text-destructive">
-                    {getApiErrorMessage(error)}
-                </p>
-            </div>
-        )
-    }
-
     if (selected) {
         return (
             <MixDesignDetail d={selected} onBack={() => setSelectedId(null)} />
@@ -321,29 +279,41 @@ export default function MixDesigns() {
     }
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-black tracking-tight">
-                        Dosificaciones
-                    </h1>
-                    <p className="text-sm text-muted-foreground">
-                        Mezclas y conversiones paramétricas — ingreso manual
-                        (Phase 1)
-                    </p>
+        <PageDataWrapper
+            title="Dosificaciones"
+            projectsLoading={projectsLoading}
+            emptyProject={empty}
+            emptyMessage="Elegí un proyecto para ver dosificaciones."
+            isPending={isPending}
+            error={error}
+        >
+            <div className="space-y-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h1 className="text-xl sm:text-2xl font-black tracking-tight">
+                            Dosificaciones
+                        </h1>
+                        <p className="text-sm text-muted-foreground">
+                            Mezclas y conversiones paramétricas — ingreso manual
+                            (Phase 1)
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground opacity-60 cursor-not-allowed"
+                        disabled
+                        title="Alta vía API próximamente"
+                    >
+                        <Plus className="h-4 w-4" />
+                        Nueva dosificación
+                    </button>
                 </div>
-                <button
-                    type="button"
-                    className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground opacity-60 cursor-not-allowed"
-                    disabled
-                    title="Alta vía API próximamente"
-                >
-                    <Plus className="h-4 w-4" />
-                    Nueva dosificación
-                </button>
-            </div>
 
-            <MixDesignsGrid mixDesigns={mixDesigns} onSelect={setSelectedId} />
-        </div>
+                <MixDesignsGrid
+                    mixDesigns={mixDesigns}
+                    onSelect={setSelectedId}
+                />
+            </div>
+        </PageDataWrapper>
     )
 }

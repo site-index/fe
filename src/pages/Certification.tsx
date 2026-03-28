@@ -86,7 +86,7 @@ function useCertificationView(): CertificationViewState {
         Boolean(accessToken && studioSlug.trim()) && !empty && !projectsLoading
 
     const qRows = useQuery({
-        queryKey: ['certifications', activeProject.id, accessToken, studioSlug],
+        queryKey: ['certifications', activeProject.id],
         queryFn: () =>
             apiFetch<CertRow[]>(
                 `/v1/projects/${activeProject.id}/certifications`,
@@ -99,12 +99,7 @@ function useCertificationView(): CertificationViewState {
     })
 
     const qSummary = useQuery({
-        queryKey: [
-            'certifications-summary',
-            activeProject.id,
-            accessToken,
-            studioSlug,
-        ],
+        queryKey: ['certifications-summary', activeProject.id],
         queryFn: () =>
             apiFetch<CertSummary>(
                 `/v1/projects/${activeProject.id}/certifications/summary`,
@@ -143,7 +138,7 @@ function CertificationReady({
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-2xl font-black tracking-tight">
+                <h1 className="text-xl sm:text-2xl font-black tracking-tight">
                     Certificación
                 </h1>
                 <p className="text-sm text-muted-foreground">
@@ -166,64 +161,110 @@ function CertificationReady({
                 </p>
             </div>
 
-            <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden">
-                <table className="w-full text-sm">
-                    <thead>
-                        <tr className="border-b border-border bg-muted/50">
-                            <th className="px-4 py-3 text-left font-semibold text-muted-foreground">
-                                Ítem
-                            </th>
-                            <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                Unidad
-                            </th>
-                            <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                Plan
-                            </th>
-                            <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                Cert. Acum.
-                            </th>
-                            <th className="px-4 py-3 font-semibold text-muted-foreground w-48">
-                                Avance
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {rows.length === 0 ? (
-                            <tr>
-                                <td
-                                    colSpan={5}
-                                    className="px-4 py-8 text-center text-muted-foreground"
-                                >
-                                    No hay ítems de cómputo con cantidad
-                                    planificada.
-                                </td>
-                            </tr>
-                        ) : (
-                            rows.map((row, i) => (
-                                <tr
-                                    key={`${row.item}-${i}`}
-                                    className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors"
-                                >
-                                    <td className="px-4 py-3 font-medium">
-                                        {row.item}
-                                    </td>
-                                    <td className="px-4 py-3 text-right font-mono text-xs">
+            {/* Mobile card view */}
+            <div className="space-y-3 md:hidden">
+                {rows.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                        No hay ítems de cómputo con cantidad planificada.
+                    </p>
+                ) : (
+                    rows.map((row, i) => (
+                        <div
+                            key={`${row.item}-${i}`}
+                            className="rounded-lg border border-border bg-card p-4 shadow-sm space-y-2"
+                        >
+                            <p className="font-medium text-sm">{row.item}</p>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                                <div>
+                                    <span className="text-muted-foreground">
+                                        Plan:
+                                    </span>{' '}
+                                    <span className="font-mono">
+                                        {row.totalPlan.toLocaleString('es-AR')}{' '}
                                         {row.unidad}
-                                    </td>
-                                    <td className="px-4 py-3 text-right font-mono">
-                                        {row.totalPlan.toLocaleString('es-AR')}
-                                    </td>
-                                    <td className="px-4 py-3 text-right font-mono">
-                                        {row.certAcum.toLocaleString('es-AR')}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <ProgressBar pct={row.certPct} />
+                                    </span>
+                                </div>
+                                <div>
+                                    <span className="text-muted-foreground">
+                                        Cert.:
+                                    </span>{' '}
+                                    <span className="font-mono">
+                                        {row.certAcum.toLocaleString('es-AR')}{' '}
+                                        {row.unidad}
+                                    </span>
+                                </div>
+                            </div>
+                            <ProgressBar pct={row.certPct} />
+                        </div>
+                    ))
+                )}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block rounded-lg border border-border bg-card shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="border-b border-border bg-muted/50">
+                                <th className="px-4 py-3 text-left font-semibold text-muted-foreground">
+                                    Ítem
+                                </th>
+                                <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
+                                    Unidad
+                                </th>
+                                <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
+                                    Plan
+                                </th>
+                                <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
+                                    Cert. Acum.
+                                </th>
+                                <th className="px-4 py-3 font-semibold text-muted-foreground w-48">
+                                    Avance
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {rows.length === 0 ? (
+                                <tr>
+                                    <td
+                                        colSpan={5}
+                                        className="px-4 py-8 text-center text-muted-foreground"
+                                    >
+                                        No hay ítems de cómputo con cantidad
+                                        planificada.
                                     </td>
                                 </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
+                            ) : (
+                                rows.map((row, i) => (
+                                    <tr
+                                        key={`${row.item}-${i}`}
+                                        className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors"
+                                    >
+                                        <td className="px-4 py-3 font-medium">
+                                            {row.item}
+                                        </td>
+                                        <td className="px-4 py-3 text-right font-mono text-xs">
+                                            {row.unidad}
+                                        </td>
+                                        <td className="px-4 py-3 text-right font-mono">
+                                            {row.totalPlan.toLocaleString(
+                                                'es-AR'
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-3 text-right font-mono">
+                                            {row.certAcum.toLocaleString(
+                                                'es-AR'
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <ProgressBar pct={row.certPct} />
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <div className="rounded-lg border border-dashed border-border bg-muted/30 p-6 text-center">
