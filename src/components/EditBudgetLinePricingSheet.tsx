@@ -72,12 +72,27 @@ function formatCurrency(value: number): string {
     })
 }
 
-function computePricingPreview(watched: {
-    amountMaterialStr: string
-    amountLaborStr: string
-    amountEquipmentStr: string
-    quantityStr: string
-}): { computedTotal: number; computedUnitPrice: number | null } {
+/** Mirrors be BudgetLineService.deriveUnitPrice for preview. */
+function effectiveUnitPrice(
+    unitPriceStored: number | null,
+    qty: number,
+    total: number
+): number {
+    if (unitPriceStored != null) {
+        return unitPriceStored
+    }
+    return qty > 0 ? total / qty : total
+}
+
+function computePricingPreview(
+    watched: {
+        amountMaterialStr: string
+        amountLaborStr: string
+        amountEquipmentStr: string
+        quantityStr: string
+    },
+    unitPriceStored: number | null
+): { computedTotal: number; computedUnitPrice: number } {
     const materialVal = watched.amountMaterialStr
         ? toNum(watched.amountMaterialStr)
         : 0
@@ -93,12 +108,30 @@ function computePricingPreview(watched: {
         Number.isFinite(equipmentVal)
             ? materialVal + laborVal + equipmentVal
             : 0
-    const computedUnitPrice =
-        quantityVal > 0 && Number.isFinite(computedTotal)
-            ? computedTotal / quantityVal
-            : null
+    const computedUnitPrice = effectiveUnitPrice(
+        unitPriceStored,
+        quantityVal,
+        computedTotal
+    )
 
     return { computedTotal, computedUnitPrice }
+}
+
+function pricingPreviewFromLine(
+    line: BudgetLineRow | null,
+    watched: Partial<FormValues>
+) {
+    const unitLabel = line?.measureUnit?.name ?? '—'
+    const { computedTotal, computedUnitPrice } = computePricingPreview(
+        {
+            amountMaterialStr: watched.amountMaterialStr ?? '0',
+            amountLaborStr: watched.amountLaborStr ?? '0',
+            amountEquipmentStr: watched.amountEquipmentStr ?? '0',
+            quantityStr: watched.quantityStr ?? '',
+        },
+        line?.unitPriceStored ?? null
+    )
+    return { unitLabel, computedTotal, computedUnitPrice }
 }
 
 async function submitBudgetLinePricing(args: {
@@ -129,7 +162,6 @@ async function submitBudgetLinePricing(args: {
                 token: accessToken,
                 studioSlug,
                 body: {
-                    unitPrice: null,
                     quantity:
                         values.quantityStr.trim() === ''
                             ? null
@@ -168,12 +200,14 @@ interface EditBudgetLinePricingSheetProps {
 
 function BudgetLinePricingFormFields({
     form,
+    unitLabel,
     computedTotal,
     computedUnitPrice,
 }: {
     form: ReturnType<typeof useForm<FormValues>>
+    unitLabel: string
     computedTotal: number
-    computedUnitPrice: number | null
+    computedUnitPrice: number
 }) {
     return (
         <>
@@ -221,7 +255,9 @@ function BudgetLinePricingFormFields({
                 name="quantityStr"
                 render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Cantidad (opcional)</FormLabel>
+                        <FormLabel>
+                            Cantidad en {unitLabel} (opcional)
+                        </FormLabel>
                         <FormControl>
                             <Input
                                 inputMode="decimal"
@@ -240,14 +276,12 @@ function BudgetLinePricingFormFields({
                         <span className="text-muted-foreground">Total</span>
                         <span>{formatCurrency(computedTotal)}</span>
                     </div>
-                    {computedUnitPrice !== null && (
-                        <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">
-                                Precio unitario
-                            </span>
-                            <span>{formatCurrency(computedUnitPrice)}</span>
-                        </div>
-                    )}
+                    <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">
+                            Precio unitario (ARS / {unitLabel})
+                        </span>
+                        <span>{formatCurrency(computedUnitPrice)}</span>
+                    </div>
                 </CardContent>
             </Card>
 
@@ -300,12 +334,8 @@ export default function EditBudgetLinePricingSheet({
         },
     })
 
-    const { computedTotal, computedUnitPrice } = computePricingPreview({
-        amountMaterialStr: watched.amountMaterialStr ?? '0',
-        amountLaborStr: watched.amountLaborStr ?? '0',
-        amountEquipmentStr: watched.amountEquipmentStr ?? '0',
-        quantityStr: watched.quantityStr ?? '',
-    })
+    const { unitLabel, computedTotal, computedUnitPrice } =
+        pricingPreviewFromLine(line, watched)
 
     const handleSubmit = (values: FormValues) => {
         if (!line) return
@@ -327,8 +357,8 @@ export default function EditBudgetLinePricingSheet({
                 <SheetHeader>
                     <SheetTitle>Precios y desglose</SheetTitle>
                     <SheetDescription>
-                        {line?.description ?? 'Línea'} — el total es la suma de
-                        materiales, mano de obra y equipo.
+                        {line?.description ?? 'Línea'} — unidad: {unitLabel}. El
+                        total es la suma de materiales, mano de obra y equipo.
                     </SheetDescription>
                 </SheetHeader>
                 {line ? (
@@ -339,6 +369,7 @@ export default function EditBudgetLinePricingSheet({
                         >
                             <BudgetLinePricingFormFields
                                 form={form}
+                                unitLabel={unitLabel}
                                 computedTotal={computedTotal}
                                 computedUnitPrice={computedUnitPrice}
                             />
