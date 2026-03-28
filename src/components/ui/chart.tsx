@@ -9,6 +9,7 @@ import {
     useId,
     useMemo,
 } from 'react'
+import type { LegendPayload, TooltipContentProps } from 'recharts'
 import * as RechartsPrimitive from 'recharts'
 
 import { cn } from '@/lib/utils'
@@ -373,8 +374,8 @@ function ChartTooltipPayloadRow({
 
 const ChartTooltipContent = forwardRef<
     HTMLDivElement,
-    ComponentProps<typeof RechartsPrimitive.Tooltip> &
-        ComponentProps<'div'> & {
+    ComponentProps<'div'> &
+        Partial<TooltipContentProps> & {
             hideLabel?: boolean
             hideIndicator?: boolean
             indicator?: 'line' | 'dot' | 'dashed'
@@ -466,11 +467,12 @@ const ChartLegend = RechartsPrimitive.Legend
 
 const ChartLegendContent = forwardRef<
     HTMLDivElement,
-    ComponentProps<'div'> &
-        Pick<RechartsPrimitive.LegendProps, 'payload' | 'verticalAlign'> & {
-            hideIcon?: boolean
-            nameKey?: string
-        }
+    ComponentProps<'div'> & {
+        hideIcon?: boolean
+        nameKey?: string
+        payload?: LegendPayload[]
+        verticalAlign?: 'top' | 'bottom' | 'middle'
+    }
 >(
     (
         {
