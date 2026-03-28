@@ -124,26 +124,44 @@ export default function SidebarContent({ onNavigate }: SidebarContentProps) {
             </nav>
 
             {/* Footer */}
-            <div className="border-t border-sidebar-border p-3 flex items-center gap-1">
-                <ThemeToggle />
+            <div className="border-t border-sidebar-border p-3 space-y-2">
+                {/* Settings row */}
                 <NavLink
                     to="/settings"
                     onClick={onNavigate}
-                    className="flex flex-1 items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-muted hover:text-sidebar-foreground transition-colors"
+                    className={cn(
+                        'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors',
+                        location.pathname === '/settings'
+                            ? 'bg-sidebar-accent text-sidebar-primary'
+                            : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                    )}
                 >
-                    <Settings className="h-4 w-4" />
+                    <Settings className="h-4.5 w-4.5 shrink-0" />
                     Settings
+                    <span className="ml-auto">
+                        <ThemeToggle />
+                    </span>
                 </NavLink>
-                <button
-                    onClick={() => {
-                        logout()
-                        onNavigate?.()
-                    }}
-                    className="rounded-md p-2 text-sidebar-muted hover:text-destructive transition-colors"
-                    title="Log out"
-                >
-                    <LogOut className="h-4 w-4" />
-                </button>
+
+                {/* User row */}
+                <div className="flex items-center gap-3 rounded-md px-3 py-2">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-xs font-semibold text-sidebar-foreground">
+                        U
+                    </div>
+                    <span className="flex-1 truncate text-sm text-sidebar-foreground/70">
+                        {activeProject.name}
+                    </span>
+                    <button
+                        onClick={() => {
+                            logout()
+                            onNavigate?.()
+                        }}
+                        className="rounded-md p-1.5 text-sidebar-muted hover:text-destructive transition-colors"
+                        title="Log out"
+                    >
+                        <LogOut className="h-4 w-4" />
+                    </button>
+                </div>
             </div>
         </div>
     )

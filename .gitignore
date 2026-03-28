@@ -10,7 +10,7 @@ npm-debug.log*
 
 node_modules
 dist
-bun.lock
+bun.lock*
 
 # Editor directories and files
 .vscode/*
