@@ -7,12 +7,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/contexts/AuthContext'
 import { getApiErrorMessage } from '@/lib/api'
+import { cn } from '@/lib/utils'
 
 type Props = {
     onSuccess?: () => void
+    className?: string
 }
 
-export default function LoginForm({ onSuccess }: Props) {
+export default function LoginForm({ onSuccess, className }: Props) {
     const queryClient = useQueryClient()
     const { login } = useAuth()
     const [email, setEmail] = useState('')
@@ -38,7 +40,10 @@ export default function LoginForm({ onSuccess }: Props) {
     return (
         <form
             onSubmit={handleSubmit}
-            className="space-y-3 rounded-md border border-border p-4"
+            className={cn(
+                'space-y-3 rounded-md border border-border p-4',
+                className
+            )}
         >
             <h3 className="font-semibold text-sm">Iniciar sesión</h3>
             <div className="space-y-1.5">

@@ -8,12 +8,14 @@ import { Label } from '@/components/ui/label'
 import { useAuth } from '@/contexts/AuthContext'
 import { getApiErrorMessage } from '@/lib/api'
 import { toSlug } from '@/lib/slug'
+import { cn } from '@/lib/utils'
 
 type Props = {
     onSuccess?: () => void
+    className?: string
 }
 
-export default function RegisterForm({ onSuccess }: Props) {
+export default function RegisterForm({ onSuccess, className }: Props) {
     const queryClient = useQueryClient()
     const { register } = useAuth()
     const [email, setEmail] = useState('')
@@ -47,7 +49,10 @@ export default function RegisterForm({ onSuccess }: Props) {
     return (
         <form
             onSubmit={handleSubmit}
-            className="space-y-3 rounded-md border border-border p-4"
+            className={cn(
+                'space-y-3 rounded-md border border-border p-4',
+                className
+            )}
         >
             <h3 className="font-semibold text-sm">Registrar estudio</h3>
             <div className="space-y-1.5">

@@ -3,6 +3,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import LoginForm from '@/components/auth/LoginForm'
 import RegisterForm from '@/components/auth/RegisterForm'
 import SiteLogo from '@/components/SiteLogo'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/contexts/AuthContext'
 
 export default function Login() {
@@ -23,18 +24,36 @@ export default function Login() {
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 bg-muted/30">
-            <div className="w-full max-w-2xl space-y-6 sm:space-y-8">
+            <div className="w-full max-w-md space-y-6 sm:space-y-8">
                 <div className="text-center space-y-2">
                     <div className="flex justify-center">
                         <SiteLogo className="h-24 sm:h-40 w-auto max-w-[400px] dark:brightness-0 dark:invert" />
                     </div>
                 </div>
 
-                <div className="rounded-lg border border-border bg-card p-4 sm:p-6 shadow-sm space-y-4">
-                    <div className="grid gap-6 md:grid-cols-2">
-                        <LoginForm onSuccess={goAfterAuth} />
-                        <RegisterForm onSuccess={goAfterAuth} />
-                    </div>
+                <div className="rounded-lg border border-border bg-card p-4 sm:p-6 shadow-sm">
+                    <Tabs defaultValue="login">
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="login">
+                                Iniciar sesión
+                            </TabsTrigger>
+                            <TabsTrigger value="register">
+                                Crear cuenta
+                            </TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="login">
+                            <LoginForm
+                                onSuccess={goAfterAuth}
+                                className="border-0 p-0"
+                            />
+                        </TabsContent>
+                        <TabsContent value="register">
+                            <RegisterForm
+                                onSuccess={goAfterAuth}
+                                className="border-0 p-0"
+                            />
+                        </TabsContent>
+                    </Tabs>
                 </div>
             </div>
         </div>
