@@ -19,7 +19,7 @@ export type ApiFetchOptions = {
     method?: string
     body?: unknown
     token?: string | null
-    /** Required for tenant routes when using plain localhost (see BE tenant middleware). */
+    /** Sent as X-Studio-Slug; required for tenant routes (see BE tenant middleware). */
     studioSlug?: string | null
 }
 

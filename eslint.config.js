@@ -87,6 +87,16 @@ export default tseslint.config(
             ],
         },
     },
+    {
+        files: [
+            'src/components/ui/**/*.{ts,tsx}',
+            'src/contexts/**/*.{ts,tsx}',
+        ],
+        rules: {
+            // UI primitives export cva variants / helpers with components; contexts export hooks with providers.
+            'react-refresh/only-export-components': 'off',
+        },
+    },
     eslintPluginPrettierRecommended,
     {
         rules: {
