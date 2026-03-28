@@ -38,7 +38,7 @@ export default function Dashboard() {
                 title="Dashboard"
                 projectsLoading={projectsLoading}
                 emptyProject={emptyProject}
-                emptyMessage="No hay proyectos en este estudio. Creá uno desde la API o desde el flujo de registro, o verificá el slug del estudio en Configuración."
+                emptyMessage="No hay proyectos en este estudio."
                 isPending={isPending}
                 error={error}
             >

@@ -5,14 +5,17 @@ import {
     ClipboardCheck,
     FlaskConical,
     LayoutDashboard,
+    LogOut,
     Settings,
 } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 
+import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
 import { cn } from '@/lib/utils'
 
+import CreateProjectDialog from './CreateProjectDialog'
 import SiteLogo from './SiteLogo'
 import ThemeToggle from './ThemeToggle'
 
@@ -30,6 +33,7 @@ interface SidebarContentProps {
 
 export default function SidebarContent({ onNavigate }: SidebarContentProps) {
     const location = useLocation()
+    const { logout } = useAuth()
     const { activeProject, setActiveProject, projects } = useProject()
     const [projectMenuOpen, setProjectMenuOpen] = useState(false)
 
@@ -94,6 +98,10 @@ export default function SidebarContent({ onNavigate }: SidebarContentProps) {
                 )}
             </div>
 
+            <div className="mx-3 mb-2">
+                <CreateProjectDialog />
+            </div>
+
             {/* Nav */}
             <nav className="flex-1 space-y-1 px-3">
                 {navItems.map((item) => {
@@ -128,6 +136,16 @@ export default function SidebarContent({ onNavigate }: SidebarContentProps) {
                     <Settings className="h-4 w-4" />
                     Configuración
                 </NavLink>
+                <button
+                    onClick={() => {
+                        logout()
+                        onNavigate?.()
+                    }}
+                    className="rounded-md p-2 text-sidebar-muted hover:text-destructive transition-colors"
+                    title="Cerrar sesión"
+                >
+                    <LogOut className="h-4 w-4" />
+                </button>
             </div>
         </div>
     )
