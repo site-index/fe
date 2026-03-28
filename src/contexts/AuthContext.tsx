@@ -16,12 +16,14 @@ import {
     registerSessionInvalidatedHandler,
     syncApiAccessToken,
 } from '@/lib/api'
+import { parseAccessTokenEmail } from '@/lib/jwt-display'
 
 const LS_TOKEN = 'siteindex_access_token'
 const LS_SLUG = 'siteindex_studio_slug'
 
 type AuthContextValue = {
     accessToken: string | null
+    sessionEmail: string | null
     studioSlug: string
     setStudioSlug: (slug: string) => void
     isAuthenticated: boolean
@@ -127,9 +129,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         void apiLogout()
     }, [clearClientAuth])
 
+    const sessionEmail = useMemo(
+        () => parseAccessTokenEmail(accessToken),
+        [accessToken]
+    )
+
     const value = useMemo<AuthContextValue>(
         () => ({
             accessToken,
+            sessionEmail,
             studioSlug,
             setStudioSlug,
             isAuthenticated: Boolean(accessToken),
@@ -137,7 +145,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             register,
             logout,
         }),
-        [accessToken, studioSlug, setStudioSlug, login, register, logout]
+        [
+            accessToken,
+            sessionEmail,
+            studioSlug,
+            setStudioSlug,
+            login,
+            register,
+            logout,
+        ]
     )
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

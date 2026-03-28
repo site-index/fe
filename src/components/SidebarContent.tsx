@@ -7,6 +7,7 @@ import {
     LayoutDashboard,
     LogOut,
     Settings,
+    User,
 } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
@@ -31,9 +32,22 @@ interface SidebarContentProps {
     onNavigate?: () => void
 }
 
+function SidebarUserAvatar({ sessionEmail }: { sessionEmail: string | null }) {
+    const initial = sessionEmail?.trim().charAt(0).toUpperCase() ?? ''
+    return (
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-xs font-semibold text-sidebar-foreground">
+            {initial ? (
+                initial
+            ) : (
+                <User className="h-3.5 w-3.5 text-sidebar-muted" aria-hidden />
+            )}
+        </div>
+    )
+}
+
 export default function SidebarContent({ onNavigate }: SidebarContentProps) {
     const location = useLocation()
-    const { logout } = useAuth()
+    const { logout, sessionEmail } = useAuth()
     const { activeProject, setActiveProject, projects } = useProject()
     const [projectMenuOpen, setProjectMenuOpen] = useState(false)
 
@@ -145,11 +159,9 @@ export default function SidebarContent({ onNavigate }: SidebarContentProps) {
 
                 {/* User row */}
                 <div className="flex items-center gap-3 rounded-md px-3 py-2">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-xs font-semibold text-sidebar-foreground">
-                        U
-                    </div>
+                    <SidebarUserAvatar sessionEmail={sessionEmail} />
                     <span className="flex-1 truncate text-sm text-sidebar-foreground/70">
-                        {activeProject.name}
+                        {sessionEmail ?? '—'}
                     </span>
                     <button
                         onClick={() => {
@@ -157,7 +169,7 @@ export default function SidebarContent({ onNavigate }: SidebarContentProps) {
                             onNavigate?.()
                         }}
                         className="rounded-md p-1.5 text-sidebar-muted hover:text-destructive transition-colors"
-                        title="Log out"
+                        title="Cerrar sesión"
                     >
                         <LogOut className="h-4 w-4" />
                     </button>
