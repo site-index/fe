@@ -7,13 +7,9 @@ export type BudgetLineRow = {
     unitPrice: number
     total: number
     flaky: boolean
-    mixDesignId: string | null
-    mixDesignName: string | null
-    categoryBreakdown: {
-        materials: number
-        labor: number
-        equipment: number
-    }
+    itemYieldId: string | null
+    itemYieldName: string | null
+    categoryBreakdown: { materials: number; labor: number; equipment: number }
     unitPriceStored: number | null
     amountMaterial: number
     amountLabor: number

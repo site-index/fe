@@ -7,42 +7,42 @@ import {
 } from '@/components/ui/select'
 import type { BudgetLineRow } from '@/types/budget-line'
 
-type MixRow = { id: string; name: string }
+type YieldOptionRow = { id: string; name: string }
 
-const MIX_NONE = '__none__'
+const YIELD_NONE = '__none__'
 
 type Props = {
     line: BudgetLineRow
-    mixes: MixRow[]
+    yields: YieldOptionRow[]
     disabled: boolean
-    onChange: (budgetLineId: string, mixDesignId: string | null) => void
+    onChange: (budgetLineId: string, itemYieldId: string | null) => void
 }
 
-export function BudgetLineMixDesignSelect({
+export function BudgetLineItemYieldSelect({
     line,
-    mixes,
+    yields,
     disabled,
     onChange,
 }: Props) {
     return (
         <Select
-            value={line.mixDesignId ?? MIX_NONE}
+            value={line.itemYieldId ?? YIELD_NONE}
             disabled={disabled}
             onValueChange={(v) => {
-                onChange(line.id, v === MIX_NONE ? null : v)
+                onChange(line.id, v === YIELD_NONE ? null : v)
             }}
         >
             <SelectTrigger
                 className="h-8 text-xs"
-                aria-label="Mezcla vinculada"
+                aria-label="Rendimiento vinculado"
             >
                 <SelectValue placeholder="—" />
             </SelectTrigger>
             <SelectContent>
-                <SelectItem value={MIX_NONE}>Sin mezcla</SelectItem>
-                {mixes.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
-                        {m.name}
+                <SelectItem value={YIELD_NONE}>Sin rendimiento</SelectItem>
+                {yields.map((y) => (
+                    <SelectItem key={y.id} value={y.id}>
+                        {y.name}
                     </SelectItem>
                 ))}
             </SelectContent>

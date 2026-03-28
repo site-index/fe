@@ -33,19 +33,19 @@ const schema = z.object({
     name: z
         .string()
         .trim()
-        .min(1, 'Name is required')
-        .max(500, 'Max 500 characters'),
-    description: z.string().trim().max(2000, 'Max 2000 characters'),
+        .min(1, 'El nombre es obligatorio')
+        .max(500, 'Máximo 500 caracteres'),
+    description: z.string().trim().max(2000, 'Máximo 2000 caracteres'),
     outputUnit: z
         .string()
         .trim()
-        .min(1, 'Output unit is required')
-        .max(32, 'Max 32 characters'),
+        .min(1, 'La unidad de ítem es obligatoria')
+        .max(32, 'Máximo 32 caracteres'),
 })
 
 type FormValues = z.infer<typeof schema>
 
-export interface CreatedMixDesign {
+export interface CreatedItemYield {
     id: string
     name: string
     description: string
@@ -62,15 +62,15 @@ export interface CreatedMixDesign {
     }>
 }
 
-interface CreateMixDesignDialogProps {
+interface CreateItemYieldDialogProps {
     trigger?: ReactNode
     onCreated?: (id: string) => void
 }
 
-export default function CreateMixDesignDialog({
+export default function CreateItemYieldDialog({
     trigger,
     onCreated,
-}: CreateMixDesignDialogProps) {
+}: CreateItemYieldDialogProps) {
     const [open, setOpen] = useState(false)
     const { accessToken, studioSlug } = useAuth()
     const { activeProject } = useProject()
@@ -107,8 +107,8 @@ export default function CreateMixDesignDialog({
             if (values.description.trim() !== '') {
                 body.description = values.description.trim()
             }
-            const created = await apiFetch<CreatedMixDesign>(
-                `/v1/projects/${activeProject.id}/mix-designs`,
+            const created = await apiFetch<CreatedItemYield>(
+                `/v1/projects/${activeProject.id}/item-yields`,
                 {
                     method: 'POST',
                     body,
@@ -117,10 +117,10 @@ export default function CreateMixDesignDialog({
                 }
             )
             await queryClient.invalidateQueries({
-                queryKey: ['mix-designs', activeProject.id],
+                queryKey: ['item-yields', activeProject.id],
             })
             toast({
-                title: 'Mezcla creada',
+                title: 'Rendimiento creado',
                 description: created.name,
             })
             form.reset({
@@ -133,7 +133,7 @@ export default function CreateMixDesignDialog({
         } catch (err) {
             toast({
                 variant: 'destructive',
-                title: 'Error al crear la mezcla',
+                title: 'Error al crear el rendimiento',
                 description: getApiErrorMessage(err),
             })
         }
@@ -157,15 +157,16 @@ export default function CreateMixDesignDialog({
                 {trigger ?? (
                     <Button type="button" size="sm" className="gap-2">
                         <Plus className="h-4 w-4" />
-                        Nueva mezcla
+                        Nuevo rendimiento
                     </Button>
                 )}
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Nueva mezcla</DialogTitle>
+                    <DialogTitle>Nuevo rendimiento</DialogTitle>
                     <DialogDescription>
-                        Podés agregar componentes después (p. ej. vía API).
+                        Podés agregar líneas de materiales después (p. ej. vía
+                        API).
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
@@ -212,7 +213,7 @@ export default function CreateMixDesignDialog({
                             name="outputUnit"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Unidad de salida</FormLabel>
+                                    <FormLabel>Unidad del ítem</FormLabel>
                                     <FormControl>
                                         <Input placeholder="m³" {...field} />
                                     </FormControl>

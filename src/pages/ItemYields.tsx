@@ -9,13 +9,13 @@ import {
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
-import CreateMixDesignDialog from '@/components/CreateMixDesignDialog'
+import CreateItemYieldDialog from '@/components/CreateItemYieldDialog'
 import PageDataWrapper from '@/components/PageDataWrapper'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
 import { apiFetch } from '@/lib/api'
 
-interface MixDesignLine {
+interface ItemYieldLine {
     id: string
     material: string
     unit: string
@@ -25,31 +25,31 @@ interface MixDesignLine {
     wastePercent: number
 }
 
-interface MixDesign {
+interface ItemYield {
     id: string
     name: string
     description: string
     outputUnit: string
-    components: MixDesignLine[]
+    components: ItemYieldLine[]
     linkedItems: string[]
 }
 
-function calcPurchase(comp: MixDesignLine, outputQty: number) {
+function calcPurchase(comp: ItemYieldLine, outputQty: number) {
     const neto = comp.quantityPerUnit * outputQty
     const conDesperdicio = neto * (1 + comp.wastePercent / 100)
     const unidadesCompra = Math.ceil(conDesperdicio / comp.yieldPerPurchase)
     return { neto, conDesperdicio, unidadesCompra }
 }
 
-function ConverterWidget({ mixDesign }: { mixDesign: MixDesign }) {
+function ConverterWidget({ itemYield }: { itemYield: ItemYield }) {
     const [quantity, setQuantity] = useState(10)
 
     return (
         <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
-            <p className="text-sm font-semibold">Parametric converter</p>
+            <p className="text-sm font-semibold">Conversor paramétrico</p>
             <div className="flex items-center gap-3">
                 <label className="text-sm text-muted-foreground">
-                    Quantity:
+                    Cantidad:
                 </label>
                 <input
                     type="number"
@@ -60,7 +60,7 @@ function ConverterWidget({ mixDesign }: { mixDesign: MixDesign }) {
                     step={1}
                 />
                 <span className="text-sm font-mono text-muted-foreground">
-                    {mixDesign.outputUnit}
+                    {itemYield.outputUnit}
                 </span>
             </div>
 
@@ -68,13 +68,13 @@ function ConverterWidget({ mixDesign }: { mixDesign: MixDesign }) {
                 <thead>
                     <tr className="text-xs text-muted-foreground">
                         <th className="text-left py-1">Material</th>
-                        <th className="text-right py-1">Net</th>
-                        <th className="text-right py-1">+Waste</th>
-                        <th className="text-right py-1">Purchase</th>
+                        <th className="text-right py-1">Neto</th>
+                        <th className="text-right py-1">+Desp.</th>
+                        <th className="text-right py-1">Compra</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {mixDesign.components.map((comp) => {
+                    {itemYield.components.map((comp) => {
                         const { neto, conDesperdicio, unidadesCompra } =
                             calcPurchase(comp, quantity)
                         return (
@@ -101,21 +101,21 @@ function ConverterWidget({ mixDesign }: { mixDesign: MixDesign }) {
     )
 }
 
-function MixDesignDetail({ d, onBack }: { d: MixDesign; onBack: () => void }) {
+function ItemYieldDetail({ d, onBack }: { d: ItemYield; onBack: () => void }) {
     return (
         <div className="space-y-6">
             <button
                 onClick={onBack}
                 className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-                <ArrowLeft className="h-4 w-4" /> Back to mix designs
+                <ArrowLeft className="h-4 w-4" /> Volver a rendimientos
             </button>
 
             <div>
                 <h1 className="text-2xl font-black tracking-tight">{d.name}</h1>
                 <p className="text-sm text-muted-foreground">{d.description}</p>
                 <span className="inline-block mt-1 rounded bg-muted px-2 py-0.5 text-xs font-mono">
-                    Output unit: {d.outputUnit}
+                    Unidad del ítem: {d.outputUnit}
                 </span>
             </div>
 
@@ -128,19 +128,19 @@ function MixDesignDetail({ d, onBack }: { d: MixDesign; onBack: () => void }) {
                                     Material
                                 </th>
                                 <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                    Qty / {d.outputUnit}
+                                    Cant. / {d.outputUnit}
                                 </th>
                                 <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                    Unit
+                                    Unidad
                                 </th>
                                 <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                    Purchase unit
+                                    Unidad de compra
                                 </th>
                                 <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                    Yield / purchase
+                                    Rend. / compra
                                 </th>
                                 <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                    Waste %
+                                    Desp. %
                                 </th>
                             </tr>
                         </thead>
@@ -175,7 +175,7 @@ function MixDesignDetail({ d, onBack }: { d: MixDesign; onBack: () => void }) {
                 </div>
             </div>
 
-            <ConverterWidget mixDesign={d} />
+            <ConverterWidget itemYield={d} />
 
             {d.linkedItems.length > 0 && (
                 <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
@@ -200,22 +200,22 @@ function MixDesignDetail({ d, onBack }: { d: MixDesign; onBack: () => void }) {
     )
 }
 
-function MixDesignsGrid({
-    mixDesigns,
+function ItemYieldsGrid({
+    itemYields,
     onSelect,
 }: {
-    mixDesigns: MixDesign[]
+    itemYields: ItemYield[]
     onSelect: (id: string) => void
 }) {
     return (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {mixDesigns.length === 0 ? (
+            {itemYields.length === 0 ? (
                 <p className="text-sm text-muted-foreground col-span-full">
-                    No mix designs yet. Create one with the button above or via
-                    the API.
+                    Todavía no hay rendimientos. Creá uno con el botón de arriba
+                    o vía API.
                 </p>
             ) : (
-                mixDesigns.map((d) => (
+                itemYields.map((d) => (
                     <button
                         key={d.id}
                         type="button"
@@ -233,9 +233,9 @@ function MixDesignsGrid({
                             {d.description}
                         </p>
                         <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-                            <span>{d.components.length} components</span>
+                            <span>{d.components.length} líneas</span>
                             <span className="flex items-center gap-1">
-                                {d.linkedItems.length} lines{' '}
+                                {d.linkedItems.length} vínculos{' '}
                                 <ChevronRight className="h-3 w-3" />
                             </span>
                         </div>
@@ -246,21 +246,21 @@ function MixDesignsGrid({
     )
 }
 
-export default function MixDesigns() {
+export default function ItemYields() {
     const [selectedId, setSelectedId] = useState<string | null>(null)
     const { activeProject, projectsLoading } = useProject()
     const { accessToken, studioSlug } = useAuth()
     const empty = activeProject.id === '__empty__'
 
     const {
-        data: mixDesigns = [],
+        data: itemYields = [],
         isPending,
         error,
     } = useQuery({
-        queryKey: ['mix-designs', activeProject.id, accessToken, studioSlug],
+        queryKey: ['item-yields', activeProject.id, accessToken, studioSlug],
         queryFn: () =>
-            apiFetch<MixDesign[]>(
-                `/v1/projects/${activeProject.id}/mix-designs`,
+            apiFetch<ItemYield[]>(
+                `/v1/projects/${activeProject.id}/item-yields`,
                 {
                     token: accessToken,
                     studioSlug,
@@ -272,20 +272,20 @@ export default function MixDesigns() {
             !projectsLoading,
     })
 
-    const selected = mixDesigns.find((d) => d.id === selectedId)
+    const selected = itemYields.find((d) => d.id === selectedId)
 
     if (selected) {
         return (
-            <MixDesignDetail d={selected} onBack={() => setSelectedId(null)} />
+            <ItemYieldDetail d={selected} onBack={() => setSelectedId(null)} />
         )
     }
 
     return (
         <PageDataWrapper
-            title="Mezclas"
+            title="Rendimientos"
             projectsLoading={projectsLoading}
             emptyProject={empty}
-            emptyMessage="Elegí un proyecto para ver las mezclas."
+            emptyMessage="Elegí un proyecto para ver los rendimientos."
             isPending={isPending}
             error={error}
         >
@@ -293,14 +293,14 @@ export default function MixDesigns() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h1 className="text-xl sm:text-2xl font-black tracking-tight">
-                            Mezclas
+                            Rendimientos
                         </h1>
                         <p className="text-sm text-muted-foreground">
-                            Composición y conversiones paramétricas — carga
-                            manual (fase 1)
+                            Materiales, mano de obra y equipo por unidad de ítem
+                            — carga manual (fase 1)
                         </p>
                     </div>
-                    <CreateMixDesignDialog
+                    <CreateItemYieldDialog
                         onCreated={setSelectedId}
                         trigger={
                             <button
@@ -308,14 +308,14 @@ export default function MixDesigns() {
                                 className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
                             >
                                 <Plus className="h-4 w-4" />
-                                Nueva mezcla
+                                Nuevo rendimiento
                             </button>
                         }
                     />
                 </div>
 
-                <MixDesignsGrid
-                    mixDesigns={mixDesigns}
+                <ItemYieldsGrid
+                    itemYields={itemYields}
                     onSelect={setSelectedId}
                 />
             </div>

@@ -10,7 +10,7 @@ import {
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
-import { BudgetLineMixDesignSelect } from '@/components/BudgetLineMixDesignSelect'
+import { BudgetLineItemYieldSelect } from '@/components/BudgetLineItemYieldSelect'
 import CreateBudgetLineDialog from '@/components/CreateBudgetLineDialog'
 import EditBudgetLinePricingSheet from '@/components/EditBudgetLinePricingSheet'
 import PageDataWrapper from '@/components/PageDataWrapper'
@@ -21,7 +21,7 @@ import type { BudgetLineRow } from '@/types/budget-line'
 
 export type { BudgetLineRow } from '@/types/budget-line'
 
-type MixRow = { id: string; name: string }
+type YieldOptionRow = { id: string; name: string }
 
 function CategorySplitBar({
     materials,
@@ -74,23 +74,26 @@ function useBudgetLinesVm() {
         enabled: queryEnabled,
     })
 
-    const { data: mixes = [] } = useQuery({
-        queryKey: ['mix-designs', activeProject.id, accessToken, studioSlug],
+    const { data: itemYieldOptions = [] } = useQuery({
+        queryKey: ['item-yields', activeProject.id, accessToken, studioSlug],
         queryFn: () =>
-            apiFetch<MixRow[]>(`/v1/projects/${activeProject.id}/mix-designs`, {
-                token: accessToken,
-                studioSlug,
-            }),
+            apiFetch<YieldOptionRow[]>(
+                `/v1/projects/${activeProject.id}/item-yields`,
+                {
+                    token: accessToken,
+                    studioSlug,
+                }
+            ),
         enabled: queryEnabled,
     })
 
-    const patchMixMutation = useMutation({
+    const patchItemYieldMutation = useMutation({
         mutationFn: ({
             budgetLineId,
-            mixDesignId,
+            itemYieldId,
         }: {
             budgetLineId: string
-            mixDesignId: string | null
+            itemYieldId: string | null
         }) =>
             apiFetch<BudgetLineRow>(
                 `/v1/projects/${activeProject.id}/budget-lines/${budgetLineId}`,
@@ -98,7 +101,7 @@ function useBudgetLinesVm() {
                     method: 'PATCH',
                     token: accessToken,
                     studioSlug,
-                    body: { mixDesignId },
+                    body: { itemYieldId },
                 }
             ),
         onSuccess: () => {
@@ -114,8 +117,8 @@ function useBudgetLinesVm() {
         isPending,
         error: error as Error | null,
         rows: data ?? [],
-        mixes,
-        patchMixMutation,
+        itemYieldOptions,
+        patchItemYieldMutation,
     }
 }
 
@@ -125,8 +128,8 @@ function BudgetLinesBody({
     isPending,
     error,
     rows,
-    mixes,
-    patchMixMutation,
+    itemYieldOptions,
+    patchItemYieldMutation,
 }: ReturnType<typeof useBudgetLinesVm>) {
     const [pricingLine, setPricingLine] = useState<BudgetLineRow | null>(null)
 
@@ -242,16 +245,18 @@ function BudgetLinesBody({
                                 <CategorySplitBar {...line.categoryBreakdown} />
                                 <div className="pt-2 border-t border-border/60 space-y-1">
                                     <p className="text-xs text-muted-foreground">
-                                        Mezcla (rendimiento)
+                                        Rendimiento
                                     </p>
-                                    <BudgetLineMixDesignSelect
+                                    <BudgetLineItemYieldSelect
                                         line={line}
-                                        mixes={mixes}
-                                        disabled={patchMixMutation.isPending}
-                                        onChange={(budgetLineId, mixId) => {
-                                            patchMixMutation.mutate({
+                                        yields={itemYieldOptions}
+                                        disabled={
+                                            patchItemYieldMutation.isPending
+                                        }
+                                        onChange={(budgetLineId, yieldId) => {
+                                            patchItemYieldMutation.mutate({
                                                 budgetLineId,
-                                                mixDesignId: mixId,
+                                                itemYieldId: yieldId,
                                             })
                                         }}
                                     />
@@ -292,7 +297,7 @@ function BudgetLinesBody({
                                         Desglose
                                     </th>
                                     <th className="px-4 py-3 text-left font-semibold text-muted-foreground min-w-[10rem]">
-                                        Mezcla
+                                        Rendimiento
                                     </th>
                                     <th className="px-4 py-3 text-left font-semibold text-muted-foreground whitespace-nowrap">
                                         Precios
@@ -354,21 +359,21 @@ function BudgetLinesBody({
                                                 />
                                             </td>
                                             <td className="px-4 py-3">
-                                                <BudgetLineMixDesignSelect
+                                                <BudgetLineItemYieldSelect
                                                     line={line}
-                                                    mixes={mixes}
+                                                    yields={itemYieldOptions}
                                                     disabled={
-                                                        patchMixMutation.isPending
+                                                        patchItemYieldMutation.isPending
                                                     }
                                                     onChange={(
                                                         budgetLineId,
-                                                        mixId
+                                                        yieldId
                                                     ) => {
-                                                        patchMixMutation.mutate(
+                                                        patchItemYieldMutation.mutate(
                                                             {
                                                                 budgetLineId,
-                                                                mixDesignId:
-                                                                    mixId,
+                                                                itemYieldId:
+                                                                    yieldId,
                                                             }
                                                         )
                                                     }}
@@ -394,14 +399,14 @@ function BudgetLinesBody({
                 </div>
 
                 <Link
-                    to="/mix-designs"
+                    to="/item-yields"
                     className="flex items-center gap-3 rounded-lg border border-border bg-card p-5 shadow-sm hover:shadow-md hover:border-primary/30 transition-all"
                 >
                     <FlaskConical className="h-6 w-6 text-muted-foreground" />
                     <div className="flex-1">
-                        <p className="text-sm font-bold">Mezclas</p>
+                        <p className="text-sm font-bold">Rendimientos</p>
                         <p className="text-xs text-muted-foreground">
-                            Composición y conversiones paramétricas
+                            Materiales, MO y equipo por unidad de ítem
                         </p>
                     </div>
                     <ChevronRight className="h-5 w-5 text-muted-foreground" />
