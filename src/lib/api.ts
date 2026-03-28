@@ -30,6 +30,18 @@ let apiAccessTokenRef: string | null = null
 
 let persistAccessTokenHandler: ((token: string) => void) | null = null
 
+let sessionInvalidatedHandler: (() => void) | null = null
+
+/** Clears client auth when refresh-after-401 fails (e.g. missing refresh cookie). */
+export function registerSessionInvalidatedHandler(
+    onInvalidated: () => void
+): () => void {
+    sessionInvalidatedHandler = onInvalidated
+    return () => {
+        sessionInvalidatedHandler = null
+    }
+}
+
 /** Called from AuthContext when the stored access token changes. */
 export function syncApiAccessToken(token: string | null): void {
     apiAccessTokenRef = token
@@ -133,6 +145,7 @@ export async function apiFetch<T>(
                 token: newToken,
             })
         }
+        sessionInvalidatedHandler?.()
     }
 
     if (!res.ok) {

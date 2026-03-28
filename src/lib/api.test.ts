@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { ApiError, apiFetch, getApiErrorMessage, getHealthUrl } from './api'
+import {
+    ApiError,
+    apiFetch,
+    getApiErrorMessage,
+    getHealthUrl,
+    registerSessionInvalidatedHandler,
+} from './api'
 
 describe('getApiErrorMessage', () => {
     it('reads string message from ApiError body', () => {
@@ -174,6 +180,45 @@ describe('apiFetch', () => {
                 credentials: 'include',
             })
         )
+    })
+
+    it('calls session invalidation handler when 401 and refresh fails', async () => {
+        vi.stubEnv('VITE_API_URL', '')
+        const unauthorized = {
+            ok: false,
+            status: 401,
+            text: async () => '{"message":"nope"}',
+            json: async () => ({ message: 'nope' }),
+        }
+        const refreshFail = {
+            ok: false,
+            status: 401,
+            text: async () => '',
+            json: async () => ({}),
+        }
+        vi.stubGlobal(
+            'fetch',
+            vi
+                .fn()
+                .mockResolvedValueOnce(unauthorized)
+                .mockResolvedValueOnce(refreshFail)
+        )
+
+        const onInvalidated = vi.fn()
+        const unregister = registerSessionInvalidatedHandler(onInvalidated)
+        try {
+            await expect(
+                apiFetch('/r', { token: 'stale' })
+            ).rejects.toMatchObject({
+                name: 'ApiError',
+                status: 401,
+            })
+        } finally {
+            unregister()
+        }
+
+        expect(onInvalidated).toHaveBeenCalledTimes(1)
+        expect(fetch).toHaveBeenCalledTimes(2)
     })
 })
 

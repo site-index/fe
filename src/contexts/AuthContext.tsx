@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import {
     createContext,
     type ReactNode,
@@ -12,6 +13,7 @@ import {
     apiFetch,
     apiLogout,
     registerAccessTokenPersistence,
+    registerSessionInvalidatedHandler,
     syncApiAccessToken,
 } from '@/lib/api'
 
@@ -36,6 +38,7 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+    const queryClient = useQueryClient()
     const [accessToken, setAccessToken] = useState<string | null>(() =>
         localStorage.getItem(LS_TOKEN)
     )
@@ -65,6 +68,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const setStudioSlug = useCallback((slug: string) => {
         setStudioSlugState(slug.trim().toLowerCase())
     }, [])
+
+    const clearClientAuth = useCallback(() => {
+        setAccessToken(null)
+        localStorage.removeItem(LS_TOKEN)
+        localStorage.removeItem(LS_SLUG)
+        setStudioSlugState('')
+        syncApiAccessToken(null)
+        queryClient.clear()
+    }, [queryClient])
+
+    useEffect(() => {
+        return registerSessionInvalidatedHandler(() => {
+            clearClientAuth()
+        })
+    }, [clearClientAuth])
 
     const login = useCallback(async (email: string, password: string) => {
         const res = await apiFetch<{
@@ -105,16 +123,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     )
 
     const logout = useCallback(async () => {
-        try {
-            await apiLogout()
-        } catch {
-            /* still clear client state */
-        }
-        setAccessToken(null)
-        localStorage.removeItem(LS_TOKEN)
-        localStorage.removeItem(LS_SLUG)
-        setStudioSlugState('')
-    }, [])
+        clearClientAuth()
+        void apiLogout()
+    }, [clearClientAuth])
 
     const value = useMemo<AuthContextValue>(
         () => ({
