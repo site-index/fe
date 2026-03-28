@@ -42,9 +42,11 @@ import { useProject } from '@/contexts/ProjectContext'
 import { useToast } from '@/hooks/use-toast'
 import { apiFetch, getApiErrorMessage } from '@/lib/api'
 import type { BudgetLineRow } from '@/types/budget-line'
+import type { MeasureUnitRow } from '@/types/measure-unit'
 import type { WorkCategoryRow } from '@/types/work-category'
 
 const RUBRO_NONE = '__none__'
+const UNIT_NONE = '__none__'
 
 const optionalNonNegStr = z
     .string()
@@ -116,6 +118,17 @@ export default function CreateBudgetLineDialog({
             }),
         enabled: open && Boolean(accessToken && studioSlug.trim()),
     })
+
+    const { data: measureUnits = [], isPending: measureUnitsLoading } =
+        useQuery({
+            queryKey: ['measure-units', accessToken, studioSlug],
+            queryFn: () =>
+                apiFetch<MeasureUnitRow[]>('/v1/measure-units', {
+                    token: accessToken,
+                    studioSlug,
+                }),
+            enabled: open && Boolean(accessToken && studioSlug.trim()),
+        })
 
     const onSubmit = async (values: FormValues) => {
         try {
@@ -259,12 +272,38 @@ export default function CreateBudgetLineDialog({
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Unidad (opcional)</FormLabel>
-                                    <FormControl>
-                                        <Input
-                                            placeholder="m³, m², un…"
-                                            {...field}
-                                        />
-                                    </FormControl>
+                                    <Select
+                                        disabled={measureUnitsLoading}
+                                        onValueChange={(v) =>
+                                            field.onChange(
+                                                v === UNIT_NONE ? '' : v
+                                            )
+                                        }
+                                        value={
+                                            field.value === ''
+                                                ? UNIT_NONE
+                                                : field.value
+                                        }
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger aria-label="Unidad">
+                                                <SelectValue placeholder="Cargando…" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value={UNIT_NONE}>
+                                                Sin unidad
+                                            </SelectItem>
+                                            {measureUnits.map((u) => (
+                                                <SelectItem
+                                                    key={u.id}
+                                                    value={u.name}
+                                                >
+                                                    {u.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                     <FormMessage />
                                 </FormItem>
                             )}
