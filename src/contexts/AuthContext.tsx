@@ -23,11 +23,7 @@ type AuthContextValue = {
     studioSlug: string
     setStudioSlug: (slug: string) => void
     isAuthenticated: boolean
-    login: (
-        email: string,
-        password: string,
-        studioSlugOverride?: string
-    ) => Promise<void>
+    login: (email: string, password: string) => Promise<void>
     register: (payload: {
         email: string
         password: string
@@ -70,33 +66,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setStudioSlugState(slug.trim().toLowerCase())
     }, [])
 
-    const login = useCallback(
-        async (
-            email: string,
-            password: string,
-            studioSlugOverride?: string
-        ) => {
-            const slug = (studioSlugOverride ?? studioSlug).trim().toLowerCase()
-            if (!slug) {
-                throw new Error(
-                    'Definí el slug del estudio antes de iniciar sesión.'
-                )
-            }
-            setStudioSlugState(slug)
-            localStorage.setItem(LS_SLUG, slug)
-            const res = await apiFetch<{ accessToken: string }>(
-                '/v1/auth/login',
-                {
-                    method: 'POST',
-                    body: { email, password },
-                    studioSlug: slug,
-                }
-            )
-            setAccessToken(res.accessToken)
-            localStorage.setItem(LS_TOKEN, res.accessToken)
-        },
-        [studioSlug]
-    )
+    const login = useCallback(async (email: string, password: string) => {
+        const res = await apiFetch<{
+            accessToken: string
+            studio: { slug: string }
+        }>('/v1/auth/login', {
+            method: 'POST',
+            body: { email, password },
+        })
+        const slug = res.studio.slug.trim().toLowerCase()
+        setStudioSlugState(slug)
+        localStorage.setItem(LS_SLUG, slug)
+        setAccessToken(res.accessToken)
+        localStorage.setItem(LS_TOKEN, res.accessToken)
+    }, [])
 
     const register = useCallback(
         async (payload: {

@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/contexts/AuthContext'
 import { getApiErrorMessage } from '@/lib/api'
-import { toSlug } from '@/lib/slug'
 
 type Props = {
     onSuccess?: () => void
@@ -18,21 +17,15 @@ export default function LoginForm({ onSuccess }: Props) {
     const { login } = useAuth()
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
-    const [studioName, setStudioName] = useState('')
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault()
         setError(null)
-        const slug = toSlug(studioName)
-        if (!slug) {
-            setError('Ingresá el nombre del estudio.')
-            return
-        }
         setSubmitting(true)
         try {
-            await login(email.trim(), password, slug)
+            await login(email.trim(), password)
             await queryClient.invalidateQueries({ queryKey: ['projects'] })
             onSuccess?.()
         } catch (err) {
@@ -48,15 +41,6 @@ export default function LoginForm({ onSuccess }: Props) {
             className="space-y-3 rounded-md border border-border p-4"
         >
             <h3 className="font-semibold text-sm">Iniciar sesión</h3>
-            <div className="space-y-1.5">
-                <Label htmlFor="login-studio">Nombre del estudio</Label>
-                <Input
-                    id="login-studio"
-                    value={studioName}
-                    onChange={(e) => setStudioName(e.target.value)}
-                    required
-                />
-            </div>
             <div className="space-y-1.5">
                 <Label htmlFor="login-email">Email</Label>
                 <Input
