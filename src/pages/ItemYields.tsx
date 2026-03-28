@@ -37,10 +37,10 @@ interface ItemYield {
 }
 
 function calcPurchase(comp: ItemYieldLine, outputQty: number) {
-    const neto = comp.quantityPerUnit * outputQty
-    const conDesperdicio = neto * (1 + comp.wastePercent / 100)
-    const unidadesCompra = Math.ceil(conDesperdicio / comp.yieldPerPurchase)
-    return { neto, conDesperdicio, unidadesCompra }
+    const net = comp.quantityPerUnit * outputQty
+    const withWaste = net * (1 + comp.wastePercent / 100)
+    const purchaseUnits = Math.ceil(withWaste / comp.yieldPerPurchase)
+    return { net, withWaste, purchaseUnits }
 }
 
 function ConverterWidget({ itemYield }: { itemYield: ItemYield }) {
@@ -71,14 +71,16 @@ function ConverterWidget({ itemYield }: { itemYield: ItemYield }) {
                     <tr className="text-xs text-muted-foreground">
                         <th className="text-left py-1">Material</th>
                         <th className="text-right py-1">Neto</th>
-                        <th className="text-right py-1">+Desp.</th>
+                        <th className="text-right py-1">+Desperdicio</th>
                         <th className="text-right py-1">Compra</th>
                     </tr>
                 </thead>
                 <tbody>
                     {itemYield.components.map((comp) => {
-                        const { neto, conDesperdicio, unidadesCompra } =
-                            calcPurchase(comp, quantity)
+                        const { net, withWaste, purchaseUnits } = calcPurchase(
+                            comp,
+                            quantity
+                        )
                         return (
                             <tr
                                 key={comp.id}
@@ -86,13 +88,13 @@ function ConverterWidget({ itemYield }: { itemYield: ItemYield }) {
                             >
                                 <td className="py-1.5">{comp.material}</td>
                                 <td className="py-1.5 text-right font-mono">
-                                    {neto.toFixed(1)} {comp.unit}
+                                    {net.toFixed(1)} {comp.unit}
                                 </td>
                                 <td className="py-1.5 text-right font-mono">
-                                    {conDesperdicio.toFixed(1)} {comp.unit}
+                                    {withWaste.toFixed(1)} {comp.unit}
                                 </td>
                                 <td className="py-1.5 text-right font-mono font-semibold">
-                                    {unidadesCompra} {comp.purchaseUnit}
+                                    {purchaseUnits} {comp.purchaseUnit}
                                 </td>
                             </tr>
                         )
@@ -120,7 +122,7 @@ function ItemYieldDetail({ d, onBack }: { d: ItemYield; onBack: () => void }) {
                 <h1 className="text-2xl font-black tracking-tight">{d.name}</h1>
                 <p className="text-sm text-muted-foreground">{d.description}</p>
                 <span className="inline-block mt-1 rounded bg-muted px-2 py-0.5 text-xs font-mono">
-                    Unidad del ítem: {d.outputUnit}
+                    Unidad de ítem: {d.outputUnit}
                 </span>
             </div>
 
@@ -142,10 +144,10 @@ function ItemYieldDetail({ d, onBack }: { d: ItemYield; onBack: () => void }) {
                                     Unidad de compra
                                 </th>
                                 <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                    Rend. / compra
+                                    Rend. por compra
                                 </th>
                                 <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                    Desp. %
+                                    % desperdicio
                                 </th>
                             </tr>
                         </thead>
@@ -241,9 +243,17 @@ function ItemYieldsGrid({
                             {d.description}
                         </p>
                         <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-                            <span>{d.components.length} líneas</span>
+                            <span>
+                                {d.components.length}{' '}
+                                {d.components.length === 1
+                                    ? 'componente'
+                                    : 'componentes'}
+                            </span>
                             <span className="flex items-center gap-1">
-                                {d.linkedItems.length} vínculos{' '}
+                                {d.linkedItems.length}{' '}
+                                {d.linkedItems.length === 1
+                                    ? 'vínculo'
+                                    : 'vínculos'}{' '}
                                 <ChevronRight className="h-3 w-3" />
                             </span>
                         </div>
@@ -265,7 +275,7 @@ export default function ItemYields() {
         isPending,
         error,
     } = useQuery({
-        queryKey: ['item-yields', activeProject.id, accessToken, studioSlug],
+        queryKey: ['item-yields', activeProject.id],
         queryFn: () =>
             apiFetch<ItemYield[]>(
                 `/v1/projects/${activeProject.id}/item-yields`,
@@ -290,10 +300,10 @@ export default function ItemYields() {
 
     return (
         <PageDataWrapper
-            title="Rendimientos"
+            title="Rendimientos por ítem"
             projectsLoading={projectsLoading}
             emptyProject={empty}
-            emptyMessage="Elegí un proyecto para ver los rendimientos."
+            emptyMessage="Elegí un proyecto para ver los rendimientos por ítem."
             isPending={isPending}
             error={error}
         >
@@ -301,11 +311,11 @@ export default function ItemYields() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h1 className="text-xl sm:text-2xl font-black tracking-tight">
-                            Rendimientos
+                            Rendimientos por ítem
                         </h1>
                         <p className="text-sm text-muted-foreground">
-                            Materiales, mano de obra y equipo por unidad de ítem
-                            — carga manual (fase 1)
+                            Materiales, mano de obra y equipamiento por unidad
+                            de ítem — carga manual (fase 1)
                         </p>
                     </div>
                     <CreateItemYieldDialog

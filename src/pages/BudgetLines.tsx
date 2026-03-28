@@ -28,6 +28,10 @@ type YieldOptionRow = {
     workCategoryName: string
 }
 
+/* ------------------------------------------------------------------ */
+/*  Small shared sub-components                                       */
+/* ------------------------------------------------------------------ */
+
 function CategorySplitBar({
     materials,
     labor,
@@ -52,11 +56,155 @@ function CategorySplitBar({
             <div
                 className="bg-muted-foreground/40"
                 style={{ width: `${equipment}%` }}
-                title={`Equipo ${equipment}%`}
+                title={`Equipamiento ${equipment}%`}
             />
         </div>
     )
 }
+
+/* ------------------------------------------------------------------ */
+/*  Mobile card                                                        */
+/* ------------------------------------------------------------------ */
+
+interface BudgetLineCardProps {
+    line: BudgetLineRow
+    yields: YieldOptionRow[]
+    patchPending: boolean
+    onPatchYield: (budgetLineId: string, yieldId: string | null) => void
+    onOpenPricing: (line: BudgetLineRow) => void
+}
+
+function BudgetLineCard({
+    line,
+    yields,
+    patchPending,
+    onPatchYield,
+    onOpenPricing,
+}: BudgetLineCardProps) {
+    return (
+        <div className="rounded-lg border border-border bg-card p-4 shadow-sm space-y-2">
+            <p className="text-xs text-muted-foreground">
+                {line.workCategoryName}
+            </p>
+            <p
+                className={`font-medium text-sm ${line.flaky ? 'data-flaky' : ''}`}
+            >
+                {line.description}
+            </p>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                    <span className="text-muted-foreground">Cant.:</span>{' '}
+                    <span className="font-mono">
+                        {line.quantity.toLocaleString('es-AR')}{' '}
+                        {line.measureUnit?.name ?? '—'}
+                    </span>
+                </div>
+                <div>
+                    <span className="text-muted-foreground">Precio unit.:</span>{' '}
+                    <span className="font-mono">
+                        ${line.unitPrice.toLocaleString('es-AR')}
+                    </span>
+                </div>
+            </div>
+            <div className="flex items-center justify-between">
+                <span
+                    className={`text-sm font-mono font-semibold ${line.flaky ? 'data-flaky' : ''}`}
+                >
+                    ${line.total.toLocaleString('es-AR')}
+                </span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <CategorySplitBar {...line.categoryBreakdown} />
+            <div className="pt-2 border-t border-border/60 space-y-1">
+                <p className="text-xs text-muted-foreground">Rendimiento</p>
+                <BudgetLineItemYieldSelect
+                    line={line}
+                    yields={yields}
+                    disabled={patchPending}
+                    onChange={onPatchYield}
+                />
+            </div>
+            <button
+                type="button"
+                onClick={() => onOpenPricing(line)}
+                className="text-sm font-medium text-primary hover:underline"
+            >
+                Precios / UPA
+            </button>
+        </div>
+    )
+}
+
+/* ------------------------------------------------------------------ */
+/*  Desktop table row                                                  */
+/* ------------------------------------------------------------------ */
+
+interface BudgetLineTableRowProps {
+    line: BudgetLineRow
+    yields: YieldOptionRow[]
+    patchPending: boolean
+    onPatchYield: (budgetLineId: string, yieldId: string | null) => void
+    onOpenPricing: (line: BudgetLineRow) => void
+}
+
+function BudgetLineTableRow({
+    line,
+    yields,
+    patchPending,
+    onPatchYield,
+    onOpenPricing,
+}: BudgetLineTableRowProps) {
+    return (
+        <tr className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+            <td className="px-4 py-3">
+                <p className="text-xs text-muted-foreground">
+                    {line.workCategoryName}
+                </p>
+                <p className={`font-medium ${line.flaky ? 'data-flaky' : ''}`}>
+                    {line.description}
+                </p>
+            </td>
+            <td className="px-4 py-3 text-right font-mono text-xs">
+                {line.measureUnit?.name ?? '—'}
+            </td>
+            <td className="px-4 py-3 text-right font-mono">
+                {line.quantity.toLocaleString('es-AR')}
+            </td>
+            <td className="px-4 py-3 text-right font-mono">
+                ${line.unitPrice.toLocaleString('es-AR')}
+            </td>
+            <td
+                className={`px-4 py-3 text-right font-mono font-semibold ${line.flaky ? 'data-flaky' : ''}`}
+            >
+                ${line.total.toLocaleString('es-AR')}
+            </td>
+            <td className="px-4 py-3">
+                <CategorySplitBar {...line.categoryBreakdown} />
+            </td>
+            <td className="px-4 py-3">
+                <BudgetLineItemYieldSelect
+                    line={line}
+                    yields={yields}
+                    disabled={patchPending}
+                    onChange={onPatchYield}
+                />
+            </td>
+            <td className="px-4 py-3">
+                <button
+                    type="button"
+                    onClick={() => onOpenPricing(line)}
+                    className="text-sm font-medium text-primary hover:underline"
+                >
+                    Editar
+                </button>
+            </td>
+        </tr>
+    )
+}
+
+/* ------------------------------------------------------------------ */
+/*  View-model hook                                                    */
+/* ------------------------------------------------------------------ */
 
 function useBudgetLinesVm() {
     const queryClient = useQueryClient()
@@ -67,7 +215,7 @@ function useBudgetLinesVm() {
         Boolean(accessToken && studioSlug.trim()) && !empty && !projectsLoading
 
     const { data, isPending, error } = useQuery({
-        queryKey: ['budget-lines', activeProject.id, accessToken, studioSlug],
+        queryKey: ['budget-lines', activeProject.id],
         queryFn: () =>
             apiFetch<BudgetLineRow[]>(
                 `/v1/projects/${activeProject.id}/budget-lines`,
@@ -80,7 +228,7 @@ function useBudgetLinesVm() {
     })
 
     const { data: itemYieldOptions = [] } = useQuery({
-        queryKey: ['item-yields', activeProject.id, accessToken, studioSlug],
+        queryKey: ['item-yields', activeProject.id],
         queryFn: () =>
             apiFetch<YieldOptionRow[]>(
                 `/v1/projects/${activeProject.id}/item-yields`,
@@ -127,6 +275,10 @@ function useBudgetLinesVm() {
     }
 }
 
+/* ------------------------------------------------------------------ */
+/*  Body component                                                     */
+/* ------------------------------------------------------------------ */
+
 function BudgetLinesBody({
     projectsLoading,
     empty,
@@ -137,6 +289,13 @@ function BudgetLinesBody({
     patchItemYieldMutation,
 }: ReturnType<typeof useBudgetLinesVm>) {
     const [pricingLine, setPricingLine] = useState<BudgetLineRow | null>(null)
+
+    const handlePatchYield = (budgetLineId: string, yieldId: string | null) => {
+        patchItemYieldMutation.mutate({
+            budgetLineId,
+            itemYieldId: yieldId,
+        })
+    }
 
     return (
         <PageDataWrapper
@@ -164,7 +323,7 @@ function BudgetLinesBody({
                         </h1>
                         <p className="text-sm text-muted-foreground">
                             Análisis de precio unitario — desglose: materiales ·
-                            mano de obra · equipo
+                            mano de obra · equipamiento
                         </p>
                     </div>
                     <CreateBudgetLineDialog
@@ -191,10 +350,11 @@ function BudgetLinesBody({
                     </span>
                     <span className="flex items-center gap-1.5">
                         <Wrench className="h-3.5 w-3.5 text-muted-foreground/60" />{' '}
-                        Equipo
+                        Equipamiento
                     </span>
                 </div>
 
+                {/* Mobile cards */}
                 <div className="space-y-3 md:hidden">
                     {rows.length === 0 ? (
                         <p className="text-sm text-muted-foreground">
@@ -203,81 +363,19 @@ function BudgetLinesBody({
                         </p>
                     ) : (
                         rows.map((line) => (
-                            <div
+                            <BudgetLineCard
                                 key={line.id}
-                                className="rounded-lg border border-border bg-card p-4 shadow-sm space-y-2"
-                            >
-                                <p className="text-xs text-muted-foreground">
-                                    {line.workCategoryName}
-                                </p>
-                                <p
-                                    className={`font-medium text-sm ${line.flaky ? 'data-flaky' : ''}`}
-                                >
-                                    {line.description}
-                                </p>
-                                <div className="grid grid-cols-2 gap-2 text-xs">
-                                    <div>
-                                        <span className="text-muted-foreground">
-                                            Cant.:
-                                        </span>{' '}
-                                        <span className="font-mono">
-                                            {line.quantity.toLocaleString(
-                                                'es-AR'
-                                            )}{' '}
-                                            {line.measureUnit?.name ?? '—'}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <span className="text-muted-foreground">
-                                            P.U.:
-                                        </span>{' '}
-                                        <span className="font-mono">
-                                            $
-                                            {line.unitPrice.toLocaleString(
-                                                'es-AR'
-                                            )}
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span
-                                        className={`text-sm font-mono font-semibold ${line.flaky ? 'data-flaky' : ''}`}
-                                    >
-                                        ${line.total.toLocaleString('es-AR')}
-                                    </span>
-                                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                                </div>
-                                <CategorySplitBar {...line.categoryBreakdown} />
-                                <div className="pt-2 border-t border-border/60 space-y-1">
-                                    <p className="text-xs text-muted-foreground">
-                                        Rendimiento
-                                    </p>
-                                    <BudgetLineItemYieldSelect
-                                        line={line}
-                                        yields={itemYieldOptions}
-                                        disabled={
-                                            patchItemYieldMutation.isPending
-                                        }
-                                        onChange={(budgetLineId, yieldId) => {
-                                            patchItemYieldMutation.mutate({
-                                                budgetLineId,
-                                                itemYieldId: yieldId,
-                                            })
-                                        }}
-                                    />
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={() => setPricingLine(line)}
-                                    className="text-sm font-medium text-primary hover:underline"
-                                >
-                                    Precios / APU
-                                </button>
-                            </div>
+                                line={line}
+                                yields={itemYieldOptions}
+                                patchPending={patchItemYieldMutation.isPending}
+                                onPatchYield={handlePatchYield}
+                                onOpenPricing={setPricingLine}
+                            />
                         ))
                     )}
                 </div>
 
+                {/* Desktop table */}
                 <div className="hidden md:block rounded-lg border border-border bg-card shadow-sm overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
@@ -293,7 +391,7 @@ function BudgetLinesBody({
                                         Cantidad
                                     </th>
                                     <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                        P. unitario
+                                        Precio unit.
                                     </th>
                                     <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
                                         Total
@@ -322,80 +420,16 @@ function BudgetLinesBody({
                                     </tr>
                                 ) : (
                                     rows.map((line) => (
-                                        <tr
+                                        <BudgetLineTableRow
                                             key={line.id}
-                                            className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors"
-                                        >
-                                            <td className="px-4 py-3">
-                                                <p className="text-xs text-muted-foreground">
-                                                    {line.workCategoryName}
-                                                </p>
-                                                <p
-                                                    className={`font-medium ${line.flaky ? 'data-flaky' : ''}`}
-                                                >
-                                                    {line.description}
-                                                </p>
-                                            </td>
-                                            <td className="px-4 py-3 text-right font-mono text-xs">
-                                                {line.measureUnit?.name ?? '—'}
-                                            </td>
-                                            <td className="px-4 py-3 text-right font-mono">
-                                                {line.quantity.toLocaleString(
-                                                    'es-AR'
-                                                )}
-                                            </td>
-                                            <td className="px-4 py-3 text-right font-mono">
-                                                $
-                                                {line.unitPrice.toLocaleString(
-                                                    'es-AR'
-                                                )}
-                                            </td>
-                                            <td
-                                                className={`px-4 py-3 text-right font-mono font-semibold ${line.flaky ? 'data-flaky' : ''}`}
-                                            >
-                                                $
-                                                {line.total.toLocaleString(
-                                                    'es-AR'
-                                                )}
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <CategorySplitBar
-                                                    {...line.categoryBreakdown}
-                                                />
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <BudgetLineItemYieldSelect
-                                                    line={line}
-                                                    yields={itemYieldOptions}
-                                                    disabled={
-                                                        patchItemYieldMutation.isPending
-                                                    }
-                                                    onChange={(
-                                                        budgetLineId,
-                                                        yieldId
-                                                    ) => {
-                                                        patchItemYieldMutation.mutate(
-                                                            {
-                                                                budgetLineId,
-                                                                itemYieldId:
-                                                                    yieldId,
-                                                            }
-                                                        )
-                                                    }}
-                                                />
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        setPricingLine(line)
-                                                    }
-                                                    className="text-sm font-medium text-primary hover:underline"
-                                                >
-                                                    Editar
-                                                </button>
-                                            </td>
-                                        </tr>
+                                            line={line}
+                                            yields={itemYieldOptions}
+                                            patchPending={
+                                                patchItemYieldMutation.isPending
+                                            }
+                                            onPatchYield={handlePatchYield}
+                                            onOpenPricing={setPricingLine}
+                                        />
                                     ))
                                 )}
                             </tbody>
@@ -409,9 +443,12 @@ function BudgetLinesBody({
                 >
                     <FlaskConical className="h-6 w-6 text-muted-foreground" />
                     <div className="flex-1">
-                        <p className="text-sm font-bold">Rendimientos</p>
+                        <p className="text-sm font-bold">
+                            Rendimientos por ítem
+                        </p>
                         <p className="text-xs text-muted-foreground">
-                            Materiales, MO y equipo por unidad de ítem
+                            Materiales, mano de obra y equipamiento por unidad
+                            de ítem
                         </p>
                     </div>
                     <ChevronRight className="h-5 w-5 text-muted-foreground" />
