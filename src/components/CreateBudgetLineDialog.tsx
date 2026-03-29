@@ -2,13 +2,10 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
-import { useForm, type UseFormSetValue } from 'react-hook-form'
+import { type Control, useForm } from 'react-hook-form'
 import { z } from 'zod'
 
-import {
-    BudgetLineCreateDescriptionField,
-    type BudgetLineCreateDescriptionFormSlice,
-} from '@/components/budget-line-create-description-field'
+import { BudgetLineCreateDescriptionField } from '@/components/budget-line-create-description-field'
 import {
     Accordion,
     AccordionContent,
@@ -41,6 +38,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
+import type { SuggestionRow } from '@/components/use-budget-line-description-suggestions'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
 import { useToast } from '@/hooks/use-toast'
@@ -51,6 +49,16 @@ import type { WorkCategoryRow } from '@/types/work-category'
 
 const RUBRO_NONE = '__none__'
 const UNIT_NONE = '__none__'
+
+type LibraryBinding =
+    | null
+    | { kind: 'yield'; yieldId: string; workCategoryName: string }
+    | {
+          kind: 'catalog'
+          catalogItemId: string
+          workCategoryId: string
+          workCategoryName: string
+      }
 
 const optionalNonNegStr = z
     .string()
@@ -84,6 +92,119 @@ function toNum(s: string): number {
     return Number(s.replace(',', '.').trim())
 }
 
+function appendOptionalBudgetNumericFields(
+    body: Record<string, unknown>,
+    values: FormValues,
+    unitNone: string
+): void {
+    if (values.measureUnitId !== unitNone) {
+        body.measureUnitId = values.measureUnitId
+    }
+    if (values.quantityStr.trim() !== '') {
+        body.quantity = toNum(values.quantityStr)
+    }
+    if (values.unitPriceStr.trim() !== '') {
+        body.unitPrice = toNum(values.unitPriceStr)
+    }
+    if (values.amountMaterialStr.trim() !== '') {
+        body.amountMaterial = toNum(values.amountMaterialStr)
+    }
+    if (values.amountLaborStr.trim() !== '') {
+        body.amountLabor = toNum(values.amountLaborStr)
+    }
+    if (values.amountEquipmentStr.trim() !== '') {
+        body.amountEquipment = toNum(values.amountEquipmentStr)
+    }
+}
+
+function CreateBudgetLineRubroSection({
+    control,
+    libraryBinding,
+    categories,
+    categoriesLoading,
+    rubroNone,
+}: {
+    control: Control<FormValues>
+    libraryBinding: LibraryBinding
+    categories: WorkCategoryRow[]
+    categoriesLoading: boolean
+    rubroNone: string
+}) {
+    if (libraryBinding?.kind === 'yield') {
+        return (
+            <FormItem>
+                <FormLabel>Rubro</FormLabel>
+                <p className="text-sm font-medium rounded-md border border-input bg-muted/40 px-3 py-2">
+                    {libraryBinding.workCategoryName}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                    Lo define el rendimiento vinculado a la biblioteca.
+                </p>
+            </FormItem>
+        )
+    }
+    return (
+        <FormField
+            control={control}
+            name="workCategoryId"
+            render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Rubro (opcional)</FormLabel>
+                    <Select
+                        disabled={
+                            categoriesLoading ||
+                            libraryBinding?.kind === 'catalog'
+                        }
+                        onValueChange={field.onChange}
+                        value={field.value}
+                    >
+                        <FormControl>
+                            <SelectTrigger aria-label="Rubro">
+                                <SelectValue placeholder="Cargando…" />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            <SelectItem value={rubroNone}>Sin rubro</SelectItem>
+                            {categories.map((c) => (
+                                <SelectItem key={c.id} value={c.id}>
+                                    {c.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    {libraryBinding?.kind === 'catalog' ? (
+                        <p className="text-xs text-muted-foreground">
+                            Rubro fijado por el ítem del catálogo.
+                        </p>
+                    ) : null}
+                    <FormMessage />
+                </FormItem>
+            )}
+        />
+    )
+}
+
+function buildBudgetLineCreateBody(
+    values: FormValues,
+    libraryBinding: LibraryBinding,
+    rubroNone: string
+): Record<string, unknown> {
+    const body: Record<string, unknown> = {
+        description: values.description,
+    }
+    if (libraryBinding?.kind === 'catalog') {
+        body.catalogItemId = libraryBinding.catalogItemId
+    } else {
+        if (libraryBinding?.kind === 'yield') {
+            body.itemYieldId = libraryBinding.yieldId
+        }
+        if (values.workCategoryId !== rubroNone) {
+            body.workCategoryId = values.workCategoryId
+        }
+    }
+    return body
+}
+
 interface CreateBudgetLineDialogProps {
     trigger?: ReactNode
 }
@@ -92,9 +213,7 @@ export default function CreateBudgetLineDialog({
     trigger,
 }: CreateBudgetLineDialogProps) {
     const [open, setOpen] = useState(false)
-    const [linkedItemYieldId, setLinkedItemYieldId] = useState<string | null>(
-        null
-    )
+    const [libraryBinding, setLibraryBinding] = useState<LibraryBinding>(null)
     const { accessToken, studioSlug } = useAuth()
     const { activeProject } = useProject()
     const queryClient = useQueryClient()
@@ -137,35 +256,43 @@ export default function CreateBudgetLineDialog({
             enabled: open && Boolean(accessToken && studioSlug.trim()),
         })
 
+    const handleSuggestionPick = (row: SuggestionRow) => {
+        if (row.kind === 'yield') {
+            form.setValue('description', row.name, { shouldValidate: true })
+            form.setValue('workCategoryId', RUBRO_NONE, {
+                shouldValidate: true,
+            })
+            setLibraryBinding({
+                kind: 'yield',
+                yieldId: row.yieldId,
+                workCategoryName: row.workCategoryName,
+            })
+        } else {
+            form.setValue('description', row.name, { shouldValidate: true })
+            form.setValue('workCategoryId', row.workCategoryId, {
+                shouldValidate: true,
+            })
+            setLibraryBinding({
+                kind: 'catalog',
+                catalogItemId: row.itemId,
+                workCategoryId: row.workCategoryId,
+                workCategoryName: row.workCategoryName,
+            })
+        }
+    }
+
+    const clearLibraryBinding = () => {
+        setLibraryBinding(null)
+    }
+
     const onSubmit = async (values: FormValues) => {
         try {
-            const body: Record<string, unknown> = {
-                description: values.description,
-            }
-            if (linkedItemYieldId) {
-                body.itemYieldId = linkedItemYieldId
-            }
-            if (values.workCategoryId !== RUBRO_NONE) {
-                body.workCategoryId = values.workCategoryId
-            }
-            if (values.measureUnitId !== UNIT_NONE) {
-                body.measureUnitId = values.measureUnitId
-            }
-            if (values.quantityStr.trim() !== '') {
-                body.quantity = toNum(values.quantityStr)
-            }
-            if (values.unitPriceStr.trim() !== '') {
-                body.unitPrice = toNum(values.unitPriceStr)
-            }
-            if (values.amountMaterialStr.trim() !== '') {
-                body.amountMaterial = toNum(values.amountMaterialStr)
-            }
-            if (values.amountLaborStr.trim() !== '') {
-                body.amountLabor = toNum(values.amountLaborStr)
-            }
-            if (values.amountEquipmentStr.trim() !== '') {
-                body.amountEquipment = toNum(values.amountEquipmentStr)
-            }
+            const body = buildBudgetLineCreateBody(
+                values,
+                libraryBinding,
+                RUBRO_NONE
+            )
+            appendOptionalBudgetNumericFields(body, values, UNIT_NONE)
 
             const created = await apiFetch<BudgetLineRow>(
                 `/v1/projects/${activeProject.id}/budget-lines`,
@@ -187,7 +314,7 @@ export default function CreateBudgetLineDialog({
                 description: created.description,
             })
             form.reset(defaultForm)
-            setLinkedItemYieldId(null)
+            setLibraryBinding(null)
             setOpen(false)
         } catch (err) {
             toast({
@@ -198,14 +325,18 @@ export default function CreateBudgetLineDialog({
         }
     }
 
+    const resetDialog = () => {
+        form.reset(defaultForm)
+        setLibraryBinding(null)
+    }
+
     return (
         <Dialog
             open={open}
             onOpenChange={(v) => {
                 setOpen(v)
                 if (!v) {
-                    form.reset(defaultForm)
-                    setLinkedItemYieldId(null)
+                    resetDialog()
                 }
             }}
         >
@@ -248,60 +379,24 @@ export default function CreateBudgetLineDialog({
                                     onBlur={field.onBlur}
                                     inputRef={field.ref}
                                     onInputChange={(e) => {
-                                        setLinkedItemYieldId(null)
                                         field.onChange(e)
                                     }}
-                                    setValue={
-                                        form.setValue as unknown as UseFormSetValue<BudgetLineCreateDescriptionFormSlice>
-                                    }
-                                    rubroNoneValue={RUBRO_NONE}
                                     dialogOpen={open}
                                     projectId={activeProject.id}
                                     accessToken={accessToken}
                                     studioSlug={studioSlug}
-                                    onClearYieldLink={() =>
-                                        setLinkedItemYieldId(null)
-                                    }
-                                    onLinkYield={setLinkedItemYieldId}
+                                    libraryBound={libraryBinding != null}
+                                    onClearLibraryBinding={clearLibraryBinding}
+                                    onSuggestionPick={handleSuggestionPick}
                                 />
                             )}
                         />
-                        <FormField
+                        <CreateBudgetLineRubroSection
                             control={form.control}
-                            name="workCategoryId"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Rubro (opcional)</FormLabel>
-                                    <Select
-                                        disabled={categoriesLoading}
-                                        onValueChange={(v) => {
-                                            field.onChange(v)
-                                            setLinkedItemYieldId(null)
-                                        }}
-                                        value={field.value}
-                                    >
-                                        <FormControl>
-                                            <SelectTrigger aria-label="Rubro">
-                                                <SelectValue placeholder="Cargando…" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            <SelectItem value={RUBRO_NONE}>
-                                                Sin rubro
-                                            </SelectItem>
-                                            {categories.map((c) => (
-                                                <SelectItem
-                                                    key={c.id}
-                                                    value={c.id}
-                                                >
-                                                    {c.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
+                            libraryBinding={libraryBinding}
+                            categories={categories}
+                            categoriesLoading={categoriesLoading}
+                            rubroNone={RUBRO_NONE}
                         />
                         <FormField
                             control={form.control}

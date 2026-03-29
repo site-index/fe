@@ -10,6 +10,7 @@ export type BudgetLineRow = {
     flaky: boolean
     itemYieldId: string | null
     itemYieldName: string | null
+    catalogItemId: string | null
     categoryBreakdown: { materials: number; labor: number; equipment: number }
     unitPriceStored: number | null
     amountMaterial: number

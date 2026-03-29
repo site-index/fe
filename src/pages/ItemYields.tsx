@@ -137,6 +137,13 @@ function ItemYieldDetail({ d, onBack }: { d: ItemYield; onBack: () => void }) {
                         </span>
                     )}
                 </div>
+                {d.catalogItemId ? (
+                    <p className="text-xs text-muted-foreground mt-2 max-w-xl">
+                        Este rendimiento copia el ítem global del catálogo: el
+                        rubro y el nombre del ítem vienen fijados por esa
+                        definición (en la app no se editan acá).
+                    </p>
+                ) : null}
             </div>
 
             <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden">

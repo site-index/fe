@@ -1,9 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useQueryClient } from '@tanstack/react-query'
-import { useEffect } from 'react'
+import {
+    type QueryClient,
+    useQuery,
+    useQueryClient,
+} from '@tanstack/react-query'
+import { useCallback, useEffect, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 
+import { BudgetLineItemYieldSelect } from '@/components/BudgetLineItemYieldSelect'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -214,10 +219,160 @@ async function submitBudgetLinePricing(args: {
     }
 }
 
+type ItemYieldOption = {
+    id: string
+    name: string
+    workCategoryId: string
+    workCategoryName: string
+}
+
+function useBudgetLineYieldLink(options: {
+    line: BudgetLineRow | null
+    open: boolean
+    projectId: string
+    accessToken: string | null
+    studioSlug: string
+    queryClient: QueryClient
+    toast: ReturnType<typeof useToast>['toast']
+    onLineUpdated?: (line: BudgetLineRow) => void
+}) {
+    const {
+        line,
+        open,
+        projectId,
+        accessToken,
+        studioSlug,
+        queryClient,
+        toast,
+        onLineUpdated,
+    } = options
+
+    const [yieldSaving, setYieldSaving] = useState(false)
+
+    const yieldsQueryEnabled =
+        open &&
+        Boolean(accessToken && studioSlug?.trim()) &&
+        projectId !== '__empty__'
+
+    const { data: itemYields = [] } = useQuery({
+        queryKey: [
+            'item-yields',
+            projectId,
+            accessToken,
+            studioSlug,
+            'edit-sheet',
+        ],
+        queryFn: () =>
+            apiFetch<ItemYieldOption[]>(
+                `/v1/projects/${projectId}/item-yields`,
+                { token: accessToken, studioSlug }
+            ),
+        enabled: yieldsQueryEnabled,
+    })
+
+    const handleYieldChange = useCallback(
+        async (budgetLineId: string, itemYieldId: string | null) => {
+            if (!line || budgetLineId !== line.id) return
+            setYieldSaving(true)
+            try {
+                const updated = await apiFetch<BudgetLineRow>(
+                    `/v1/projects/${projectId}/budget-lines/${line.id}`,
+                    {
+                        method: 'PATCH',
+                        token: accessToken,
+                        studioSlug,
+                        body: { itemYieldId },
+                    }
+                )
+                await queryClient.invalidateQueries({
+                    queryKey: ['budget-lines', projectId],
+                })
+                await queryClient.invalidateQueries({
+                    queryKey: ['dashboard', projectId],
+                })
+                onLineUpdated?.(updated)
+                toast({
+                    title: 'Rendimiento actualizado',
+                    description: updated.description,
+                })
+            } catch (err) {
+                toast({
+                    variant: 'destructive',
+                    title: 'No se pudo actualizar el rendimiento',
+                    description: getApiErrorMessage(err),
+                })
+            } finally {
+                setYieldSaving(false)
+            }
+        },
+        [
+            line,
+            projectId,
+            accessToken,
+            studioSlug,
+            queryClient,
+            toast,
+            onLineUpdated,
+        ]
+    )
+
+    return { itemYields, yieldSaving, handleYieldChange }
+}
+
 interface EditBudgetLinePricingSheetProps {
     line: BudgetLineRow | null
     open: boolean
     onOpenChange: (open: boolean) => void
+    onLineUpdated?: (line: BudgetLineRow) => void
+}
+
+function EditBudgetLineMetaBlock({
+    line,
+    itemYields,
+    yieldSaving,
+    onYieldChange,
+}: {
+    line: BudgetLineRow
+    itemYields: ItemYieldOption[]
+    yieldSaving: boolean
+    onYieldChange: (budgetLineId: string, itemYieldId: string | null) => void
+}) {
+    return (
+        <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-3">
+            <div>
+                <p className="text-xs text-muted-foreground">Descripción</p>
+                <p className="text-sm font-medium leading-snug">
+                    {line.description}
+                </p>
+            </div>
+            <div>
+                <p className="text-xs text-muted-foreground">Rubro</p>
+                <p className="text-sm font-medium">{line.workCategoryName}</p>
+                {line.itemYieldId ? (
+                    <p className="text-xs text-muted-foreground mt-1">
+                        Lo define el rendimiento vinculado.
+                    </p>
+                ) : null}
+                {line.catalogItemId ? (
+                    <p className="text-xs text-muted-foreground mt-1">
+                        Rubro fijado por el ítem del catálogo. Si vinculás un
+                        rendimiento, el rubro pasará a ser el del rendimiento.
+                    </p>
+                ) : null}
+            </div>
+            <div>
+                <p className="text-xs text-muted-foreground mb-1.5">
+                    Rendimiento vinculado
+                </p>
+                <BudgetLineItemYieldSelect
+                    line={line}
+                    yields={itemYields}
+                    disabled={yieldSaving}
+                    onChange={onYieldChange}
+                />
+            </div>
+        </div>
+    )
 }
 
 function BudgetLinePricingFormFields({
@@ -330,11 +485,24 @@ export default function EditBudgetLinePricingSheet({
     line,
     open,
     onOpenChange,
+    onLineUpdated,
 }: EditBudgetLinePricingSheetProps) {
     const { accessToken, studioSlug } = useAuth()
     const { activeProject } = useProject()
     const queryClient = useQueryClient()
     const { toast } = useToast()
+
+    const { itemYields, yieldSaving, handleYieldChange } =
+        useBudgetLineYieldLink({
+            line,
+            open,
+            projectId: activeProject.id,
+            accessToken,
+            studioSlug,
+            queryClient,
+            toast,
+            onLineUpdated,
+        })
 
     const form = useForm<FormValues>({
         resolver: zodResolver(schema),
@@ -410,6 +578,12 @@ export default function EditBudgetLinePricingSheet({
                             onSubmit={form.handleSubmit(handleSubmit)}
                             className="mt-6 space-y-4"
                         >
+                            <EditBudgetLineMetaBlock
+                                line={line}
+                                itemYields={itemYields}
+                                yieldSaving={yieldSaving}
+                                onYieldChange={handleYieldChange}
+                            />
                             <BudgetLinePricingFormFields
                                 form={form}
                                 unitLabel={unitLabel}

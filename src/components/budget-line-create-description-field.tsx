@@ -1,8 +1,8 @@
 import type Fuse from 'fuse.js'
 import type { ChangeEvent, Ref } from 'react'
 import { useMemo, useState } from 'react'
-import type { UseFormSetValue } from 'react-hook-form'
 
+import { Button } from '@/components/ui/button'
 import {
     Command,
     CommandEmpty,
@@ -24,58 +24,23 @@ import {
 } from '@/components/use-budget-line-description-suggestions'
 import { cn } from '@/lib/utils'
 
-/** Subset of the create-line form fields touched by description suggestions. */
-export type BudgetLineCreateDescriptionFormSlice = {
-    description: string
-    workCategoryId: string
-}
-
 function suggestionKey(row: SuggestionRow): string {
     return row.kind === 'yield' ? `y:${row.yieldId}` : `c:${row.itemId}`
 }
 
-function applySuggestionPick(
-    row: SuggestionRow,
-    setValue: UseFormSetValue<BudgetLineCreateDescriptionFormSlice>,
-    rubroNoneValue: string,
-    onClearYieldLink: () => void,
-    onLinkYield: (yieldId: string) => void,
-    closePopover: () => void
-): void {
-    if (row.kind === 'yield') {
-        setValue('description', row.name, {
-            shouldValidate: true,
-        })
-        setValue('workCategoryId', rubroNoneValue, {
-            shouldValidate: true,
-        })
-        onLinkYield(row.yieldId)
-    } else {
-        setValue('description', row.name, {
-            shouldValidate: true,
-        })
-        setValue('workCategoryId', row.workCategoryId, {
-            shouldValidate: true,
-        })
-        onClearYieldLink()
-    }
-    closePopover()
-}
-
-type BudgetLineCreateDescriptionFieldProps = {
+export type BudgetLineCreateDescriptionFieldProps = {
     name: string
     value: string
     onBlur: () => void
     inputRef: Ref<HTMLInputElement>
     onInputChange: (e: ChangeEvent<HTMLInputElement>) => void
-    setValue: UseFormSetValue<BudgetLineCreateDescriptionFormSlice>
-    rubroNoneValue: string
     dialogOpen: boolean
     projectId: string
     accessToken: string | null
     studioSlug: string
-    onClearYieldLink: () => void
-    onLinkYield: (yieldId: string) => void
+    libraryBound: boolean
+    onClearLibraryBinding: () => void
+    onSuggestionPick: (row: SuggestionRow) => void
 }
 
 export function BudgetLineCreateDescriptionField({
@@ -84,14 +49,13 @@ export function BudgetLineCreateDescriptionField({
     onBlur,
     inputRef,
     onInputChange,
-    setValue,
-    rubroNoneValue,
     dialogOpen,
     projectId,
     accessToken,
     studioSlug,
-    onClearYieldLink,
-    onLinkYield,
+    libraryBound,
+    onClearLibraryBinding,
+    onSuggestionPick,
 }: BudgetLineCreateDescriptionFieldProps) {
     const [popoverOpen, setPopoverOpen] = useState(false)
 
@@ -109,22 +73,32 @@ export function BudgetLineCreateDescriptionField({
     )
 
     const showSuggestions =
-        popoverOpen && queryEnabled && !suggestionsLoading && hasCorpus
+        popoverOpen &&
+        queryEnabled &&
+        !suggestionsLoading &&
+        hasCorpus &&
+        !libraryBound
 
     const onPick = (row: SuggestionRow) => {
-        applySuggestionPick(
-            row,
-            setValue,
-            rubroNoneValue,
-            onClearYieldLink,
-            onLinkYield,
-            () => setPopoverOpen(false)
-        )
+        onSuggestionPick(row)
+        setPopoverOpen(false)
     }
 
     return (
         <FormItem>
-            <FormLabel>Descripción</FormLabel>
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <FormLabel>Descripción</FormLabel>
+                {libraryBound ? (
+                    <Button
+                        type="button"
+                        variant="link"
+                        className="h-auto p-0 text-xs text-muted-foreground sm:text-sm"
+                        onClick={onClearLibraryBinding}
+                    >
+                        Escribir como línea libre
+                    </Button>
+                ) : null}
+            </div>
             <Popover
                 open={showSuggestions}
                 onOpenChange={(o) => {
@@ -141,12 +115,15 @@ export function BudgetLineCreateDescriptionField({
                             name={name}
                             ref={inputRef}
                             value={value}
+                            readOnly={libraryBound}
                             onBlur={onBlur}
                             onChange={(e) => {
                                 onInputChange(e)
-                                setPopoverOpen(true)
+                                if (!libraryBound) setPopoverOpen(true)
                             }}
-                            onFocus={() => setPopoverOpen(true)}
+                            onFocus={() => {
+                                if (!libraryBound) setPopoverOpen(true)
+                            }}
                         />
                     </FormControl>
                 </PopoverAnchor>

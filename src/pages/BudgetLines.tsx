@@ -128,6 +128,7 @@ function BudgetLinesBody({
                 onOpenChange={(o) => {
                     if (!o) setPricingLine(null)
                 }}
+                onLineUpdated={(l) => setPricingLine(l)}
             />
 
             <div className="space-y-4">

@@ -23,6 +23,7 @@ export type SuggestionRow =
     | {
           kind: 'yield'
           yieldId: string
+          workCategoryId: string
           name: string
           description: string
           workCategoryName: string
@@ -43,6 +44,7 @@ function buildSuggestionRows(
     const byYield: SuggestionRow[] = yields.map((y) => ({
         kind: 'yield' as const,
         yieldId: y.id,
+        workCategoryId: y.workCategoryId,
         name: y.name,
         description: y.description ?? '',
         workCategoryName: y.workCategoryName,
