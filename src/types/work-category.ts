@@ -5,6 +5,6 @@ export type WorkCategoryRow = {
     name: string
 }
 
-/** Seeded id for “Otros” — must match `be` migration `WorkCategory` seed. */
+/** Seeded id for “Otros” — must match `be/prisma/seed.ts` (`CATEGORIES` order). */
 export const OTHER_WORK_CATEGORY_ID =
-    'a0000009-0000-4000-8000-000000000009' as const
+    'a0000027-0000-4000-8000-000000000027' as const

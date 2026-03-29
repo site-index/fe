@@ -28,13 +28,11 @@ type AuthContextValue = {
     studioSlug: string
     setStudioSlug: (slug: string) => void
     isAuthenticated: boolean
-    login: (email: string, password: string) => Promise<void>
-    register: (payload: {
-        email: string
-        password: string
-        studioSlug: string
-        studioName: string
-    }) => Promise<void>
+    login: (
+        email: string,
+        password: string,
+        studioSlug?: string
+    ) => Promise<void>
     logout: () => Promise<void>
 }
 
@@ -96,38 +94,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })()
     }, [clearClientAuth])
 
-    const login = useCallback(async (email: string, password: string) => {
-        const res = await apiFetch<{
-            accessToken: string
-            studio: { slug: string }
-        }>('/v1/auth/login', {
-            method: 'POST',
-            body: { email, password },
-        })
-        const slug = res.studio.slug.trim().toLowerCase()
-        setStudioSlugState(slug)
-        localStorage.setItem(LS_SLUG, slug)
-        setAccessToken(res.accessToken)
-        localStorage.setItem(LS_TOKEN, res.accessToken)
-    }, [])
+    const login = useCallback(
+        async (email: string, password: string, slug?: string) => {
+            const body: {
+                email: string
+                password: string
+                studioSlug?: string
+            } = { email: email.trim(), password }
+            const s = slug?.trim().toLowerCase()
+            if (s) body.studioSlug = s
 
-    const register = useCallback(
-        async (payload: {
-            email: string
-            password: string
-            studioSlug: string
-            studioName: string
-        }) => {
             const res = await apiFetch<{
                 accessToken: string
                 studio: { slug: string }
-            }>('/v1/auth/register', {
+            }>('/v1/auth/login', {
                 method: 'POST',
-                body: payload,
+                body,
             })
-            const slug = res.studio.slug
-            setStudioSlugState(slug)
-            localStorage.setItem(LS_SLUG, slug)
+            const nextSlug = res.studio.slug.trim().toLowerCase()
+            setStudioSlugState(nextSlug)
+            localStorage.setItem(LS_SLUG, nextSlug)
             setAccessToken(res.accessToken)
             localStorage.setItem(LS_TOKEN, res.accessToken)
         },
@@ -152,18 +138,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setStudioSlug,
             isAuthenticated: Boolean(accessToken),
             login,
-            register,
             logout,
         }),
-        [
-            accessToken,
-            sessionEmail,
-            studioSlug,
-            setStudioSlug,
-            login,
-            register,
-            logout,
-        ]
+        [accessToken, sessionEmail, studioSlug, setStudioSlug, login, logout]
     )
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

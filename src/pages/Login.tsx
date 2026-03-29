@@ -1,9 +1,7 @@
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 
 import LoginForm from '@/components/auth/LoginForm'
-import RegisterForm from '@/components/auth/RegisterForm'
 import SiteLogo from '@/components/SiteLogo'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/contexts/AuthContext'
 
 export default function Login() {
@@ -32,28 +30,10 @@ export default function Login() {
                 </div>
 
                 <div className="rounded-lg border border-border bg-card p-4 sm:p-6 shadow-sm">
-                    <Tabs defaultValue="login">
-                        <TabsList className="grid w-full grid-cols-2">
-                            <TabsTrigger value="login">
-                                Iniciar sesión
-                            </TabsTrigger>
-                            <TabsTrigger value="register">
-                                Crear cuenta
-                            </TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="login">
-                            <LoginForm
-                                onSuccess={goAfterAuth}
-                                className="border-0 p-0"
-                            />
-                        </TabsContent>
-                        <TabsContent value="register">
-                            <RegisterForm
-                                onSuccess={goAfterAuth}
-                                className="border-0 p-0"
-                            />
-                        </TabsContent>
-                    </Tabs>
+                    <LoginForm
+                        onSuccess={goAfterAuth}
+                        className="border-0 p-0"
+                    />
                 </div>
             </div>
         </div>
