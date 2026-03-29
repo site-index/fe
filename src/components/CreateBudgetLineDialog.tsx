@@ -2,9 +2,13 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, type UseFormSetValue } from 'react-hook-form'
 import { z } from 'zod'
 
+import {
+    BudgetLineCreateDescriptionField,
+    type BudgetLineCreateDescriptionFormSlice,
+} from '@/components/budget-line-create-description-field'
 import {
     Accordion,
     AccordionContent,
@@ -88,6 +92,9 @@ export default function CreateBudgetLineDialog({
     trigger,
 }: CreateBudgetLineDialogProps) {
     const [open, setOpen] = useState(false)
+    const [linkedItemYieldId, setLinkedItemYieldId] = useState<string | null>(
+        null
+    )
     const { accessToken, studioSlug } = useAuth()
     const { activeProject } = useProject()
     const queryClient = useQueryClient()
@@ -135,6 +142,9 @@ export default function CreateBudgetLineDialog({
             const body: Record<string, unknown> = {
                 description: values.description,
             }
+            if (linkedItemYieldId) {
+                body.itemYieldId = linkedItemYieldId
+            }
             if (values.workCategoryId !== RUBRO_NONE) {
                 body.workCategoryId = values.workCategoryId
             }
@@ -177,6 +187,7 @@ export default function CreateBudgetLineDialog({
                 description: created.description,
             })
             form.reset(defaultForm)
+            setLinkedItemYieldId(null)
             setOpen(false)
         } catch (err) {
             toast({
@@ -192,7 +203,10 @@ export default function CreateBudgetLineDialog({
             open={open}
             onOpenChange={(v) => {
                 setOpen(v)
-                if (!v) form.reset(defaultForm)
+                if (!v) {
+                    form.reset(defaultForm)
+                    setLinkedItemYieldId(null)
+                }
             }}
         >
             <DialogTrigger asChild>
@@ -207,8 +221,11 @@ export default function CreateBudgetLineDialog({
                 <DialogHeader>
                     <DialogTitle>Nueva línea de presupuesto</DialogTitle>
                     <DialogDescription>
-                        La descripción es obligatoria. Rubro, precio unitario,
-                        cantidad y desglose por categoría son opcionales.
+                        La descripción es obligatoria. Mientras escribís, podés
+                        elegir un rendimiento del proyecto o un ítem del
+                        catálogo (búsqueda aproximada). Rubro, precio unitario,
+                        cantidad y desglose por categoría son opcionales; el
+                        desglose es por unidad de medida.
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
@@ -220,16 +237,33 @@ export default function CreateBudgetLineDialog({
                             control={form.control}
                             name="description"
                             render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Descripción</FormLabel>
-                                    <FormControl>
-                                        <Input
-                                            placeholder="Ej. Hormigón H21 — losa"
-                                            {...field}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
+                                <BudgetLineCreateDescriptionField
+                                    key={
+                                        open
+                                            ? 'budget-desc-open'
+                                            : 'budget-desc-closed'
+                                    }
+                                    name={field.name}
+                                    value={field.value}
+                                    onBlur={field.onBlur}
+                                    inputRef={field.ref}
+                                    onInputChange={(e) => {
+                                        setLinkedItemYieldId(null)
+                                        field.onChange(e)
+                                    }}
+                                    setValue={
+                                        form.setValue as unknown as UseFormSetValue<BudgetLineCreateDescriptionFormSlice>
+                                    }
+                                    rubroNoneValue={RUBRO_NONE}
+                                    dialogOpen={open}
+                                    projectId={activeProject.id}
+                                    accessToken={accessToken}
+                                    studioSlug={studioSlug}
+                                    onClearYieldLink={() =>
+                                        setLinkedItemYieldId(null)
+                                    }
+                                    onLinkYield={setLinkedItemYieldId}
+                                />
                             )}
                         />
                         <FormField
@@ -240,7 +274,10 @@ export default function CreateBudgetLineDialog({
                                     <FormLabel>Rubro (opcional)</FormLabel>
                                     <Select
                                         disabled={categoriesLoading}
-                                        onValueChange={field.onChange}
+                                        onValueChange={(v) => {
+                                            field.onChange(v)
+                                            setLinkedItemYieldId(null)
+                                        }}
                                         value={field.value}
                                     >
                                         <FormControl>
@@ -323,7 +360,9 @@ export default function CreateBudgetLineDialog({
                                 name="unitPriceStr"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>P. unitario ARS</FormLabel>
+                                        <FormLabel>
+                                            P. unitario (ARS / unidad)
+                                        </FormLabel>
                                         <FormControl>
                                             <Input
                                                 inputMode="decimal"
@@ -342,16 +381,22 @@ export default function CreateBudgetLineDialog({
                                 className="border-b-0"
                             >
                                 <AccordionTrigger className="py-2 text-sm">
-                                    Desglose por categoría (opcional)
+                                    Desglose por categoría (opcional, por
+                                    unidad)
                                 </AccordionTrigger>
                                 <AccordionContent className="space-y-3 pt-1">
+                                    <p className="text-xs text-muted-foreground">
+                                        Importes en ARS por cada unidad de
+                                        medida de la línea (no el total de la
+                                        obra).
+                                    </p>
                                     <FormField
                                         control={form.control}
                                         name="amountMaterialStr"
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>
-                                                    Materiales (ARS)
+                                                    Materiales (ARS / unidad)
                                                 </FormLabel>
                                                 <FormControl>
                                                     <Input
@@ -370,7 +415,7 @@ export default function CreateBudgetLineDialog({
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>
-                                                    Mano de obra (ARS)
+                                                    Mano de obra (ARS / unidad)
                                                 </FormLabel>
                                                 <FormControl>
                                                     <Input
@@ -389,7 +434,7 @@ export default function CreateBudgetLineDialog({
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>
-                                                    Equipo (ARS)
+                                                    Equipo (ARS / unidad)
                                                 </FormLabel>
                                                 <FormControl>
                                                     <Input

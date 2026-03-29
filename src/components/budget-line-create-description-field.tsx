@@ -1,0 +1,247 @@
+import type Fuse from 'fuse.js'
+import type { ChangeEvent, Ref } from 'react'
+import { useMemo, useState } from 'react'
+import type { UseFormSetValue } from 'react-hook-form'
+
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command'
+import {
+    FormControl,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
+import {
+    type SuggestionRow,
+    useBudgetLineDescriptionSuggestions,
+} from '@/components/use-budget-line-description-suggestions'
+import { cn } from '@/lib/utils'
+
+/** Subset of the create-line form fields touched by description suggestions. */
+export type BudgetLineCreateDescriptionFormSlice = {
+    description: string
+    workCategoryId: string
+}
+
+function suggestionKey(row: SuggestionRow): string {
+    return row.kind === 'yield' ? `y:${row.yieldId}` : `c:${row.itemId}`
+}
+
+function applySuggestionPick(
+    row: SuggestionRow,
+    setValue: UseFormSetValue<BudgetLineCreateDescriptionFormSlice>,
+    rubroNoneValue: string,
+    onClearYieldLink: () => void,
+    onLinkYield: (yieldId: string) => void,
+    closePopover: () => void
+): void {
+    if (row.kind === 'yield') {
+        setValue('description', row.name, {
+            shouldValidate: true,
+        })
+        setValue('workCategoryId', rubroNoneValue, {
+            shouldValidate: true,
+        })
+        onLinkYield(row.yieldId)
+    } else {
+        setValue('description', row.name, {
+            shouldValidate: true,
+        })
+        setValue('workCategoryId', row.workCategoryId, {
+            shouldValidate: true,
+        })
+        onClearYieldLink()
+    }
+    closePopover()
+}
+
+type BudgetLineCreateDescriptionFieldProps = {
+    name: string
+    value: string
+    onBlur: () => void
+    inputRef: Ref<HTMLInputElement>
+    onInputChange: (e: ChangeEvent<HTMLInputElement>) => void
+    setValue: UseFormSetValue<BudgetLineCreateDescriptionFormSlice>
+    rubroNoneValue: string
+    dialogOpen: boolean
+    projectId: string
+    accessToken: string | null
+    studioSlug: string
+    onClearYieldLink: () => void
+    onLinkYield: (yieldId: string) => void
+}
+
+export function BudgetLineCreateDescriptionField({
+    name,
+    value,
+    onBlur,
+    inputRef,
+    onInputChange,
+    setValue,
+    rubroNoneValue,
+    dialogOpen,
+    projectId,
+    accessToken,
+    studioSlug,
+    onClearYieldLink,
+    onLinkYield,
+}: BudgetLineCreateDescriptionFieldProps) {
+    const [popoverOpen, setPopoverOpen] = useState(false)
+
+    const {
+        fuse,
+        suggestionRows,
+        suggestionsLoading,
+        queryEnabled,
+        hasCorpus,
+    } = useBudgetLineDescriptionSuggestions(
+        dialogOpen,
+        projectId,
+        accessToken,
+        studioSlug
+    )
+
+    const showSuggestions =
+        popoverOpen && queryEnabled && !suggestionsLoading && hasCorpus
+
+    const onPick = (row: SuggestionRow) => {
+        applySuggestionPick(
+            row,
+            setValue,
+            rubroNoneValue,
+            onClearYieldLink,
+            onLinkYield,
+            () => setPopoverOpen(false)
+        )
+    }
+
+    return (
+        <FormItem>
+            <FormLabel>Descripción</FormLabel>
+            <Popover
+                open={showSuggestions}
+                onOpenChange={(o) => {
+                    if (!o) setPopoverOpen(false)
+                }}
+            >
+                <PopoverAnchor asChild>
+                    <FormControl>
+                        <Input
+                            placeholder="Ej. Hormigón H21 — losa"
+                            autoComplete="off"
+                            aria-autocomplete="list"
+                            aria-expanded={showSuggestions}
+                            name={name}
+                            ref={inputRef}
+                            value={value}
+                            onBlur={onBlur}
+                            onChange={(e) => {
+                                onInputChange(e)
+                                setPopoverOpen(true)
+                            }}
+                            onFocus={() => setPopoverOpen(true)}
+                        />
+                    </FormControl>
+                </PopoverAnchor>
+                <PopoverContent
+                    className={cn(
+                        'p-0 w-[var(--radix-popover-anchor-width)] max-h-[min(280px,50vh)] overflow-hidden',
+                        'max-w-[calc(100vw-2rem)]'
+                    )}
+                    align="start"
+                    sideOffset={4}
+                    onOpenAutoFocus={(e) => e.preventDefault()}
+                >
+                    <DescriptionSuggestionList
+                        fuse={fuse}
+                        suggestionRows={suggestionRows}
+                        description={value}
+                        suggestionsLoading={suggestionsLoading}
+                        onPick={onPick}
+                    />
+                </PopoverContent>
+            </Popover>
+            <FormMessage />
+        </FormItem>
+    )
+}
+
+function DescriptionSuggestionList({
+    fuse,
+    suggestionRows,
+    description,
+    suggestionsLoading,
+    onPick,
+}: {
+    fuse: Fuse<SuggestionRow> | null
+    suggestionRows: SuggestionRow[]
+    description: string
+    suggestionsLoading: boolean
+    onPick: (row: SuggestionRow) => void
+}) {
+    const rows = useMemo(() => {
+        if (!fuse || suggestionRows.length === 0) {
+            return []
+        }
+        const q = description.trim()
+        if (q === '') {
+            return suggestionRows.slice(0, 14)
+        }
+        return fuse
+            .search(q)
+            .map((r) => r.item)
+            .slice(0, 20)
+    }, [fuse, description, suggestionRows])
+
+    if (suggestionsLoading) {
+        return (
+            <div className="py-3 px-2 text-sm text-muted-foreground">
+                Cargando sugerencias…
+            </div>
+        )
+    }
+
+    return (
+        <Command shouldFilter={false} className="max-h-[min(280px,50vh)]">
+            <CommandList>
+                <CommandEmpty className="py-3 text-xs text-muted-foreground">
+                    No hay coincidencias. Seguí escribiendo o elegí texto libre.
+                </CommandEmpty>
+                <CommandGroup heading="Biblioteca">
+                    {rows.map((row) => (
+                        <CommandItem
+                            key={suggestionKey(row)}
+                            value={suggestionKey(row)}
+                            onMouseDown={(e) => {
+                                e.preventDefault()
+                                onPick(row)
+                            }}
+                            className="flex flex-col items-start gap-0.5"
+                        >
+                            <span className="font-medium">{row.name}</span>
+                            <span className="text-xs text-muted-foreground">
+                                {row.workCategoryName}
+                                {row.kind === 'yield'
+                                    ? ' · Rendimiento'
+                                    : ' · Catálogo'}
+                            </span>
+                            {row.kind === 'yield' &&
+                            row.description.trim() !== '' ? (
+                                <span className="text-xs text-muted-foreground line-clamp-2">
+                                    {row.description}
+                                </span>
+                            ) : null}
+                        </CommandItem>
+                    ))}
+                </CommandGroup>
+            </CommandList>
+        </Command>
+    )
+}

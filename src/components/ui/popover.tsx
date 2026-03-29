@@ -11,6 +11,8 @@ const Popover = PopoverPrimitive.Root
 
 const PopoverTrigger = PopoverPrimitive.Trigger
 
+const PopoverAnchor = PopoverPrimitive.Anchor
+
 const PopoverContent = forwardRef<
     ElementRef<typeof PopoverPrimitive.Content>,
     ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
@@ -30,4 +32,4 @@ const PopoverContent = forwardRef<
 ))
 PopoverContent.displayName = PopoverPrimitive.Content.displayName
 
-export { Popover, PopoverContent, PopoverTrigger }
+export { Popover, PopoverAnchor, PopoverContent, PopoverTrigger }
