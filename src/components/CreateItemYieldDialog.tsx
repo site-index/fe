@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -36,12 +36,15 @@ import { useProject } from '@/contexts/ProjectContext'
 import { useToast } from '@/hooks/use-toast'
 import { apiFetch, getApiErrorMessage } from '@/lib/api'
 import {
-    OTHER_WORK_CATEGORY_ID,
+    OTHER_WORK_CATEGORY_CODE,
     type WorkCategoryRow,
 } from '@/types/work-category'
 
 const schema = z.object({
-    workCategoryId: z.string().uuid('Elegí un rubro'),
+    workCategoryId: z
+        .string()
+        .min(1, 'Elegí un rubro')
+        .uuid('Elegí un rubro válido'),
     name: z
         .string()
         .trim()
@@ -92,7 +95,7 @@ export default function CreateItemYieldDialog({
     const { toast } = useToast()
 
     const resetValues: FormValues = {
-        workCategoryId: OTHER_WORK_CATEGORY_ID,
+        workCategoryId: '',
         name: '',
         description: '',
         outputUnit: 'm³',
@@ -112,6 +115,18 @@ export default function CreateItemYieldDialog({
             }),
         enabled: open && Boolean(accessToken && studioSlug.trim()),
     })
+
+    useEffect(() => {
+        if (!open || categoriesLoading) {
+            return
+        }
+        const other = categories.find(
+            (c) => c.code === OTHER_WORK_CATEGORY_CODE
+        )
+        if (other) {
+            form.setValue('workCategoryId', other.id)
+        }
+    }, [open, categoriesLoading, categories, form])
 
     const onSubmit = async (values: FormValues) => {
         try {

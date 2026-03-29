@@ -15,6 +15,7 @@ import { ProjectProvider } from '@/contexts/ProjectContext'
 const Dashboard = lazy(() => import('@/pages/Dashboard'))
 const BudgetLines = lazy(() => import('@/pages/BudgetLines'))
 const ItemYields = lazy(() => import('@/pages/ItemYields'))
+const StudioItemDefaults = lazy(() => import('@/pages/StudioItemDefaults'))
 const Certification = lazy(() => import('@/pages/Certification'))
 const Assumptions = lazy(() => import('@/pages/Assumptions'))
 const SettingsPage = lazy(() => import('@/pages/Settings'))
@@ -67,6 +68,10 @@ const App = () => (
                                             <Route
                                                 path="/item-yields"
                                                 element={<ItemYields />}
+                                            />
+                                            <Route
+                                                path="/studio-item-defaults"
+                                                element={<StudioItemDefaults />}
                                             />
                                             <Route
                                                 path="/certifications"

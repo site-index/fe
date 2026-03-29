@@ -34,6 +34,8 @@ interface ItemYield {
     outputUnit: string
     components: ItemYieldLine[]
     linkedItems: string[]
+    /** Present when this row is a snapshot of a global catalog ítem. */
+    catalogItemId: string | null
 }
 
 function calcPurchase(comp: ItemYieldLine, outputQty: number) {
@@ -121,9 +123,20 @@ function ItemYieldDetail({ d, onBack }: { d: ItemYield; onBack: () => void }) {
                 </p>
                 <h1 className="text-2xl font-black tracking-tight">{d.name}</h1>
                 <p className="text-sm text-muted-foreground">{d.description}</p>
-                <span className="inline-block mt-1 rounded bg-muted px-2 py-0.5 text-xs font-mono">
-                    Unidad de ítem: {d.outputUnit}
-                </span>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <span className="inline-block rounded bg-muted px-2 py-0.5 text-xs font-mono">
+                        Unidad de ítem: {d.outputUnit}
+                    </span>
+                    {d.catalogItemId ? (
+                        <span className="inline-block rounded border border-border bg-card px-2 py-0.5 text-xs text-muted-foreground">
+                            Catálogo
+                        </span>
+                    ) : (
+                        <span className="inline-block rounded border border-primary/30 bg-primary/5 px-2 py-0.5 text-xs text-primary">
+                            Personalizado
+                        </span>
+                    )}
+                </div>
             </div>
 
             <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden">
@@ -218,8 +231,9 @@ function ItemYieldsGrid({
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {itemYields.length === 0 ? (
                 <p className="text-sm text-muted-foreground col-span-full">
-                    Todavía no hay rendimientos. Creá uno con el botón de arriba
-                    o vía API.
+                    No hay rendimientos en esta obra. Si el catálogo está
+                    sembrado, abrí esta página de nuevo para generar las filas
+                    desde el catálogo, o creá un ítem personalizado.
                 </p>
             ) : (
                 itemYields.map((d) => (
@@ -229,11 +243,22 @@ function ItemYieldsGrid({
                         onClick={() => onSelect(d.id)}
                         className="rounded-lg border border-border bg-card p-5 shadow-sm text-left hover:shadow-md hover:border-primary/30 transition-all group"
                     >
-                        <div className="flex items-start justify-between mb-2">
-                            <FlaskConical className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                            <span className="rounded bg-muted px-2 py-0.5 text-xs font-mono">
-                                {d.outputUnit}
-                            </span>
+                        <div className="flex items-start justify-between mb-2 gap-2">
+                            <FlaskConical className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+                            <div className="flex flex-wrap items-center justify-end gap-1">
+                                {d.catalogItemId ? (
+                                    <span className="rounded border border-border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                                        Catálogo
+                                    </span>
+                                ) : (
+                                    <span className="rounded border border-primary/30 bg-primary/5 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-primary">
+                                        Pers.
+                                    </span>
+                                )}
+                                <span className="rounded bg-muted px-2 py-0.5 text-xs font-mono">
+                                    {d.outputUnit}
+                                </span>
+                            </div>
                         </div>
                         <p className="text-[11px] text-muted-foreground mb-0.5">
                             {d.workCategoryName}
@@ -314,8 +339,16 @@ export default function ItemYields() {
                             Rendimientos por ítem
                         </h1>
                         <p className="text-sm text-muted-foreground">
-                            Materiales, mano de obra y equipamiento por unidad
-                            de ítem — carga manual (fase 1)
+                            Rendimientos de esta obra (copia del catálogo al
+                            crear el proyecto). Los defaults del estudio se
+                            editan en{' '}
+                            <Link
+                                to="/studio-item-defaults"
+                                className="text-primary hover:underline"
+                            >
+                                Biblioteca del estudio
+                            </Link>
+                            .
                         </p>
                     </div>
                     <CreateItemYieldDialog

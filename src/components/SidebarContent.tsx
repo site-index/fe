@@ -5,6 +5,7 @@ import {
     ClipboardCheck,
     FlaskConical,
     LayoutDashboard,
+    Library,
     LogOut,
     Settings,
     User,
@@ -24,6 +25,11 @@ const navItems = [
     { to: '/', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/budget-lines', label: 'Líneas de presupuesto', icon: Calculator },
     { to: '/item-yields', label: 'Rendimientos', icon: FlaskConical },
+    {
+        to: '/studio-item-defaults',
+        label: 'Biblioteca del estudio',
+        icon: Library,
+    },
     { to: '/certifications', label: 'Certification', icon: ClipboardCheck },
     { to: '/assumptions', label: 'Assumptions', icon: AlertTriangle },
 ]
@@ -117,7 +123,11 @@ export default function SidebarContent({ onNavigate }: SidebarContentProps) {
             {/* Nav */}
             <nav className="flex-1 space-y-1 px-3">
                 {navItems.map((item) => {
-                    const active = location.pathname === item.to
+                    const active =
+                        item.to === '/'
+                            ? location.pathname === '/'
+                            : location.pathname === item.to ||
+                              location.pathname.startsWith(`${item.to}/`)
                     return (
                         <NavLink
                             key={item.to}
