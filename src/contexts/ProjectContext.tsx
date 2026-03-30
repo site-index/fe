@@ -30,7 +30,7 @@ interface ProjectContextType {
 const ProjectContext = createContext<ProjectContextType | null>(null)
 
 export function ProjectProvider({ children }: { children: ReactNode }) {
-    const { accessToken, studioSlug } = useAuth()
+    const { accessToken, studioSlug, isQueryReady } = useAuth()
 
     const {
         data: apiProjects,
@@ -43,7 +43,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
                 token: accessToken,
                 studioSlug,
             }),
-        enabled: Boolean(accessToken && studioSlug.trim()),
+        enabled: isQueryReady,
     })
 
     const projects = useMemo<Project[]>(() => {

@@ -6,14 +6,14 @@ import PageDataWrapper from '@/components/PageDataWrapper'
 import { useAuth } from '@/contexts/AuthContext'
 import { apiFetch } from '@/lib/api'
 
-export interface StudioItemDefaultRow {
-    itemId: string
+export interface StudioCatalogItemDefaultRow {
+    catalogItemId: string
     code: string
     name: string
     workCategoryId: string
     workCategoryName: string
     sortOrder: number
-    outputUnit: string
+    measureUnit: { id: string; code: string; name: string } | null
     linkedItems: string[]
     lines: Array<{
         id: string
@@ -27,24 +27,27 @@ export interface StudioItemDefaultRow {
     studioDefaultUpdatedAt: string | null
 }
 
-export default function StudioItemDefaults() {
-    const { accessToken, studioSlug } = useAuth()
+export default function StudioCatalogItems() {
+    const { accessToken, studioSlug, isQueryReady } = useAuth()
 
     const {
         data: rows = [],
         isPending,
         error,
-    } = useQuery<StudioItemDefaultRow[], Error>({
-        queryKey: ['item-studio-defaults', accessToken, studioSlug],
+    } = useQuery<StudioCatalogItemDefaultRow[], Error>({
+        queryKey: ['studio-catalog-items', accessToken, studioSlug],
         queryFn: () =>
-            apiFetch<StudioItemDefaultRow[]>('/v1/item-studio-defaults', {
-                token: accessToken,
-                studioSlug,
-            }),
-        enabled: Boolean(accessToken && studioSlug.trim()),
+            apiFetch<StudioCatalogItemDefaultRow[]>(
+                '/v1/studio-catalog-items',
+                {
+                    token: accessToken,
+                    studioSlug,
+                }
+            ),
+        enabled: isQueryReady,
     })
 
-    const byRubro = rows.reduce<Record<string, StudioItemDefaultRow[]>>(
+    const byRubro = rows.reduce<Record<string, StudioCatalogItemDefaultRow[]>>(
         (acc, row) => {
             const k = row.workCategoryName
             if (!acc[k]) acc[k] = []
@@ -76,7 +79,7 @@ export default function StudioItemDefaults() {
                             definición a la obra; cambios acá no modifican obras
                             ya creadas. Para editar un default usá la API{' '}
                             <code className="text-xs bg-muted px-1 rounded">
-                                PATCH /v1/item-studio-defaults/:itemId
+                                PATCH /v1/studio-catalog-items/:catalogItemId
                             </code>{' '}
                             (Swagger en el backend).
                         </p>
@@ -98,7 +101,7 @@ export default function StudioItemDefaults() {
                             <ul className="space-y-2">
                                 {byRubro[rubro].map((r) => (
                                     <li
-                                        key={r.itemId}
+                                        key={r.catalogItemId}
                                         className="rounded-lg border border-border bg-card px-4 py-3 text-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
                                     >
                                         <div>
@@ -106,8 +109,10 @@ export default function StudioItemDefaults() {
                                                 {r.name}
                                             </p>
                                             <p className="text-xs text-muted-foreground font-mono">
-                                                {r.outputUnit} ·{' '}
-                                                {r.lines.length}{' '}
+                                                {r.measureUnit?.name ??
+                                                    r.measureUnit?.code ??
+                                                    '—'}{' '}
+                                                · {r.lines.length}{' '}
                                                 {r.lines.length === 1
                                                     ? 'línea'
                                                     : 'líneas'}

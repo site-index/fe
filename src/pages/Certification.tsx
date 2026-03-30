@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { CheckCircle2, Clock } from 'lucide-react'
-import type { ReactNode } from 'react'
 
+import PageDataWrapper from '@/components/PageDataWrapper'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
-import { apiFetch, getApiErrorMessage } from '@/lib/api'
+import { apiFetch } from '@/lib/api'
 
 type CertRow = {
     description: string
@@ -49,53 +49,24 @@ function formatDate(iso: string | null): string {
     }
 }
 
-function CertificationSection({
-    title,
-    children,
-}: {
-    title: string
-    children: ReactNode
-}) {
-    return (
-        <div className="space-y-4">
-            <h1 className="text-2xl font-black tracking-tight">{title}</h1>
-            {children}
-        </div>
-    )
-}
+/* ------------------------------------------------------------------ */
+/*  View-model hook                                                    */
+/* ------------------------------------------------------------------ */
 
-type CertificationViewState =
-    | { kind: 'loading-projects' }
-    | { kind: 'empty-project' }
-    | { kind: 'loading-data' }
-    | { kind: 'error'; message: string }
-    | { kind: 'ready'; rows: CertRow[]; summary: CertSummary | undefined }
-
-function certQueriesArePending(
-    qRows: { isPending: boolean },
-    qSummary: { isPending: boolean }
-): boolean {
-    return qRows.isPending || qSummary.isPending
-}
-
-function useCertificationView(): CertificationViewState {
+function useCertificationVm() {
     const { activeProject, projectsLoading } = useProject()
-    const { accessToken, studioSlug } = useAuth()
+    const { accessToken, studioSlug, isQueryReady } = useAuth()
     const empty = activeProject.id === '__empty__'
-    const queriesEnabled =
-        Boolean(accessToken && studioSlug.trim()) && !empty && !projectsLoading
+    const queryEnabled = isQueryReady && !empty && !projectsLoading
 
     const qRows = useQuery({
         queryKey: ['certifications', activeProject.id],
         queryFn: () =>
             apiFetch<CertRow[]>(
                 `/v1/projects/${activeProject.id}/certifications`,
-                {
-                    token: accessToken,
-                    studioSlug,
-                }
+                { token: accessToken, studioSlug }
             ),
-        enabled: queriesEnabled,
+        enabled: queryEnabled,
     })
 
     const qSummary = useQuery({
@@ -105,30 +76,24 @@ function useCertificationView(): CertificationViewState {
                 `/v1/projects/${activeProject.id}/certifications/summary`,
                 { token: accessToken, studioSlug }
             ),
-        enabled: queriesEnabled,
+        enabled: queryEnabled,
     })
 
-    if (projectsLoading) {
-        return { kind: 'loading-projects' }
-    }
-    if (empty) {
-        return { kind: 'empty-project' }
-    }
-    if (certQueriesArePending(qRows, qSummary)) {
-        return { kind: 'loading-data' }
-    }
-    const err = qRows.error ?? qSummary.error
-    if (err) {
-        return { kind: 'error', message: getApiErrorMessage(err) }
-    }
     return {
-        kind: 'ready',
+        projectsLoading,
+        empty,
+        isPending: qRows.isPending || qSummary.isPending,
+        error: (qRows.error ?? qSummary.error) as Error | null,
         rows: qRows.data ?? [],
         summary: qSummary.data,
     }
 }
 
-function CertificationReady({
+/* ------------------------------------------------------------------ */
+/*  Body                                                               */
+/* ------------------------------------------------------------------ */
+
+function CertificationBody({
     rows,
     summary,
 }: {
@@ -161,6 +126,7 @@ function CertificationReady({
                 </p>
             </div>
 
+            {/* Mobile cards */}
             <div className="space-y-3 md:hidden">
                 {rows.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
@@ -205,6 +171,7 @@ function CertificationReady({
                 )}
             </div>
 
+            {/* Desktop table */}
             <div className="hidden md:block rounded-lg border border-border bg-card shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
@@ -283,37 +250,17 @@ function CertificationReady({
 }
 
 export default function Certification() {
-    const view = useCertificationView()
-    switch (view.kind) {
-        case 'loading-projects':
-            return (
-                <div className="text-sm text-muted-foreground">
-                    Loading projects…
-                </div>
-            )
-        case 'empty-project':
-            return (
-                <CertificationSection title="Certification">
-                    <p className="text-sm text-muted-foreground">
-                        Select a project to view certifications.
-                    </p>
-                </CertificationSection>
-            )
-        case 'loading-data':
-            return (
-                <CertificationSection title="Certification">
-                    <p className="text-sm text-muted-foreground">Loading…</p>
-                </CertificationSection>
-            )
-        case 'error':
-            return (
-                <CertificationSection title="Certification">
-                    <p className="text-sm text-destructive">{view.message}</p>
-                </CertificationSection>
-            )
-        case 'ready':
-            return (
-                <CertificationReady rows={view.rows} summary={view.summary} />
-            )
-    }
+    const vm = useCertificationVm()
+    return (
+        <PageDataWrapper
+            title="Certification"
+            projectsLoading={vm.projectsLoading}
+            emptyProject={vm.empty}
+            emptyMessage="Select a project to view certifications."
+            isPending={vm.isPending}
+            error={vm.error}
+        >
+            <CertificationBody rows={vm.rows} summary={vm.summary} />
+        </PageDataWrapper>
+    )
 }

@@ -1,5 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 
+import { Button } from '@/components/ui/button'
+
 interface Props {
     children: ReactNode
 }
@@ -35,13 +37,9 @@ export default class ErrorBoundary extends Component<Props, State> {
                             {this.state.error?.message ??
                                 'Ocurrió un error inesperado.'}
                         </p>
-                        <button
-                            type="button"
-                            onClick={() => window.location.reload()}
-                            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
-                        >
+                        <Button onClick={() => window.location.reload()}>
                             Recargar página
-                        </button>
+                        </Button>
                     </div>
                 </div>
             )

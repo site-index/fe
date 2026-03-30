@@ -25,7 +25,10 @@ export default function Login() {
             <div className="w-full max-w-md space-y-6 sm:space-y-8">
                 <div className="text-center space-y-2">
                     <div className="flex justify-center">
-                        <SiteLogo className="h-24 sm:h-40 w-auto max-w-[400px] dark:brightness-0 dark:invert" />
+                        <SiteLogo
+                            invertOnDark
+                            className="h-24 sm:h-40 w-auto max-w-[400px]"
+                        />
                     </div>
                 </div>
 

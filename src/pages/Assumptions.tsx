@@ -9,6 +9,7 @@ import {
 import { useState } from 'react'
 
 import PageDataWrapper from '@/components/PageDataWrapper'
+import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
 import { apiFetch } from '@/lib/api'
@@ -37,7 +38,7 @@ const impactColors = {
 export default function Assumptions() {
     const queryClient = useQueryClient()
     const { activeProject, projectsLoading } = useProject()
-    const { accessToken, studioSlug } = useAuth()
+    const { accessToken, studioSlug, isQueryReady } = useAuth()
     const empty = activeProject.id === '__empty__'
     const [resolvingId, setResolvingId] = useState<string | null>(null)
 
@@ -48,10 +49,7 @@ export default function Assumptions() {
                 `/v1/projects/${activeProject.id}/assumptions`,
                 { token: accessToken, studioSlug }
             ),
-        enabled:
-            Boolean(accessToken && studioSlug.trim()) &&
-            !empty &&
-            !projectsLoading,
+        enabled: isQueryReady && !empty && !projectsLoading,
     })
 
     const resolveMutation = useMutation({
@@ -153,13 +151,14 @@ export default function Assumptions() {
                                         </p>
                                     </div>
                                     <div className="flex flex-col gap-1.5 shrink-0">
-                                        <button
-                                            type="button"
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
                                             disabled={resolvingId !== null}
                                             onClick={() =>
                                                 resolveMutation.mutate(a.id)
                                             }
-                                            className="inline-flex items-center gap-1.5 rounded-md bg-positive/15 px-3 py-1.5 text-xs font-semibold text-positive hover:bg-positive/25 transition-colors disabled:opacity-50"
+                                            className="bg-positive/15 text-positive hover:bg-positive/25 hover:text-positive"
                                         >
                                             {isResolving ? (
                                                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -167,16 +166,17 @@ export default function Assumptions() {
                                                 <CheckCircle2 className="h-3.5 w-3.5" />
                                             )}
                                             Confirm
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="inline-flex items-center gap-1.5 rounded-md bg-secondary px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-secondary/80 transition-colors opacity-60 cursor-not-allowed"
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="secondary"
                                             disabled
                                             title="Editing coming soon"
+                                            className="opacity-60"
                                         >
                                             <Edit3 className="h-3.5 w-3.5" />
                                             Edit
-                                        </button>
+                                        </Button>
                                     </div>
                                 </div>
                             )
@@ -185,13 +185,9 @@ export default function Assumptions() {
                 </div>
 
                 <div className="flex justify-center">
-                    <button
-                        type="button"
-                        className="rounded-lg border border-border bg-card px-6 py-2.5 text-sm font-semibold text-muted-foreground opacity-60 cursor-not-allowed"
-                        disabled
-                    >
+                    <Button variant="outline" disabled className="opacity-60">
                         Confirm all low-impact (Pareto 90%)
-                    </button>
+                    </Button>
                 </div>
             </div>
         </PageDataWrapper>

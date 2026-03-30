@@ -5,6 +5,7 @@ import { useState } from 'react'
 import CreateBudgetLineDialog from '@/components/CreateBudgetLineDialog'
 import EditBudgetLinePricingSheet from '@/components/EditBudgetLinePricingSheet'
 import PageDataWrapper from '@/components/PageDataWrapper'
+import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
 import { apiFetch } from '@/lib/api'
@@ -72,10 +73,9 @@ function BudgetLineRow({
 
 function useBudgetLinesVm() {
     const { activeProject, projectsLoading } = useProject()
-    const { accessToken, studioSlug } = useAuth()
+    const { accessToken, studioSlug, isQueryReady } = useAuth()
     const empty = activeProject.id === '__empty__'
-    const queryEnabled =
-        Boolean(accessToken && studioSlug.trim()) && !empty && !projectsLoading
+    const queryEnabled = isQueryReady && !empty && !projectsLoading
 
     const { data, isPending, error } = useQuery({
         queryKey: ['budget-lines', activeProject.id],
@@ -138,13 +138,10 @@ function BudgetLinesBody({
                     </h1>
                     <CreateBudgetLineDialog
                         trigger={
-                            <button
-                                type="button"
-                                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
-                            >
+                            <Button size="sm" className="gap-2">
                                 <Plus className="h-4 w-4" />
                                 Nueva línea
-                            </button>
+                            </Button>
                         }
                     />
                 </div>

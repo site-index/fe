@@ -15,14 +15,22 @@ import { ProjectProvider } from '@/contexts/ProjectContext'
 const Dashboard = lazy(() => import('@/pages/Dashboard'))
 const BudgetLines = lazy(() => import('@/pages/BudgetLines'))
 const ItemYields = lazy(() => import('@/pages/ItemYields'))
-const StudioItemDefaults = lazy(() => import('@/pages/StudioItemDefaults'))
+const StudioCatalogItems = lazy(() => import('@/pages/StudioCatalogItems'))
 const Certification = lazy(() => import('@/pages/Certification'))
 const Assumptions = lazy(() => import('@/pages/Assumptions'))
 const SettingsPage = lazy(() => import('@/pages/Settings'))
 const Login = lazy(() => import('@/pages/Login'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            staleTime: 2 * 60 * 1000,
+            retry: 1,
+            refetchOnWindowFocus: false,
+        },
+    },
+})
 
 function PageLoader() {
     return (
@@ -70,8 +78,8 @@ const App = () => (
                                                 element={<ItemYields />}
                                             />
                                             <Route
-                                                path="/studio-item-defaults"
-                                                element={<StudioItemDefaults />}
+                                                path="/studio-catalog-items"
+                                                element={<StudioCatalogItems />}
                                             />
                                             <Route
                                                 path="/certifications"

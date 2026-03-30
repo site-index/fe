@@ -26,7 +26,7 @@ const navItems = [
     { to: '/budget-lines', label: 'Líneas de presupuesto', icon: Calculator },
     { to: '/item-yields', label: 'Rendimientos', icon: FlaskConical },
     {
-        to: '/studio-item-defaults',
+        to: '/studio-catalog-items',
         label: 'Biblioteca del estudio',
         icon: Library,
     },

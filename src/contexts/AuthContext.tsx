@@ -28,6 +28,8 @@ type AuthContextValue = {
     studioSlug: string
     setStudioSlug: (slug: string) => void
     isAuthenticated: boolean
+    /** True when accessToken and studioSlug are both present — safe to enable queries. */
+    isQueryReady: boolean
     login: (
         email: string,
         password: string,
@@ -130,6 +132,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         [accessToken]
     )
 
+    const isQueryReady = Boolean(accessToken && studioSlug.trim())
+
     const value = useMemo<AuthContextValue>(
         () => ({
             accessToken,
@@ -137,10 +141,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             studioSlug,
             setStudioSlug,
             isAuthenticated: Boolean(accessToken),
+            isQueryReady,
             login,
             logout,
         }),
-        [accessToken, sessionEmail, studioSlug, setStudioSlug, login, logout]
+        [
+            accessToken,
+            sessionEmail,
+            studioSlug,
+            setStudioSlug,
+            isQueryReady,
+            login,
+            logout,
+        ]
     )
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

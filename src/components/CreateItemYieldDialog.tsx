@@ -1,8 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
-import { type ReactNode, useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { type ReactNode, useCallback, useEffect, useState } from 'react'
+import { useForm, type UseFormReturn } from 'react-hook-form'
 import { z } from 'zod'
 
 import { Button } from '@/components/ui/button'
@@ -35,6 +35,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
 import { useToast } from '@/hooks/use-toast'
 import { apiFetch, getApiErrorMessage } from '@/lib/api'
+import type { MeasureUnitRow } from '@/types/measure-unit'
 import {
     OTHER_WORK_CATEGORY_CODE,
     type WorkCategoryRow,
@@ -51,11 +52,10 @@ const schema = z.object({
         .min(1, 'El nombre es obligatorio')
         .max(500, 'Máximo 500 caracteres'),
     description: z.string().trim().max(2000, 'Máximo 2000 caracteres'),
-    outputUnit: z
+    measureUnitId: z
         .string()
-        .trim()
-        .min(1, 'La unidad de ítem es obligatoria')
-        .max(32, 'Máximo 32 caracteres'),
+        .uuid('Elegí una unidad de medida válida')
+        .min(1, 'Elegí una unidad de medida'),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -66,7 +66,7 @@ export interface CreatedItemYield {
     workCategoryName: string
     name: string
     description: string
-    outputUnit: string
+    measureUnit: { id: string; code: string; name: string } | null
     linkedItems: string[]
     components: Array<{
         id: string
@@ -84,38 +84,19 @@ interface CreateItemYieldDialogProps {
     onCreated?: (id: string) => void
 }
 
-export default function CreateItemYieldDialog({
-    trigger,
-    onCreated,
-}: CreateItemYieldDialogProps) {
-    const [open, setOpen] = useState(false)
-    const { accessToken, studioSlug } = useAuth()
-    const { activeProject } = useProject()
-    const queryClient = useQueryClient()
-    const { toast } = useToast()
+function defaultMeasureUnitId(units: MeasureUnitRow[]): string {
+    const cubic = units.find((u) => u.code === 'cubic_meter')
+    return cubic?.id ?? units[0]?.id ?? ''
+}
 
-    const resetValues: FormValues = {
-        workCategoryId: '',
-        name: '',
-        description: '',
-        outputUnit: 'm³',
-    }
-
-    const form = useForm<FormValues>({
-        resolver: zodResolver(schema),
-        defaultValues: resetValues,
-    })
-
-    const { data: categories = [], isPending: categoriesLoading } = useQuery({
-        queryKey: ['work-categories', accessToken, studioSlug],
-        queryFn: () =>
-            apiFetch<WorkCategoryRow[]>('/v1/work-categories', {
-                token: accessToken,
-                studioSlug,
-            }),
-        enabled: open && Boolean(accessToken && studioSlug.trim()),
-    })
-
+function useItemYieldDialogDefaults(
+    open: boolean,
+    categoriesLoading: boolean,
+    categories: WorkCategoryRow[],
+    form: UseFormReturn<FormValues>,
+    measureUnitsLoading: boolean,
+    measureUnits: MeasureUnitRow[]
+): void {
     useEffect(() => {
         if (!open || categoriesLoading) {
             return
@@ -128,72 +109,323 @@ export default function CreateItemYieldDialog({
         }
     }, [open, categoriesLoading, categories, form])
 
-    const onSubmit = async (values: FormValues) => {
-        try {
-            const body: {
-                workCategoryId: string
-                name: string
-                description?: string
-                components: {
-                    outputUnit: string
-                    linkedItems: string[]
-                    lines: []
+    useEffect(() => {
+        if (!open || measureUnitsLoading || measureUnits.length === 0) {
+            return
+        }
+        const current = form.getValues('measureUnitId')
+        if (current === '') {
+            form.setValue('measureUnitId', defaultMeasureUnitId(measureUnits))
+        }
+    }, [open, measureUnitsLoading, measureUnits, form])
+}
+
+function useCreateItemYieldSubmit(
+    accessToken: string | null,
+    studioSlug: string,
+    projectId: string,
+    measureUnits: MeasureUnitRow[],
+    form: UseFormReturn<FormValues>,
+    queryClient: ReturnType<typeof useQueryClient>,
+    toast: ReturnType<typeof useToast>['toast'],
+    onCreated: ((id: string) => void) | undefined,
+    setOpen: (v: boolean) => void
+) {
+    return useCallback(
+        async (values: FormValues) => {
+            try {
+                const body: {
+                    workCategoryId: string
+                    name: string
+                    measureUnitId: string
+                    description?: string
+                    components: {
+                        linkedItems: string[]
+                        lines: []
+                    }
+                } = {
+                    workCategoryId: values.workCategoryId,
+                    name: values.name,
+                    measureUnitId: values.measureUnitId,
+                    components: {
+                        linkedItems: [],
+                        lines: [],
+                    },
                 }
-            } = {
-                workCategoryId: values.workCategoryId,
-                name: values.name,
-                components: {
-                    outputUnit: values.outputUnit,
-                    linkedItems: [],
-                    lines: [],
-                },
+                if (values.description.trim() !== '') {
+                    body.description = values.description.trim()
+                }
+                const created = await apiFetch<CreatedItemYield>(
+                    `/v1/projects/${projectId}/item-yields`,
+                    {
+                        method: 'POST',
+                        body,
+                        token: accessToken,
+                        studioSlug,
+                    }
+                )
+                await queryClient.invalidateQueries({
+                    queryKey: ['item-yields', projectId],
+                })
+                toast({
+                    title: 'Rendimiento creado',
+                    description: created.name,
+                })
+                form.reset({
+                    workCategoryId: '',
+                    name: '',
+                    description: '',
+                    measureUnitId: defaultMeasureUnitId(measureUnits),
+                })
+                setOpen(false)
+                onCreated?.(created.id)
+            } catch (err) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Error al crear el rendimiento',
+                    description: getApiErrorMessage(err),
+                })
             }
-            if (values.description.trim() !== '') {
-                body.description = values.description.trim()
-            }
-            const created = await apiFetch<CreatedItemYield>(
-                `/v1/projects/${activeProject.id}/item-yields`,
-                {
-                    method: 'POST',
-                    body,
+        },
+        [
+            accessToken,
+            form,
+            measureUnits,
+            onCreated,
+            projectId,
+            queryClient,
+            setOpen,
+            studioSlug,
+            toast,
+        ]
+    )
+}
+
+function itemYieldFormCanSubmit(
+    categoriesLoading: boolean,
+    measureUnitsLoading: boolean,
+    categoriesLen: number,
+    measureUnitsLen: number,
+    isSubmitting: boolean
+): boolean {
+    return (
+        !categoriesLoading &&
+        !measureUnitsLoading &&
+        categoriesLen > 0 &&
+        measureUnitsLen > 0 &&
+        !isSubmitting
+    )
+}
+
+function CreateItemYieldFormFields({
+    form,
+    onSubmit,
+    categories,
+    categoriesLoading,
+    measureUnits,
+    measureUnitsLoading,
+    canSubmit,
+}: {
+    form: UseFormReturn<FormValues>
+    onSubmit: (values: FormValues) => Promise<void>
+    categories: WorkCategoryRow[]
+    categoriesLoading: boolean
+    measureUnits: MeasureUnitRow[]
+    measureUnitsLoading: boolean
+    canSubmit: boolean
+}) {
+    return (
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                    control={form.control}
+                    name="workCategoryId"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Rubro</FormLabel>
+                            <Select
+                                disabled={categoriesLoading}
+                                onValueChange={field.onChange}
+                                value={field.value}
+                            >
+                                <FormControl>
+                                    <SelectTrigger aria-label="Rubro">
+                                        <SelectValue placeholder="Cargando rubros…" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {categories.map((c) => (
+                                        <SelectItem key={c.id} value={c.id}>
+                                            {c.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Nombre</FormLabel>
+                            <FormControl>
+                                <Input
+                                    placeholder="Ej. Hormigón H21"
+                                    {...field}
+                                />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Descripción (opcional)</FormLabel>
+                            <FormControl>
+                                <Input placeholder="Notas breves" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="measureUnitId"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Unidad del ítem</FormLabel>
+                            <Select
+                                disabled={measureUnitsLoading}
+                                onValueChange={field.onChange}
+                                value={field.value}
+                            >
+                                <FormControl>
+                                    <SelectTrigger aria-label="Unidad de medida">
+                                        <SelectValue placeholder="Cargando unidades…" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {measureUnits.map((u) => (
+                                        <SelectItem key={u.id} value={u.id}>
+                                            {u.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <DialogFooter>
+                    <Button type="submit" disabled={!canSubmit}>
+                        {form.formState.isSubmitting ? 'Creando…' : 'Crear'}
+                    </Button>
+                </DialogFooter>
+            </form>
+        </Form>
+    )
+}
+
+export default function CreateItemYieldDialog({
+    trigger,
+    onCreated,
+}: CreateItemYieldDialogProps) {
+    const [open, setOpen] = useState(false)
+    const { accessToken, studioSlug } = useAuth()
+    const { activeProject } = useProject()
+    const queryClient = useQueryClient()
+    const { toast } = useToast()
+
+    const form = useForm<FormValues>({
+        resolver: zodResolver(schema),
+        defaultValues: {
+            workCategoryId: '',
+            name: '',
+            description: '',
+            measureUnitId: '',
+        },
+    })
+
+    const catalogQueriesEnabled =
+        open && Boolean(accessToken && studioSlug.trim())
+
+    const { data: categories = [], isPending: categoriesLoading } = useQuery({
+        queryKey: ['work-categories', accessToken, studioSlug],
+        queryFn: () =>
+            apiFetch<WorkCategoryRow[]>('/v1/work-categories', {
+                token: accessToken,
+                studioSlug,
+            }),
+        enabled: catalogQueriesEnabled,
+    })
+
+    const { data: measureUnits = [], isPending: measureUnitsLoading } =
+        useQuery({
+            queryKey: ['measure-units', accessToken, studioSlug],
+            queryFn: () =>
+                apiFetch<MeasureUnitRow[]>('/v1/measure-units', {
                     token: accessToken,
                     studioSlug,
-                }
-            )
-            await queryClient.invalidateQueries({
-                queryKey: ['item-yields', activeProject.id],
-            })
-            toast({
-                title: 'Rendimiento creado',
-                description: created.name,
-            })
-            form.reset(resetValues)
-            setOpen(false)
-            onCreated?.(created.id)
-        } catch (err) {
-            toast({
-                variant: 'destructive',
-                title: 'Error al crear el rendimiento',
-                description: getApiErrorMessage(err),
-            })
-        }
-    }
+                }),
+            enabled: catalogQueriesEnabled,
+        })
 
-    const canSubmit =
-        !categoriesLoading &&
-        categories.length > 0 &&
-        !form.formState.isSubmitting
+    useItemYieldDialogDefaults(
+        open,
+        categoriesLoading,
+        categories,
+        form,
+        measureUnitsLoading,
+        measureUnits
+    )
+
+    const onSubmit = useCreateItemYieldSubmit(
+        accessToken,
+        studioSlug,
+        activeProject.id,
+        measureUnits,
+        form,
+        queryClient,
+        toast,
+        onCreated,
+        setOpen
+    )
+
+    const resetValues = useCallback(() => {
+        form.reset({
+            workCategoryId: '',
+            name: '',
+            description: '',
+            measureUnitId: defaultMeasureUnitId(measureUnits),
+        })
+    }, [form, measureUnits])
+
+    const handleOpenChange = useCallback(
+        (v: boolean) => {
+            setOpen(v)
+            if (!v) {
+                resetValues()
+            }
+        },
+        [resetValues]
+    )
+
+    const canSubmit = itemYieldFormCanSubmit(
+        categoriesLoading,
+        measureUnitsLoading,
+        categories.length,
+        measureUnits.length,
+        form.formState.isSubmitting
+    )
 
     return (
-        <Dialog
-            open={open}
-            onOpenChange={(v) => {
-                setOpen(v)
-                if (!v) {
-                    form.reset(resetValues)
-                }
-            }}
-        >
+        <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
                 {trigger ?? (
                     <Button type="button" size="sm" className="gap-2">
@@ -210,98 +442,15 @@ export default function CreateItemYieldDialog({
                         líneas de materiales después (p. ej. vía API).
                     </DialogDescription>
                 </DialogHeader>
-                <Form {...form}>
-                    <form
-                        onSubmit={form.handleSubmit(onSubmit)}
-                        className="space-y-4"
-                    >
-                        <FormField
-                            control={form.control}
-                            name="workCategoryId"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Rubro</FormLabel>
-                                    <Select
-                                        disabled={categoriesLoading}
-                                        onValueChange={field.onChange}
-                                        value={field.value}
-                                    >
-                                        <FormControl>
-                                            <SelectTrigger aria-label="Rubro">
-                                                <SelectValue placeholder="Cargando rubros…" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {categories.map((c) => (
-                                                <SelectItem
-                                                    key={c.id}
-                                                    value={c.id}
-                                                >
-                                                    {c.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="name"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Nombre</FormLabel>
-                                    <FormControl>
-                                        <Input
-                                            placeholder="Ej. Hormigón H21"
-                                            {...field}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="description"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>
-                                        Descripción (opcional)
-                                    </FormLabel>
-                                    <FormControl>
-                                        <Input
-                                            placeholder="Notas breves"
-                                            {...field}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="outputUnit"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Unidad del ítem</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="m³" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <DialogFooter>
-                            <Button type="submit" disabled={!canSubmit}>
-                                {form.formState.isSubmitting
-                                    ? 'Creando…'
-                                    : 'Crear'}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </Form>
+                <CreateItemYieldFormFields
+                    form={form}
+                    onSubmit={onSubmit}
+                    categories={categories}
+                    categoriesLoading={categoriesLoading}
+                    measureUnits={measureUnits}
+                    measureUnitsLoading={measureUnitsLoading}
+                    canSubmit={canSubmit}
+                />
             </DialogContent>
         </Dialog>
     )

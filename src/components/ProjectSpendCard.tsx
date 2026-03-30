@@ -34,7 +34,7 @@ export function ProjectSpendCard({
     const inputRef = useRef<HTMLInputElement>(null)
 
     const { data: projectDetail, error: projectError } = useQuery({
-        queryKey: ['project-detail', projectId, accessToken, studioSlug],
+        queryKey: ['project-detail', projectId],
         queryFn: () =>
             apiFetch<ProjectDetail>(`/v1/projects/${projectId}`, {
                 token: accessToken,

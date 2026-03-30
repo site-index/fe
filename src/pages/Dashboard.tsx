@@ -12,7 +12,7 @@ import type { DashboardData } from '@/types/dashboard'
 
 export default function Dashboard() {
     const { activeProject, projectsLoading } = useProject()
-    const { accessToken, studioSlug } = useAuth()
+    const { accessToken, studioSlug, isQueryReady } = useAuth()
 
     const emptyProject = activeProject.id === '__empty__'
 
@@ -26,10 +26,7 @@ export default function Dashboard() {
                     studioSlug,
                 }
             ),
-        enabled:
-            Boolean(accessToken && studioSlug.trim()) &&
-            !emptyProject &&
-            !projectsLoading,
+        enabled: isQueryReady && !emptyProject && !projectsLoading,
     })
 
     if (!data) {

@@ -25,7 +25,7 @@ import {
 import { cn } from '@/lib/utils'
 
 function suggestionKey(row: SuggestionRow): string {
-    return row.kind === 'yield' ? `y:${row.yieldId}` : `c:${row.itemId}`
+    return row.kind === 'yield' ? `y:${row.yieldId}` : `c:${row.catalogItemId}`
 }
 
 export type BudgetLineCreateDescriptionFieldProps = {

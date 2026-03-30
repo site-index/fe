@@ -32,29 +32,13 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
 import { useToast } from '@/hooks/use-toast'
 import { apiFetch, getApiErrorMessage } from '@/lib/api'
+import {
+    formatCurrency,
+    nonNegStr,
+    optionalNonNegStr,
+    toNum,
+} from '@/lib/form-utils'
 import type { BudgetLineRow } from '@/types/budget-line'
-
-const nonNegStr = z
-    .string()
-    .trim()
-    .refine(
-        (s) =>
-            s !== '' &&
-            Number.isFinite(Number(s.replace(',', '.'))) &&
-            Number(s.replace(',', '.')) >= 0,
-        'Tiene que ser un número ≥ 0'
-    )
-
-const optionalNonNegStr = z
-    .string()
-    .trim()
-    .refine(
-        (s) =>
-            s === '' ||
-            (Number.isFinite(Number(s.replace(',', '.'))) &&
-                Number(s.replace(',', '.')) >= 0),
-        'Tiene que ser un número ≥ 0'
-    )
 
 const schema = z.object({
     amountMaterialStr: nonNegStr,
@@ -64,18 +48,6 @@ const schema = z.object({
 })
 
 type FormValues = z.infer<typeof schema>
-
-function toNum(s: string): number {
-    return Number(s.replace(',', '.').trim())
-}
-
-function formatCurrency(value: number): string {
-    return value.toLocaleString('es-AR', {
-        style: 'currency',
-        currency: 'ARS',
-        minimumFractionDigits: 2,
-    })
-}
 
 function parseBudgetLineAmountStrings(watched: {
     amountMaterialStr: string
@@ -249,19 +221,10 @@ function useBudgetLineYieldLink(options: {
 
     const [yieldSaving, setYieldSaving] = useState(false)
 
-    const yieldsQueryEnabled =
-        open &&
-        Boolean(accessToken && studioSlug?.trim()) &&
-        projectId !== '__empty__'
+    const yieldsQueryEnabled = open && projectId !== '__empty__'
 
     const { data: itemYields = [] } = useQuery({
-        queryKey: [
-            'item-yields',
-            projectId,
-            accessToken,
-            studioSlug,
-            'edit-sheet',
-        ],
+        queryKey: ['item-yields', projectId, 'edit-sheet'],
         queryFn: () =>
             apiFetch<ItemYieldOption[]>(
                 `/v1/projects/${projectId}/item-yields`,

@@ -11,6 +11,7 @@ import { Link } from 'react-router-dom'
 
 import CreateItemYieldDialog from '@/components/CreateItemYieldDialog'
 import PageDataWrapper from '@/components/PageDataWrapper'
+import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
 import { apiFetch } from '@/lib/api'
@@ -31,11 +32,15 @@ interface ItemYield {
     workCategoryName: string
     name: string
     description: string
-    outputUnit: string
+    measureUnit: { id: string; code: string; name: string } | null
     components: ItemYieldLine[]
     linkedItems: string[]
     /** Present when this row is a snapshot of a global catalog ítem. */
     catalogItemId: string | null
+}
+
+function itemUnitLabel(y: ItemYield): string {
+    return y.measureUnit?.name ?? '—'
 }
 
 function calcPurchase(comp: ItemYieldLine, outputQty: number) {
@@ -64,7 +69,7 @@ function ConverterWidget({ itemYield }: { itemYield: ItemYield }) {
                     step={1}
                 />
                 <span className="text-sm font-mono text-muted-foreground">
-                    {itemYield.outputUnit}
+                    {itemUnitLabel(itemYield)}
                 </span>
             </div>
 
@@ -110,12 +115,9 @@ function ConverterWidget({ itemYield }: { itemYield: ItemYield }) {
 function ItemYieldDetail({ d, onBack }: { d: ItemYield; onBack: () => void }) {
     return (
         <div className="space-y-6">
-            <button
-                onClick={onBack}
-                className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
+            <Button variant="ghost" size="sm" onClick={onBack}>
                 <ArrowLeft className="h-4 w-4" /> Volver a rendimientos
-            </button>
+            </Button>
 
             <div>
                 <p className="text-xs text-muted-foreground mb-1">
@@ -125,7 +127,7 @@ function ItemYieldDetail({ d, onBack }: { d: ItemYield; onBack: () => void }) {
                 <p className="text-sm text-muted-foreground">{d.description}</p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                     <span className="inline-block rounded bg-muted px-2 py-0.5 text-xs font-mono">
-                        Unidad de ítem: {d.outputUnit}
+                        Unidad de ítem: {itemUnitLabel(d)}
                     </span>
                     {d.catalogItemId ? (
                         <span className="inline-block rounded border border-border bg-card px-2 py-0.5 text-xs text-muted-foreground">
@@ -155,7 +157,7 @@ function ItemYieldDetail({ d, onBack }: { d: ItemYield; onBack: () => void }) {
                                     Material
                                 </th>
                                 <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                    Cant. / {d.outputUnit}
+                                    Cant. / {itemUnitLabel(d)}
                                 </th>
                                 <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
                                     Unidad
@@ -263,7 +265,7 @@ function ItemYieldsGrid({
                                     </span>
                                 )}
                                 <span className="rounded bg-muted px-2 py-0.5 text-xs font-mono">
-                                    {d.outputUnit}
+                                    {itemUnitLabel(d)}
                                 </span>
                             </div>
                         </div>
@@ -299,7 +301,7 @@ function ItemYieldsGrid({
 export default function ItemYields() {
     const [selectedId, setSelectedId] = useState<string | null>(null)
     const { activeProject, projectsLoading } = useProject()
-    const { accessToken, studioSlug } = useAuth()
+    const { accessToken, studioSlug, isQueryReady } = useAuth()
     const empty = activeProject.id === '__empty__'
 
     const {
@@ -316,10 +318,7 @@ export default function ItemYields() {
                     studioSlug,
                 }
             ),
-        enabled:
-            Boolean(accessToken && studioSlug.trim()) &&
-            !empty &&
-            !projectsLoading,
+        enabled: isQueryReady && !empty && !projectsLoading,
     })
 
     const selected = itemYields.find((d) => d.id === selectedId)
@@ -350,7 +349,7 @@ export default function ItemYields() {
                             crear el proyecto). Los defaults del estudio se
                             editan en{' '}
                             <Link
-                                to="/studio-item-defaults"
+                                to="/studio-catalog-items"
                                 className="text-primary hover:underline"
                             >
                                 Biblioteca del estudio
@@ -361,13 +360,10 @@ export default function ItemYields() {
                     <CreateItemYieldDialog
                         onCreated={setSelectedId}
                         trigger={
-                            <button
-                                type="button"
-                                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
-                            >
+                            <Button size="sm">
                                 <Plus className="h-4 w-4" />
                                 Nuevo rendimiento
-                            </button>
+                            </Button>
                         }
                     />
                 </div>

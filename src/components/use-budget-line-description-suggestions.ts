@@ -4,21 +4,27 @@ import { useMemo } from 'react'
 
 import { apiFetch } from '@/lib/api'
 
+type MeasureUnitApiShape = {
+    id: string
+    code: string
+    name: string
+}
+
 type ItemYieldApiRow = {
     id: string
     workCategoryId: string
     workCategoryName: string
     name: string
     description: string
-    outputUnit?: string
+    measureUnit: MeasureUnitApiShape | null
 }
 
-type ItemStudioApiRow = {
-    itemId: string
+type StudioCatalogItemApiRow = {
+    catalogItemId: string
     name: string
     workCategoryId: string
     workCategoryName: string
-    outputUnit?: string
+    measureUnit: MeasureUnitApiShape | null
 }
 
 export type SuggestionRow =
@@ -29,21 +35,21 @@ export type SuggestionRow =
           name: string
           description: string
           workCategoryName: string
-          outputUnit: string
+          measureUnitId: string | null
       }
     | {
           kind: 'catalog'
-          itemId: string
+          catalogItemId: string
           name: string
           description: string
           workCategoryName: string
           workCategoryId: string
-          outputUnit: string
+          measureUnitId: string | null
       }
 
 function buildSuggestionRows(
     yields: ItemYieldApiRow[],
-    catalog: ItemStudioApiRow[]
+    catalog: StudioCatalogItemApiRow[]
 ): SuggestionRow[] {
     const byYield: SuggestionRow[] = yields.map((y) => ({
         kind: 'yield' as const,
@@ -52,7 +58,7 @@ function buildSuggestionRows(
         name: y.name,
         description: y.description ?? '',
         workCategoryName: y.workCategoryName,
-        outputUnit: typeof y.outputUnit === 'string' ? y.outputUnit : '',
+        measureUnitId: y.measureUnit?.id ?? null,
     }))
     const yieldNames = new Set(
         yields.map((y) => y.name.trim().toLowerCase()).filter(Boolean)
@@ -61,12 +67,12 @@ function buildSuggestionRows(
         .filter((c) => !yieldNames.has(c.name.trim().toLowerCase()))
         .map((c) => ({
             kind: 'catalog' as const,
-            itemId: c.itemId,
+            catalogItemId: c.catalogItemId,
             name: c.name,
             description: '',
             workCategoryName: c.workCategoryName,
             workCategoryId: c.workCategoryId,
-            outputUnit: typeof c.outputUnit === 'string' ? c.outputUnit : '',
+            measureUnitId: c.measureUnit?.id ?? null,
         }))
     return [...byYield, ...byCatalog]
 }
@@ -77,13 +83,10 @@ export function useBudgetLineDescriptionSuggestions(
     accessToken: string | null,
     studioSlug: string
 ) {
-    const queryEnabled =
-        dialogOpen &&
-        Boolean(accessToken && studioSlug.trim()) &&
-        projectId !== '__empty__'
+    const queryEnabled = dialogOpen && projectId !== '__empty__'
 
     const { data: itemYields = [], isPending: yieldsLoading } = useQuery({
-        queryKey: ['item-yields', projectId, accessToken, studioSlug],
+        queryKey: ['item-yields', projectId],
         queryFn: () =>
             apiFetch<ItemYieldApiRow[]>(
                 `/v1/projects/${projectId}/item-yields`,
@@ -93,9 +96,9 @@ export function useBudgetLineDescriptionSuggestions(
     })
 
     const { data: catalogDefaults = [], isPending: catalogLoading } = useQuery({
-        queryKey: ['item-studio-defaults', accessToken, studioSlug],
+        queryKey: ['studio-catalog-items', accessToken, studioSlug],
         queryFn: () =>
-            apiFetch<ItemStudioApiRow[]>('/v1/item-studio-defaults', {
+            apiFetch<StudioCatalogItemApiRow[]>('/v1/studio-catalog-items', {
                 token: accessToken,
                 studioSlug,
             }),

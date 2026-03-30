@@ -43,7 +43,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
 import { useToast } from '@/hooks/use-toast'
 import { apiFetch, getApiErrorMessage } from '@/lib/api'
-import { resolveOutputUnitToMeasureUnitId } from '@/lib/measure-unit-resolve'
+import { optionalNonNegStr, toNum } from '@/lib/form-utils'
 import type { BudgetLineRow } from '@/types/budget-line'
 import type { MeasureUnitRow } from '@/types/measure-unit'
 import type { WorkCategoryRow } from '@/types/work-category'
@@ -57,26 +57,15 @@ type LibraryBinding =
           kind: 'yield'
           yieldId: string
           workCategoryName: string
-          outputUnit: string
+          measureUnitId: string | null
       }
     | {
           kind: 'catalog'
           catalogItemId: string
           workCategoryId: string
           workCategoryName: string
-          outputUnit: string
+          measureUnitId: string | null
       }
-
-const optionalNonNegStr = z
-    .string()
-    .trim()
-    .refine(
-        (s) =>
-            s === '' ||
-            (Number.isFinite(Number(s.replace(',', '.'))) &&
-                Number(s.replace(',', '.')) >= 0),
-        'Tiene que ser un número ≥ 0'
-    )
 
 const schema = z.object({
     description: z
@@ -94,10 +83,6 @@ const schema = z.object({
 })
 
 type FormValues = z.infer<typeof schema>
-
-function toNum(s: string): number {
-    return Number(s.replace(',', '.').trim())
-}
 
 function appendOptionalBudgetNumericFields(
     body: Record<string, unknown>,
@@ -205,13 +190,7 @@ function CreateBudgetLineMeasureUnitSection({
     unitNone: string
 }) {
     if (libraryBinding != null) {
-        const resolvedId = resolveOutputUnitToMeasureUnitId(
-            libraryBinding.outputUnit,
-            measureUnits
-        )
-        const out = libraryBinding.outputUnit.trim()
-
-        if (resolvedId != null) {
+        if (libraryBinding.measureUnitId != null) {
             return (
                 <FormField
                     control={control}
@@ -249,22 +228,6 @@ function CreateBudgetLineMeasureUnitSection({
                         </FormItem>
                     )}
                 />
-            )
-        }
-
-        if (out !== '') {
-            return (
-                <FormItem>
-                    <FormLabel>Unidad (opcional)</FormLabel>
-                    <p className="text-sm font-medium rounded-md border border-input bg-muted/40 px-3 py-2">
-                        {out}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                        No coincide con una unidad del catálogo global; la línea
-                        puede crearse sin unidad vinculada o podés desvincular
-                        la biblioteca para elegir una.
-                    </p>
-                </FormItem>
             )
         }
 
@@ -346,7 +309,7 @@ export default function CreateBudgetLineDialog({
 }: CreateBudgetLineDialogProps) {
     const [open, setOpen] = useState(false)
     const [libraryBinding, setLibraryBinding] = useState<LibraryBinding>(null)
-    const { accessToken, studioSlug } = useAuth()
+    const { accessToken, studioSlug, isQueryReady } = useAuth()
     const { activeProject } = useProject()
     const queryClient = useQueryClient()
     const { toast } = useToast()
@@ -368,45 +331,41 @@ export default function CreateBudgetLineDialog({
     })
 
     const { data: categories = [], isPending: categoriesLoading } = useQuery({
-        queryKey: ['work-categories', accessToken, studioSlug],
+        queryKey: ['work-categories'],
         queryFn: () =>
             apiFetch<WorkCategoryRow[]>('/v1/work-categories', {
                 token: accessToken,
                 studioSlug,
             }),
-        enabled: open && Boolean(accessToken && studioSlug.trim()),
+        enabled: open && isQueryReady,
     })
 
     const { data: measureUnits = [], isPending: measureUnitsLoading } =
         useQuery({
-            queryKey: ['measure-units', accessToken, studioSlug],
+            queryKey: ['measure-units'],
             queryFn: () =>
                 apiFetch<MeasureUnitRow[]>('/v1/measure-units', {
                     token: accessToken,
                     studioSlug,
                 }),
-            enabled: open && Boolean(accessToken && studioSlug.trim()),
+            enabled: open && isQueryReady,
         })
 
     useEffect(() => {
         if (libraryBinding == null) {
             return
         }
-        const resolved = resolveOutputUnitToMeasureUnitId(
-            libraryBinding.outputUnit,
-            measureUnits
-        )
-        if (resolved != null) {
-            form.setValue('measureUnitId', resolved, { shouldValidate: true })
+        if (libraryBinding.measureUnitId != null) {
+            form.setValue('measureUnitId', libraryBinding.measureUnitId, {
+                shouldValidate: true,
+            })
+        } else {
+            form.setValue('measureUnitId', UNIT_NONE, { shouldValidate: true })
         }
-    }, [libraryBinding, measureUnits, form])
+    }, [libraryBinding, form])
 
     const handleSuggestionPick = (row: SuggestionRow) => {
-        const resolvedId = resolveOutputUnitToMeasureUnitId(
-            row.outputUnit,
-            measureUnits
-        )
-        const measureUnitId = resolvedId ?? UNIT_NONE
+        const measureUnitId = row.measureUnitId ?? UNIT_NONE
 
         if (row.kind === 'yield') {
             form.setValue('description', row.name, { shouldValidate: true })
@@ -420,7 +379,7 @@ export default function CreateBudgetLineDialog({
                 kind: 'yield',
                 yieldId: row.yieldId,
                 workCategoryName: row.workCategoryName,
-                outputUnit: row.outputUnit,
+                measureUnitId: row.measureUnitId,
             })
         } else {
             form.setValue('description', row.name, { shouldValidate: true })
@@ -432,10 +391,10 @@ export default function CreateBudgetLineDialog({
             })
             setLibraryBinding({
                 kind: 'catalog',
-                catalogItemId: row.itemId,
+                catalogItemId: row.catalogItemId,
                 workCategoryId: row.workCategoryId,
                 workCategoryName: row.workCategoryName,
-                outputUnit: row.outputUnit,
+                measureUnitId: row.measureUnitId,
             })
         }
     }
