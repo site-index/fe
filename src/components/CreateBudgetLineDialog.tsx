@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import { type Control, useForm } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -43,6 +43,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
 import { useToast } from '@/hooks/use-toast'
 import { apiFetch, getApiErrorMessage } from '@/lib/api'
+import { resolveOutputUnitToMeasureUnitId } from '@/lib/measure-unit-resolve'
 import type { BudgetLineRow } from '@/types/budget-line'
 import type { MeasureUnitRow } from '@/types/measure-unit'
 import type { WorkCategoryRow } from '@/types/work-category'
@@ -52,12 +53,18 @@ const UNIT_NONE = '__none__'
 
 type LibraryBinding =
     | null
-    | { kind: 'yield'; yieldId: string; workCategoryName: string }
+    | {
+          kind: 'yield'
+          yieldId: string
+          workCategoryName: string
+          outputUnit: string
+      }
     | {
           kind: 'catalog'
           catalogItemId: string
           workCategoryId: string
           workCategoryName: string
+          outputUnit: string
       }
 
 const optionalNonNegStr = z
@@ -184,6 +191,131 @@ function CreateBudgetLineRubroSection({
     )
 }
 
+function CreateBudgetLineMeasureUnitSection({
+    control,
+    libraryBinding,
+    measureUnits,
+    measureUnitsLoading,
+    unitNone,
+}: {
+    control: Control<FormValues>
+    libraryBinding: LibraryBinding
+    measureUnits: MeasureUnitRow[]
+    measureUnitsLoading: boolean
+    unitNone: string
+}) {
+    if (libraryBinding != null) {
+        const resolvedId = resolveOutputUnitToMeasureUnitId(
+            libraryBinding.outputUnit,
+            measureUnits
+        )
+        const out = libraryBinding.outputUnit.trim()
+
+        if (resolvedId != null) {
+            return (
+                <FormField
+                    control={control}
+                    name="measureUnitId"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Unidad (opcional)</FormLabel>
+                            <Select
+                                disabled
+                                onValueChange={field.onChange}
+                                value={field.value}
+                            >
+                                <FormControl>
+                                    <SelectTrigger aria-label="Unidad">
+                                        <SelectValue placeholder="—" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value={unitNone}>
+                                        Sin unidad
+                                    </SelectItem>
+                                    {measureUnits.map((u) => (
+                                        <SelectItem key={u.id} value={u.id}>
+                                            {u.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">
+                                {libraryBinding.kind === 'yield'
+                                    ? 'La define el rendimiento vinculado a la biblioteca.'
+                                    : 'La define el ítem del catálogo.'}
+                            </p>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            )
+        }
+
+        if (out !== '') {
+            return (
+                <FormItem>
+                    <FormLabel>Unidad (opcional)</FormLabel>
+                    <p className="text-sm font-medium rounded-md border border-input bg-muted/40 px-3 py-2">
+                        {out}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                        No coincide con una unidad del catálogo global; la línea
+                        puede crearse sin unidad vinculada o podés desvincular
+                        la biblioteca para elegir una.
+                    </p>
+                </FormItem>
+            )
+        }
+
+        return (
+            <FormItem>
+                <FormLabel>Unidad (opcional)</FormLabel>
+                <p className="text-sm font-medium rounded-md border border-input bg-muted/40 px-3 py-2">
+                    Sin unidad
+                </p>
+                <p className="text-xs text-muted-foreground">
+                    {libraryBinding.kind === 'yield'
+                        ? 'La define el rendimiento vinculado a la biblioteca.'
+                        : 'La define el ítem del catálogo.'}
+                </p>
+            </FormItem>
+        )
+    }
+
+    return (
+        <FormField
+            control={control}
+            name="measureUnitId"
+            render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Unidad (opcional)</FormLabel>
+                    <Select
+                        disabled={measureUnitsLoading}
+                        onValueChange={field.onChange}
+                        value={field.value}
+                    >
+                        <FormControl>
+                            <SelectTrigger aria-label="Unidad">
+                                <SelectValue placeholder="Cargando…" />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            <SelectItem value={unitNone}>Sin unidad</SelectItem>
+                            {measureUnits.map((u) => (
+                                <SelectItem key={u.id} value={u.id}>
+                                    {u.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                </FormItem>
+            )}
+        />
+    )
+}
+
 function buildBudgetLineCreateBody(
     values: FormValues,
     libraryBinding: LibraryBinding,
@@ -256,20 +388,46 @@ export default function CreateBudgetLineDialog({
             enabled: open && Boolean(accessToken && studioSlug.trim()),
         })
 
+    useEffect(() => {
+        if (libraryBinding == null) {
+            return
+        }
+        const resolved = resolveOutputUnitToMeasureUnitId(
+            libraryBinding.outputUnit,
+            measureUnits
+        )
+        if (resolved != null) {
+            form.setValue('measureUnitId', resolved, { shouldValidate: true })
+        }
+    }, [libraryBinding, measureUnits, form])
+
     const handleSuggestionPick = (row: SuggestionRow) => {
+        const resolvedId = resolveOutputUnitToMeasureUnitId(
+            row.outputUnit,
+            measureUnits
+        )
+        const measureUnitId = resolvedId ?? UNIT_NONE
+
         if (row.kind === 'yield') {
             form.setValue('description', row.name, { shouldValidate: true })
             form.setValue('workCategoryId', RUBRO_NONE, {
+                shouldValidate: true,
+            })
+            form.setValue('measureUnitId', measureUnitId, {
                 shouldValidate: true,
             })
             setLibraryBinding({
                 kind: 'yield',
                 yieldId: row.yieldId,
                 workCategoryName: row.workCategoryName,
+                outputUnit: row.outputUnit,
             })
         } else {
             form.setValue('description', row.name, { shouldValidate: true })
             form.setValue('workCategoryId', row.workCategoryId, {
+                shouldValidate: true,
+            })
+            form.setValue('measureUnitId', measureUnitId, {
                 shouldValidate: true,
             })
             setLibraryBinding({
@@ -277,12 +435,15 @@ export default function CreateBudgetLineDialog({
                 catalogItemId: row.itemId,
                 workCategoryId: row.workCategoryId,
                 workCategoryName: row.workCategoryName,
+                outputUnit: row.outputUnit,
             })
         }
     }
 
     const clearLibraryBinding = () => {
         setLibraryBinding(null)
+        form.setValue('measureUnitId', UNIT_NONE, { shouldValidate: true })
+        form.setValue('workCategoryId', RUBRO_NONE, { shouldValidate: true })
     }
 
     const onSubmit = async (values: FormValues) => {
@@ -398,39 +559,12 @@ export default function CreateBudgetLineDialog({
                             categoriesLoading={categoriesLoading}
                             rubroNone={RUBRO_NONE}
                         />
-                        <FormField
+                        <CreateBudgetLineMeasureUnitSection
                             control={form.control}
-                            name="measureUnitId"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Unidad (opcional)</FormLabel>
-                                    <Select
-                                        disabled={measureUnitsLoading}
-                                        onValueChange={field.onChange}
-                                        value={field.value}
-                                    >
-                                        <FormControl>
-                                            <SelectTrigger aria-label="Unidad">
-                                                <SelectValue placeholder="Cargando…" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            <SelectItem value={UNIT_NONE}>
-                                                Sin unidad
-                                            </SelectItem>
-                                            {measureUnits.map((u) => (
-                                                <SelectItem
-                                                    key={u.id}
-                                                    value={u.id}
-                                                >
-                                                    {u.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
+                            libraryBinding={libraryBinding}
+                            measureUnits={measureUnits}
+                            measureUnitsLoading={measureUnitsLoading}
+                            unitNone={UNIT_NONE}
                         />
                         <div className="grid grid-cols-2 gap-3">
                             <FormField

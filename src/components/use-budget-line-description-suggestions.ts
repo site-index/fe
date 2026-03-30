@@ -10,6 +10,7 @@ type ItemYieldApiRow = {
     workCategoryName: string
     name: string
     description: string
+    outputUnit?: string
 }
 
 type ItemStudioApiRow = {
@@ -17,6 +18,7 @@ type ItemStudioApiRow = {
     name: string
     workCategoryId: string
     workCategoryName: string
+    outputUnit?: string
 }
 
 export type SuggestionRow =
@@ -27,6 +29,7 @@ export type SuggestionRow =
           name: string
           description: string
           workCategoryName: string
+          outputUnit: string
       }
     | {
           kind: 'catalog'
@@ -35,6 +38,7 @@ export type SuggestionRow =
           description: string
           workCategoryName: string
           workCategoryId: string
+          outputUnit: string
       }
 
 function buildSuggestionRows(
@@ -48,6 +52,7 @@ function buildSuggestionRows(
         name: y.name,
         description: y.description ?? '',
         workCategoryName: y.workCategoryName,
+        outputUnit: typeof y.outputUnit === 'string' ? y.outputUnit : '',
     }))
     const yieldNames = new Set(
         yields.map((y) => y.name.trim().toLowerCase()).filter(Boolean)
@@ -61,6 +66,7 @@ function buildSuggestionRows(
             description: '',
             workCategoryName: c.workCategoryName,
             workCategoryId: c.workCategoryId,
+            outputUnit: typeof c.outputUnit === 'string' ? c.outputUnit : '',
         }))
     return [...byYield, ...byCatalog]
 }
