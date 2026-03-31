@@ -1,7 +1,13 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
-import { type ReactNode, type RefCallback, useEffect, useState } from 'react'
+import {
+    type ReactNode,
+    type RefCallback,
+    useCallback,
+    useEffect,
+    useState,
+} from 'react'
 import { type Control, useForm } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -17,6 +23,8 @@ import {
     Dialog,
     DialogContent,
     DialogFooter,
+    DialogHeader,
+    DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog'
 import {
@@ -320,9 +328,12 @@ export default function CreateBudgetLineDialog({
     const [dialogPortalEl, setDialogPortalEl] = useState<HTMLElement | null>(
         null
     )
-    const dialogContentRef: RefCallback<HTMLDivElement> = (node) => {
-        setDialogPortalEl(node)
-    }
+    const dialogContentRef: RefCallback<HTMLDivElement> = useCallback(
+        (node: HTMLDivElement | null) => {
+            setDialogPortalEl(node)
+        },
+        []
+    )
     const [libraryBinding, setLibraryBinding] = useState<LibraryBinding>(null)
     const { accessToken, studioSlug, isQueryReady } = useAuth()
     const { activeProject } = useProject()
@@ -485,8 +496,12 @@ export default function CreateBudgetLineDialog({
             </DialogTrigger>
             <DialogContent
                 ref={dialogContentRef}
+                aria-describedby={undefined}
                 className="sm:max-w-md max-h-[90vh] overflow-y-auto"
             >
+                <DialogHeader>
+                    <DialogTitle>Nueva línea de presupuesto</DialogTitle>
+                </DialogHeader>
                 <Form {...form}>
                     <form
                         onSubmit={form.handleSubmit(onSubmit)}
@@ -497,11 +512,6 @@ export default function CreateBudgetLineDialog({
                             name="description"
                             render={({ field }) => (
                                 <BudgetLineCreateDescriptionField
-                                    key={
-                                        open
-                                            ? 'budget-desc-open'
-                                            : 'budget-desc-closed'
-                                    }
                                     name={field.name}
                                     value={field.value}
                                     onBlur={field.onBlur}
