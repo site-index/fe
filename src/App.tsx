@@ -6,6 +6,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import AppLayout from '@/components/AppLayout'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import { PwaUpdateBanner } from '@/components/PwaUpdateBanner'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { Toaster } from '@/components/ui/toaster'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -53,6 +54,7 @@ const App = () => (
                     <AuthProvider>
                         <Toaster />
                         <Sonner />
+                        <PwaUpdateBanner />
                         <BrowserRouter>
                             <Suspense fallback={<PageLoader />}>
                                 <Routes>

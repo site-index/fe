@@ -24,9 +24,16 @@ export default defineConfig({
         tailwindcss(),
         react(),
         VitePWA({
-            registerType: 'autoUpdate',
-            injectRegister: 'auto',
-            includeAssets: ['logo.svg', 'robots.txt'],
+            registerType: 'prompt',
+            injectRegister: false,
+            includeAssets: [
+                'logo.svg',
+                'robots.txt',
+                'pwa-192.png',
+                'pwa-512.png',
+                'apple-touch-icon.png',
+                'pwa-icon.svg',
+            ],
             manifest: {
                 name: 'SITE INDEX',
                 short_name: 'SITE INDEX',
@@ -39,10 +46,22 @@ export default defineConfig({
                 scope: '/',
                 icons: [
                     {
-                        src: '/logo.svg',
-                        sizes: 'any',
-                        type: 'image/svg+xml',
+                        src: '/pwa-192.png',
+                        sizes: '192x192',
+                        type: 'image/png',
                         purpose: 'any',
+                    },
+                    {
+                        src: '/pwa-512.png',
+                        sizes: '512x512',
+                        type: 'image/png',
+                        purpose: 'any',
+                    },
+                    {
+                        src: '/pwa-512.png',
+                        sizes: '512x512',
+                        type: 'image/png',
+                        purpose: 'maskable',
                     },
                 ],
             },
