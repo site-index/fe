@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 
+import SiteLogo from '@/components/SiteLogo'
 import { Button } from '@/components/ui/button'
 
 interface Props {
@@ -29,7 +30,8 @@ export default class ErrorBoundary extends Component<Props, State> {
         if (this.state.hasError) {
             return (
                 <div className="flex min-h-screen items-center justify-center bg-background p-6">
-                    <div className="max-w-md space-y-4 text-center">
+                    <div className="flex max-w-md flex-col items-center space-y-6 text-center">
+                        <SiteLogo invertOnDark className="h-10 w-auto" />
                         <h1 className="text-2xl font-black tracking-tight text-foreground">
                             Algo salió mal
                         </h1>
