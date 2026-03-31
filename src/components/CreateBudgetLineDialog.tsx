@@ -16,10 +16,7 @@ import { Button } from '@/components/ui/button'
 import {
     Dialog,
     DialogContent,
-    DialogDescription,
     DialogFooter,
-    DialogHeader,
-    DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog'
 import {
@@ -490,16 +487,6 @@ export default function CreateBudgetLineDialog({
                 ref={dialogContentRef}
                 className="sm:max-w-md max-h-[90vh] overflow-y-auto"
             >
-                <DialogHeader>
-                    <DialogTitle>Nueva línea de presupuesto</DialogTitle>
-                    <DialogDescription>
-                        La descripción es obligatoria. Mientras escribís, podés
-                        elegir un rendimiento del proyecto o un ítem del
-                        catálogo (búsqueda aproximada). Rubro, precio unitario,
-                        cantidad y desglose por categoría son opcionales; el
-                        desglose es por unidad de medida.
-                    </DialogDescription>
-                </DialogHeader>
                 <Form {...form}>
                     <form
                         onSubmit={form.handleSubmit(onSubmit)}
