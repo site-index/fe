@@ -1,20 +1,21 @@
+import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus } from 'lucide-react'
-import { type ReactNode, useCallback, useEffect, useState } from 'react'
+import { Plus, X } from 'lucide-react'
+import {
+    cloneElement,
+    isValidElement,
+    type MouseEvent,
+    type ReactElement,
+    type ReactNode,
+    useCallback,
+    useEffect,
+    useState,
+} from 'react'
 import { useForm, type UseFormReturn } from 'react-hook-form'
 import { z } from 'zod'
 
 import { Button } from '@/components/ui/button'
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog'
 import {
     Form,
     FormControl,
@@ -236,97 +237,105 @@ function CreateItemYieldFormFields({
 }) {
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                    control={form.control}
-                    name="workCategoryId"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Rubro</FormLabel>
-                            <Select
-                                disabled={categoriesLoading}
-                                onValueChange={field.onChange}
-                                value={field.value}
-                            >
+            <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="flex min-h-0 flex-1 flex-col"
+            >
+                <div className="flex-1 space-y-4 overflow-y-auto">
+                    <FormField
+                        control={form.control}
+                        name="workCategoryId"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Rubro</FormLabel>
+                                <Select
+                                    disabled={categoriesLoading}
+                                    onValueChange={field.onChange}
+                                    value={field.value}
+                                >
+                                    <FormControl>
+                                        <SelectTrigger aria-label="Rubro">
+                                            <SelectValue placeholder="Cargando rubros…" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {categories.map((c) => (
+                                            <SelectItem key={c.id} value={c.id}>
+                                                {c.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Nombre</FormLabel>
                                 <FormControl>
-                                    <SelectTrigger aria-label="Rubro">
-                                        <SelectValue placeholder="Cargando rubros…" />
-                                    </SelectTrigger>
+                                    <Input
+                                        placeholder="Ej. Hormigón H21"
+                                        {...field}
+                                    />
                                 </FormControl>
-                                <SelectContent>
-                                    {categories.map((c) => (
-                                        <SelectItem key={c.id} value={c.id}>
-                                            {c.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Nombre</FormLabel>
-                            <FormControl>
-                                <Input
-                                    placeholder="Ej. Hormigón H21"
-                                    {...field}
-                                />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Descripción (opcional)</FormLabel>
-                            <FormControl>
-                                <Input placeholder="Notas breves" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="measureUnitId"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Unidad del ítem</FormLabel>
-                            <Select
-                                disabled={measureUnitsLoading}
-                                onValueChange={field.onChange}
-                                value={field.value}
-                            >
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="description"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Descripción (opcional)</FormLabel>
                                 <FormControl>
-                                    <SelectTrigger aria-label="Unidad de medida">
-                                        <SelectValue placeholder="Cargando unidades…" />
-                                    </SelectTrigger>
+                                    <Input
+                                        placeholder="Notas breves"
+                                        {...field}
+                                    />
                                 </FormControl>
-                                <SelectContent>
-                                    {measureUnits.map((u) => (
-                                        <SelectItem key={u.id} value={u.id}>
-                                            {u.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <DialogFooter>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="measureUnitId"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Unidad del ítem</FormLabel>
+                                <Select
+                                    disabled={measureUnitsLoading}
+                                    onValueChange={field.onChange}
+                                    value={field.value}
+                                >
+                                    <FormControl>
+                                        <SelectTrigger aria-label="Unidad de medida">
+                                            <SelectValue placeholder="Cargando unidades…" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {measureUnits.map((u) => (
+                                            <SelectItem key={u.id} value={u.id}>
+                                                {u.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
+                <div className="flex shrink-0 justify-end border-t px-0 pt-4 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
                     <Button type="submit" disabled={!canSubmit}>
                         {form.formState.isSubmitting ? 'Creando…' : 'Crear'}
                     </Button>
-                </DialogFooter>
+                </div>
             </form>
         </Form>
     )
@@ -424,34 +433,79 @@ export default function CreateItemYieldDialog({
         form.formState.isSubmitting
     )
 
+    const renderTrigger = () => {
+        if (!trigger) {
+            return (
+                <Button
+                    type="button"
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => handleOpenChange(true)}
+                >
+                    <Plus className="h-4 w-4" />
+                    Nuevo rendimiento
+                </Button>
+            )
+        }
+        if (isValidElement(trigger)) {
+            const el = trigger as ReactElement<{
+                onClick?: (event: MouseEvent<HTMLElement>) => void
+            }>
+            return cloneElement(el, {
+                onClick: (event: MouseEvent<HTMLElement>) => {
+                    el.props.onClick?.(event)
+                    if (!event.defaultPrevented) {
+                        handleOpenChange(true)
+                    }
+                },
+            })
+        }
+        return null
+    }
+
     return (
-        <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogTrigger asChild>
-                {trigger ?? (
-                    <Button type="button" size="sm" className="gap-2">
-                        <Plus className="h-4 w-4" />
-                        Nuevo rendimiento
-                    </Button>
-                )}
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle>Nuevo rendimiento</DialogTitle>
-                    <DialogDescription>
-                        Elegí el rubro y la unidad del ítem. Podés agregar
-                        líneas de materiales después (p. ej. vía API).
-                    </DialogDescription>
-                </DialogHeader>
-                <CreateItemYieldFormFields
-                    form={form}
-                    onSubmit={onSubmit}
-                    categories={categories}
-                    categoriesLoading={categoriesLoading}
-                    measureUnits={measureUnits}
-                    measureUnitsLoading={measureUnitsLoading}
-                    canSubmit={canSubmit}
-                />
-            </DialogContent>
-        </Dialog>
+        <>
+            {renderTrigger()}
+            <Dialog
+                open={open}
+                onClose={() => handleOpenChange(false)}
+                className="relative z-50"
+            >
+                <div className="fixed inset-0 bg-black/80" aria-hidden="true" />
+                <div className="fixed inset-0 flex items-center justify-center p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4 sm:pb-[max(1rem,env(safe-area-inset-bottom))]">
+                    <DialogPanel className="flex max-h-[min(90vh,100dvh)] w-full max-w-md flex-col rounded-lg border bg-background shadow-lg">
+                        <div className="flex shrink-0 items-center justify-between border-b px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+                            <DialogTitle className="text-lg font-semibold leading-none tracking-tight">
+                                Nuevo rendimiento
+                            </DialogTitle>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                aria-label="Cerrar"
+                                onClick={() => handleOpenChange(false)}
+                            >
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+                        <p className="shrink-0 border-b px-4 py-3 text-sm text-muted-foreground">
+                            Elegí el rubro y la unidad del ítem. Podés agregar
+                            líneas de materiales después (p. ej. vía API).
+                        </p>
+                        <div className="flex min-h-0 flex-1 flex-col px-4 pb-3">
+                            <CreateItemYieldFormFields
+                                form={form}
+                                onSubmit={onSubmit}
+                                categories={categories}
+                                categoriesLoading={categoriesLoading}
+                                measureUnits={measureUnits}
+                                measureUnitsLoading={measureUnitsLoading}
+                                canSubmit={canSubmit}
+                            />
+                        </div>
+                    </DialogPanel>
+                </div>
+            </Dialog>
+        </>
     )
 }

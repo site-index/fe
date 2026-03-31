@@ -1,20 +1,19 @@
+import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQueryClient } from '@tanstack/react-query'
-import { Plus } from 'lucide-react'
-import { type ReactNode, useState } from 'react'
+import { Plus, X } from 'lucide-react'
+import {
+    cloneElement,
+    isValidElement,
+    type MouseEvent,
+    type ReactElement,
+    type ReactNode,
+    useState,
+} from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
 import { Button } from '@/components/ui/button'
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog'
 import {
     Form,
     FormControl,
@@ -57,6 +56,11 @@ export default function CreateProjectDialog({
         defaultValues: { name: '' },
     })
 
+    const close = () => {
+        setOpen(false)
+        form.reset()
+    }
+
     const onSubmit = async (values: FormValues) => {
         try {
             const created = await apiFetch<Project>('/v1/projects', {
@@ -79,67 +83,101 @@ export default function CreateProjectDialog({
         }
     }
 
+    const renderTrigger = () => {
+        if (!trigger) {
+            return (
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start gap-2 text-sidebar-muted hover:text-sidebar-foreground"
+                    type="button"
+                    onClick={() => setOpen(true)}
+                >
+                    <Plus className="h-4 w-4" />
+                    Nuevo proyecto
+                </Button>
+            )
+        }
+        if (isValidElement(trigger)) {
+            const el = trigger as ReactElement<{
+                onClick?: (event: MouseEvent<HTMLElement>) => void
+            }>
+            return cloneElement(el, {
+                onClick: (event: MouseEvent<HTMLElement>) => {
+                    el.props.onClick?.(event)
+                    if (!event.defaultPrevented) {
+                        setOpen(true)
+                    }
+                },
+            })
+        }
+        return null
+    }
+
     return (
-        <Dialog
-            open={open}
-            onOpenChange={(v) => {
-                setOpen(v)
-                if (!v) form.reset()
-            }}
-        >
-            <DialogTrigger asChild>
-                {trigger ?? (
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-start gap-2 text-sidebar-muted hover:text-sidebar-foreground"
-                    >
-                        <Plus className="h-4 w-4" />
-                        Nuevo proyecto
-                    </Button>
-                )}
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle>Crear proyecto</DialogTitle>
-                    <DialogDescription>
-                        Ingresá el nombre del nuevo proyecto.
-                    </DialogDescription>
-                </DialogHeader>
-                <Form {...form}>
-                    <form
-                        onSubmit={form.handleSubmit(onSubmit)}
-                        className="space-y-4"
-                    >
-                        <FormField
-                            control={form.control}
-                            name="name"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Nombre del proyecto</FormLabel>
-                                    <FormControl>
-                                        <Input
-                                            placeholder="Mi proyecto"
-                                            {...field}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <DialogFooter>
+        <>
+            {renderTrigger()}
+            <Dialog open={open} onClose={close} className="relative z-50">
+                <div className="fixed inset-0 bg-black/80" aria-hidden="true" />
+                <div className="fixed inset-0 flex items-center justify-center p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4 sm:pb-[max(1rem,env(safe-area-inset-bottom))]">
+                    <DialogPanel className="flex max-h-[min(90vh,100dvh)] w-full max-w-md flex-col rounded-lg border bg-background shadow-lg">
+                        <div className="flex shrink-0 items-center justify-between border-b px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+                            <DialogTitle className="text-lg font-semibold leading-none tracking-tight">
+                                Crear proyecto
+                            </DialogTitle>
                             <Button
-                                type="submit"
-                                disabled={form.formState.isSubmitting}
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                aria-label="Cerrar"
+                                onClick={close}
                             >
-                                {form.formState.isSubmitting
-                                    ? 'Creando…'
-                                    : 'Crear'}
+                                <X className="h-4 w-4" />
                             </Button>
-                        </DialogFooter>
-                    </form>
-                </Form>
-            </DialogContent>
-        </Dialog>
+                        </div>
+                        <p className="shrink-0 border-b px-4 py-3 text-sm text-muted-foreground">
+                            Ingresá el nombre del nuevo proyecto.
+                        </p>
+                        <Form {...form}>
+                            <form
+                                onSubmit={form.handleSubmit(onSubmit)}
+                                className="flex min-h-0 flex-1 flex-col"
+                            >
+                                <div className="flex-1 space-y-4 overflow-y-auto px-4 py-3">
+                                    <FormField
+                                        control={form.control}
+                                        name="name"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>
+                                                    Nombre del proyecto
+                                                </FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        placeholder="Mi proyecto"
+                                                        {...field}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                                <div className="flex shrink-0 justify-end border-t px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+                                    <Button
+                                        type="submit"
+                                        disabled={form.formState.isSubmitting}
+                                    >
+                                        {form.formState.isSubmitting
+                                            ? 'Creando…'
+                                            : 'Crear'}
+                                    </Button>
+                                </div>
+                            </form>
+                        </Form>
+                    </DialogPanel>
+                </div>
+            </Dialog>
+        </>
     )
 }

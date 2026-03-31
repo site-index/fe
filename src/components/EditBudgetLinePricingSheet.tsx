@@ -1,10 +1,12 @@
+import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
     type QueryClient,
     useQuery,
     useQueryClient,
 } from '@tanstack/react-query'
-import { type RefCallback, useCallback, useEffect, useState } from 'react'
+import { X } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -20,14 +22,6 @@ import {
     FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import {
-    Sheet,
-    SheetContent,
-    SheetDescription,
-    SheetFooter,
-    SheetHeader,
-    SheetTitle,
-} from '@/components/ui/sheet'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
 import { useToast } from '@/hooks/use-toast'
@@ -294,13 +288,11 @@ function EditBudgetLineMetaBlock({
     itemYields,
     yieldSaving,
     onYieldChange,
-    selectPortalContainer,
 }: {
     line: BudgetLineRow
     itemYields: ItemYieldOption[]
     yieldSaving: boolean
     onYieldChange: (budgetLineId: string, itemYieldId: string | null) => void
-    selectPortalContainer: HTMLElement | null
 }) {
     return (
         <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-3">
@@ -334,7 +326,6 @@ function EditBudgetLineMetaBlock({
                     yields={itemYields}
                     disabled={yieldSaving}
                     onChange={onYieldChange}
-                    portalContainer={selectPortalContainer}
                 />
             </div>
         </div>
@@ -437,12 +428,6 @@ function BudgetLinePricingFormFields({
                     ) : null}
                 </CardContent>
             </Card>
-
-            <SheetFooter className="pt-4">
-                <Button type="submit" disabled={form.formState.isSubmitting}>
-                    {form.formState.isSubmitting ? 'Guardando…' : 'Guardar'}
-                </Button>
-            </SheetFooter>
         </>
     )
 }
@@ -511,11 +496,6 @@ export default function EditBudgetLinePricingSheet({
     })
     const showQuantityHint = breakdownSum > 0 && qty === 0
 
-    const [sheetPortalEl, setSheetPortalEl] = useState<HTMLElement | null>(null)
-    const sheetContentRef: RefCallback<HTMLDivElement> = (node) => {
-        setSheetPortalEl(node)
-    }
-
     const handleSubmit = (values: FormValues) => {
         if (!line) return
         void submitBudgetLinePricing({
@@ -531,45 +511,71 @@ export default function EditBudgetLinePricingSheet({
     }
 
     return (
-        <Sheet open={open} onOpenChange={onOpenChange}>
-            <SheetContent
-                ref={sheetContentRef}
-                className="w-full sm:max-w-md overflow-y-auto"
-            >
-                <SheetHeader>
-                    <SheetTitle>Precios y desglose</SheetTitle>
-                    <SheetDescription>
+        <Dialog
+            open={open}
+            onClose={() => onOpenChange(false)}
+            className="relative z-50"
+        >
+            <div className="fixed inset-0 bg-black/80" aria-hidden="true" />
+            <div className="fixed inset-0 flex items-center justify-center p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4 sm:pb-[max(1rem,env(safe-area-inset-bottom))]">
+                <DialogPanel className="flex max-h-[min(90vh,100dvh)] w-full max-w-md flex-col rounded-lg border bg-background shadow-lg">
+                    <div className="flex shrink-0 items-center justify-between border-b px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+                        <DialogTitle className="text-lg font-semibold leading-none tracking-tight">
+                            Precios y desglose
+                        </DialogTitle>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Cerrar"
+                            onClick={() => onOpenChange(false)}
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
+                    </div>
+                    <p className="shrink-0 border-b px-4 py-3 text-sm text-muted-foreground">
                         {line?.description ?? 'Línea'} — unidad: {unitLabel}.
                         Los importes de materiales, mano de obra y equipo son
                         por unidad de medida; el total de la línea es cantidad ×
                         esa suma (o cantidad × precio unitario guardado si el
                         desglose está en cero).
-                    </SheetDescription>
-                </SheetHeader>
-                {line ? (
-                    <Form {...form}>
-                        <form
-                            onSubmit={form.handleSubmit(handleSubmit)}
-                            className="mt-6 space-y-4"
-                        >
-                            <EditBudgetLineMetaBlock
-                                line={line}
-                                itemYields={itemYields}
-                                yieldSaving={yieldSaving}
-                                onYieldChange={handleYieldChange}
-                                selectPortalContainer={sheetPortalEl}
-                            />
-                            <BudgetLinePricingFormFields
-                                form={form}
-                                unitLabel={unitLabel}
-                                computedTotal={computedTotal}
-                                computedUnitPrice={computedUnitPrice}
-                                showQuantityHint={showQuantityHint}
-                            />
-                        </form>
-                    </Form>
-                ) : null}
-            </SheetContent>
-        </Sheet>
+                    </p>
+                    {line ? (
+                        <Form {...form}>
+                            <form
+                                onSubmit={form.handleSubmit(handleSubmit)}
+                                className="flex min-h-0 flex-1 flex-col"
+                            >
+                                <div className="flex-1 space-y-4 overflow-y-auto px-4 py-3">
+                                    <EditBudgetLineMetaBlock
+                                        line={line}
+                                        itemYields={itemYields}
+                                        yieldSaving={yieldSaving}
+                                        onYieldChange={handleYieldChange}
+                                    />
+                                    <BudgetLinePricingFormFields
+                                        form={form}
+                                        unitLabel={unitLabel}
+                                        computedTotal={computedTotal}
+                                        computedUnitPrice={computedUnitPrice}
+                                        showQuantityHint={showQuantityHint}
+                                    />
+                                </div>
+                                <div className="flex shrink-0 justify-end border-t px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+                                    <Button
+                                        type="submit"
+                                        disabled={form.formState.isSubmitting}
+                                    >
+                                        {form.formState.isSubmitting
+                                            ? 'Guardando…'
+                                            : 'Guardar'}
+                                    </Button>
+                                </div>
+                            </form>
+                        </Form>
+                    ) : null}
+                </DialogPanel>
+            </div>
+        </Dialog>
     )
 }

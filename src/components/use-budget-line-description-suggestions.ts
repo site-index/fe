@@ -47,6 +47,10 @@ export type SuggestionRow =
           measureUnitId: string | null
       }
 
+export function budgetLineSuggestionRowKey(row: SuggestionRow): string {
+    return row.kind === 'yield' ? `y:${row.yieldId}` : `c:${row.catalogItemId}`
+}
+
 function buildSuggestionRows(
     yields: ItemYieldApiRow[],
     catalog: StudioCatalogItemApiRow[]

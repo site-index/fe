@@ -66,7 +66,7 @@ const CommandList = forwardRef<
     <CommandPrimitive.List
         ref={ref}
         className={cn(
-            'max-h-[300px] overflow-y-auto overflow-x-hidden',
+            'max-h-[min(300px,50dvh)] overflow-y-auto overflow-x-hidden overscroll-contain',
             className
         )}
         {...props}

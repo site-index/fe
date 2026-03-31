@@ -1,53 +1,33 @@
+import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus } from 'lucide-react'
+import { Plus, X } from 'lucide-react'
 import {
+    cloneElement,
+    isValidElement,
+    type KeyboardEvent,
+    type MouseEvent,
+    type ReactElement,
     type ReactNode,
-    type RefCallback,
-    useCallback,
     useEffect,
+    useMemo,
     useState,
 } from 'react'
-import { type Control, useForm } from 'react-hook-form'
+import { useForm, type UseFormReturn, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 
-import { BudgetLineCreateDescriptionField } from '@/components/budget-line-create-description-field'
-import {
-    Accordion,
-    AccordionContent,
-    AccordionItem,
-    AccordionTrigger,
-} from '@/components/ui/accordion'
+import type { BudgetLineCreateFormValues } from '@/components/create-budget-line-dialog-form-fields'
+import { CreateBudgetLineDialogFormFields } from '@/components/create-budget-line-dialog-form-fields'
 import { Button } from '@/components/ui/button'
 import {
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog'
-import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select'
-import type { SuggestionRow } from '@/components/use-budget-line-description-suggestions'
+    type SuggestionRow,
+    useBudgetLineDescriptionSuggestions,
+} from '@/components/use-budget-line-description-suggestions'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
 import { useToast } from '@/hooks/use-toast'
 import { apiFetch, getApiErrorMessage } from '@/lib/api'
+import { filterBudgetLineSuggestionRows } from '@/lib/budget-line-suggestion-filter'
 import { optionalNonNegStr, toNum } from '@/lib/form-utils'
 import type { BudgetLineRow } from '@/types/budget-line'
 import type { MeasureUnitRow } from '@/types/measure-unit'
@@ -55,6 +35,7 @@ import type { WorkCategoryRow } from '@/types/work-category'
 
 const RUBRO_NONE = '__none__'
 const UNIT_NONE = '__none__'
+const SUGGESTION_LISTBOX_ID = 'create-budget-line-suggestion-listbox'
 
 type LibraryBinding =
     | null
@@ -114,188 +95,6 @@ function appendOptionalBudgetNumericFields(
     }
 }
 
-function CreateBudgetLineRubroSection({
-    control,
-    libraryBinding,
-    categories,
-    categoriesLoading,
-    rubroNone,
-    selectPortalContainer,
-}: {
-    control: Control<FormValues>
-    libraryBinding: LibraryBinding
-    categories: WorkCategoryRow[]
-    categoriesLoading: boolean
-    rubroNone: string
-    selectPortalContainer: HTMLElement | null
-}) {
-    if (libraryBinding?.kind === 'yield') {
-        return (
-            <FormItem>
-                <FormLabel>Rubro</FormLabel>
-                <p className="text-sm font-medium rounded-md border border-input bg-muted/40 px-3 py-2">
-                    {libraryBinding.workCategoryName}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                    Lo define el rendimiento vinculado a la biblioteca.
-                </p>
-            </FormItem>
-        )
-    }
-    return (
-        <FormField
-            control={control}
-            name="workCategoryId"
-            render={({ field }) => (
-                <FormItem>
-                    <FormLabel>Rubro (opcional)</FormLabel>
-                    <Select
-                        disabled={
-                            categoriesLoading ||
-                            libraryBinding?.kind === 'catalog'
-                        }
-                        onValueChange={field.onChange}
-                        value={field.value}
-                    >
-                        <FormControl>
-                            <SelectTrigger aria-label="Rubro">
-                                <SelectValue placeholder="Cargando…" />
-                            </SelectTrigger>
-                        </FormControl>
-                        <SelectContent
-                            container={selectPortalContainer ?? undefined}
-                        >
-                            <SelectItem value={rubroNone}>Sin rubro</SelectItem>
-                            {categories.map((c) => (
-                                <SelectItem key={c.id} value={c.id}>
-                                    {c.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    {libraryBinding?.kind === 'catalog' ? (
-                        <p className="text-xs text-muted-foreground">
-                            Rubro fijado por el ítem del catálogo.
-                        </p>
-                    ) : null}
-                    <FormMessage />
-                </FormItem>
-            )}
-        />
-    )
-}
-
-function CreateBudgetLineMeasureUnitSection({
-    control,
-    libraryBinding,
-    measureUnits,
-    measureUnitsLoading,
-    unitNone,
-    selectPortalContainer,
-}: {
-    control: Control<FormValues>
-    libraryBinding: LibraryBinding
-    measureUnits: MeasureUnitRow[]
-    measureUnitsLoading: boolean
-    unitNone: string
-    selectPortalContainer: HTMLElement | null
-}) {
-    if (libraryBinding != null) {
-        if (libraryBinding.measureUnitId != null) {
-            return (
-                <FormField
-                    control={control}
-                    name="measureUnitId"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Unidad (opcional)</FormLabel>
-                            <Select
-                                disabled
-                                onValueChange={field.onChange}
-                                value={field.value}
-                            >
-                                <FormControl>
-                                    <SelectTrigger aria-label="Unidad">
-                                        <SelectValue placeholder="—" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent
-                                    container={
-                                        selectPortalContainer ?? undefined
-                                    }
-                                >
-                                    <SelectItem value={unitNone}>
-                                        Sin unidad
-                                    </SelectItem>
-                                    {measureUnits.map((u) => (
-                                        <SelectItem key={u.id} value={u.id}>
-                                            {u.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <p className="text-xs text-muted-foreground">
-                                {libraryBinding.kind === 'yield'
-                                    ? 'La define el rendimiento vinculado a la biblioteca.'
-                                    : 'La define el ítem del catálogo.'}
-                            </p>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-            )
-        }
-
-        return (
-            <FormItem>
-                <FormLabel>Unidad (opcional)</FormLabel>
-                <p className="text-sm font-medium rounded-md border border-input bg-muted/40 px-3 py-2">
-                    Sin unidad
-                </p>
-                <p className="text-xs text-muted-foreground">
-                    {libraryBinding.kind === 'yield'
-                        ? 'La define el rendimiento vinculado a la biblioteca.'
-                        : 'La define el ítem del catálogo.'}
-                </p>
-            </FormItem>
-        )
-    }
-
-    return (
-        <FormField
-            control={control}
-            name="measureUnitId"
-            render={({ field }) => (
-                <FormItem>
-                    <FormLabel>Unidad (opcional)</FormLabel>
-                    <Select
-                        disabled={measureUnitsLoading}
-                        onValueChange={field.onChange}
-                        value={field.value}
-                    >
-                        <FormControl>
-                            <SelectTrigger aria-label="Unidad">
-                                <SelectValue placeholder="Cargando…" />
-                            </SelectTrigger>
-                        </FormControl>
-                        <SelectContent
-                            container={selectPortalContainer ?? undefined}
-                        >
-                            <SelectItem value={unitNone}>Sin unidad</SelectItem>
-                            {measureUnits.map((u) => (
-                                <SelectItem key={u.id} value={u.id}>
-                                    {u.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <FormMessage />
-                </FormItem>
-            )}
-        />
-    )
-}
-
 function buildBudgetLineCreateBody(
     values: FormValues,
     libraryBinding: LibraryBinding,
@@ -321,20 +120,14 @@ interface CreateBudgetLineDialogProps {
     trigger?: ReactNode
 }
 
+// eslint-disable-next-line complexity
 export default function CreateBudgetLineDialog({
     trigger,
 }: CreateBudgetLineDialogProps) {
     const [open, setOpen] = useState(false)
-    const [dialogPortalEl, setDialogPortalEl] = useState<HTMLElement | null>(
-        null
-    )
-    const dialogContentRef: RefCallback<HTMLDivElement> = useCallback(
-        (node: HTMLDivElement | null) => {
-            setDialogPortalEl(node)
-        },
-        []
-    )
     const [libraryBinding, setLibraryBinding] = useState<LibraryBinding>(null)
+    const [suggestionsOpen, setSuggestionsOpen] = useState(false)
+    const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1)
     const { accessToken, studioSlug, isQueryReady } = useAuth()
     const { activeProject } = useProject()
     const queryClient = useQueryClient()
@@ -355,6 +148,10 @@ export default function CreateBudgetLineDialog({
         resolver: zodResolver(schema),
         defaultValues: defaultForm,
     })
+    const values = useWatch({
+        control: form.control,
+        defaultValue: defaultForm,
+    }) as BudgetLineCreateFormValues
 
     const { data: categories = [], isPending: categoriesLoading } = useQuery({
         queryKey: ['work-categories'],
@@ -376,6 +173,37 @@ export default function CreateBudgetLineDialog({
                 }),
             enabled: open && isQueryReady,
         })
+
+    const {
+        fuse,
+        suggestionRows,
+        suggestionsLoading,
+        queryEnabled,
+        hasCorpus,
+    } = useBudgetLineDescriptionSuggestions(
+        open,
+        activeProject.id,
+        accessToken,
+        studioSlug
+    )
+
+    const filteredSuggestionRows = useMemo(
+        () =>
+            filterBudgetLineSuggestionRows(
+                fuse,
+                suggestionRows,
+                values.description
+            ),
+        [fuse, suggestionRows, values.description]
+    )
+
+    const showSuggestions =
+        open &&
+        !libraryBinding &&
+        suggestionsOpen &&
+        queryEnabled &&
+        !suggestionsLoading &&
+        hasCorpus
 
     useEffect(() => {
         if (libraryBinding == null) {
@@ -423,6 +251,8 @@ export default function CreateBudgetLineDialog({
                 measureUnitId: row.measureUnitId,
             })
         }
+        setSuggestionsOpen(false)
+        setActiveSuggestionIndex(-1)
     }
 
     const clearLibraryBinding = () => {
@@ -431,14 +261,49 @@ export default function CreateBudgetLineDialog({
         form.setValue('workCategoryId', RUBRO_NONE, { shouldValidate: true })
     }
 
-    const onSubmit = async (values: FormValues) => {
+    const onDescriptionKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+        if (!showSuggestions || filteredSuggestionRows.length === 0) {
+            if (event.key === 'Escape') {
+                setSuggestionsOpen(false)
+            }
+            return
+        }
+        if (event.key === 'ArrowDown') {
+            event.preventDefault()
+            setActiveSuggestionIndex((i) => {
+                if (i < 0) return 0
+                return i < filteredSuggestionRows.length - 1 ? i + 1 : i
+            })
+            return
+        }
+        if (event.key === 'ArrowUp') {
+            event.preventDefault()
+            setActiveSuggestionIndex((i) => (i > 0 ? i - 1 : -1))
+            return
+        }
+        if (event.key === 'Enter' && activeSuggestionIndex >= 0) {
+            const row = filteredSuggestionRows[activeSuggestionIndex]
+            if (row) {
+                event.preventDefault()
+                handleSuggestionPick(row)
+            }
+            return
+        }
+        if (event.key === 'Escape') {
+            event.preventDefault()
+            setSuggestionsOpen(false)
+            setActiveSuggestionIndex(-1)
+        }
+    }
+
+    const onSubmit = async (submitted: FormValues) => {
         try {
             const body = buildBudgetLineCreateBody(
-                values,
+                submitted,
                 libraryBinding,
                 RUBRO_NONE
             )
-            appendOptionalBudgetNumericFields(body, values, UNIT_NONE)
+            appendOptionalBudgetNumericFields(body, submitted, UNIT_NONE)
 
             const created = await apiFetch<BudgetLineRow>(
                 `/v1/projects/${activeProject.id}/budget-lines`,
@@ -474,203 +339,130 @@ export default function CreateBudgetLineDialog({
     const resetDialog = () => {
         form.reset(defaultForm)
         setLibraryBinding(null)
+        setSuggestionsOpen(false)
+        setActiveSuggestionIndex(-1)
+    }
+
+    const renderTrigger = () => {
+        if (!trigger) {
+            return (
+                <Button
+                    type="button"
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => setOpen(true)}
+                >
+                    <Plus className="h-4 w-4" />
+                    Nueva línea
+                </Button>
+            )
+        }
+        if (isValidElement(trigger)) {
+            const triggerElement = trigger as ReactElement<{
+                onClick?: (event: MouseEvent<HTMLElement>) => void
+            }>
+            return cloneElement(triggerElement, {
+                onClick: (event: MouseEvent<HTMLElement>) => {
+                    triggerElement.props.onClick?.(event)
+                    if (!event.defaultPrevented) {
+                        setOpen(true)
+                    }
+                },
+            })
+        }
+        return null
     }
 
     return (
-        <Dialog
-            open={open}
-            onOpenChange={(v) => {
-                setOpen(v)
-                if (!v) {
+        <>
+            {renderTrigger()}
+            <Dialog
+                open={open}
+                onClose={() => {
+                    setOpen(false)
                     resetDialog()
-                }
-            }}
-        >
-            <DialogTrigger asChild>
-                {trigger ?? (
-                    <Button type="button" size="sm" className="gap-2">
-                        <Plus className="h-4 w-4" />
-                        Nueva línea
-                    </Button>
-                )}
-            </DialogTrigger>
-            <DialogContent
-                ref={dialogContentRef}
-                aria-describedby={undefined}
-                className="sm:max-w-md max-h-[90vh] overflow-y-auto"
+                }}
+                className="relative z-50"
             >
-                <DialogHeader>
-                    <DialogTitle>Nueva línea de presupuesto</DialogTitle>
-                </DialogHeader>
-                <Form {...form}>
-                    <form
-                        onSubmit={form.handleSubmit(onSubmit)}
-                        className="space-y-4"
-                    >
-                        <FormField
-                            control={form.control}
-                            name="description"
-                            render={({ field }) => (
-                                <BudgetLineCreateDescriptionField
-                                    name={field.name}
-                                    value={field.value}
-                                    onBlur={field.onBlur}
-                                    inputRef={field.ref}
-                                    onInputChange={(e) => {
-                                        field.onChange(e)
-                                    }}
-                                    dialogOpen={open}
-                                    projectId={activeProject.id}
-                                    accessToken={accessToken}
-                                    studioSlug={studioSlug}
-                                    libraryBound={libraryBinding != null}
-                                    onClearLibraryBinding={clearLibraryBinding}
-                                    onSuggestionPick={handleSuggestionPick}
-                                />
-                            )}
-                        />
-                        <CreateBudgetLineRubroSection
-                            control={form.control}
-                            libraryBinding={libraryBinding}
-                            categories={categories}
-                            categoriesLoading={categoriesLoading}
-                            rubroNone={RUBRO_NONE}
-                            selectPortalContainer={dialogPortalEl}
-                        />
-                        <CreateBudgetLineMeasureUnitSection
-                            control={form.control}
-                            libraryBinding={libraryBinding}
-                            measureUnits={measureUnits}
-                            measureUnitsLoading={measureUnitsLoading}
-                            unitNone={UNIT_NONE}
-                            selectPortalContainer={dialogPortalEl}
-                        />
-                        <div className="grid grid-cols-2 gap-3">
-                            <FormField
-                                control={form.control}
-                                name="quantityStr"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Cantidad</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                inputMode="decimal"
-                                                placeholder="—"
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="unitPriceStr"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>
-                                            P. unitario (ARS / unidad)
-                                        </FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                inputMode="decimal"
-                                                placeholder="—"
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-                        <Accordion type="single" collapsible className="w-full">
-                            <AccordionItem
-                                value="categoryAmounts"
-                                className="border-b-0"
-                            >
-                                <AccordionTrigger className="py-2 text-sm">
-                                    Desglose por categoría (opcional, por
-                                    unidad)
-                                </AccordionTrigger>
-                                <AccordionContent className="space-y-3 pt-1">
-                                    <p className="text-xs text-muted-foreground">
-                                        Importes en ARS por cada unidad de
-                                        medida de la línea (no el total de la
-                                        obra).
-                                    </p>
-                                    <FormField
-                                        control={form.control}
-                                        name="amountMaterialStr"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>
-                                                    Materiales (ARS / unidad)
-                                                </FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        inputMode="decimal"
-                                                        placeholder="0"
-                                                        {...field}
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="amountLaborStr"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>
-                                                    Mano de obra (ARS / unidad)
-                                                </FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        inputMode="decimal"
-                                                        placeholder="0"
-                                                        {...field}
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="amountEquipmentStr"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>
-                                                    Equipo (ARS / unidad)
-                                                </FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        inputMode="decimal"
-                                                        placeholder="0"
-                                                        {...field}
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </AccordionContent>
-                            </AccordionItem>
-                        </Accordion>
-                        <DialogFooter>
+                <div className="fixed inset-0 bg-black/80" aria-hidden="true" />
+                <div className="fixed inset-0 flex items-center justify-center p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4 sm:pb-[max(1rem,env(safe-area-inset-bottom))]">
+                    <DialogPanel className="flex max-h-[min(90vh,100dvh)] w-full max-w-md flex-col rounded-lg border bg-background shadow-lg">
+                        <div className="flex shrink-0 items-center justify-between border-b px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+                            <DialogTitle className="text-lg font-semibold leading-none tracking-tight">
+                                Nueva línea de presupuesto
+                            </DialogTitle>
                             <Button
-                                type="submit"
-                                disabled={form.formState.isSubmitting}
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                aria-label="Cerrar"
+                                onClick={() => {
+                                    setOpen(false)
+                                    resetDialog()
+                                }}
                             >
-                                {form.formState.isSubmitting
-                                    ? 'Creando…'
-                                    : 'Crear'}
+                                <X className="h-4 w-4" />
                             </Button>
-                        </DialogFooter>
-                    </form>
-                </Form>
-            </DialogContent>
-        </Dialog>
+                        </div>
+                        <form
+                            onSubmit={form.handleSubmit(onSubmit)}
+                            className="flex min-h-0 flex-1 flex-col"
+                        >
+                            <CreateBudgetLineDialogFormFields
+                                form={
+                                    form as UseFormReturn<BudgetLineCreateFormValues>
+                                }
+                                values={values}
+                                libraryBinding={libraryBinding}
+                                categories={categories}
+                                categoriesLoading={categoriesLoading}
+                                measureUnits={measureUnits}
+                                measureUnitsLoading={measureUnitsLoading}
+                                rubroNone={RUBRO_NONE}
+                                unitNone={UNIT_NONE}
+                                showSuggestions={showSuggestions}
+                                suggestionsLoading={suggestionsLoading}
+                                filteredSuggestionRows={filteredSuggestionRows}
+                                suggestionListboxId={SUGGESTION_LISTBOX_ID}
+                                activeSuggestionIndex={activeSuggestionIndex}
+                                setActiveSuggestionIndex={
+                                    setActiveSuggestionIndex
+                                }
+                                onDescriptionKeyDown={onDescriptionKeyDown}
+                                onDescriptionFocus={() => {
+                                    if (!libraryBinding) {
+                                        setSuggestionsOpen(true)
+                                    }
+                                }}
+                                onDescriptionBlur={() => {
+                                    window.setTimeout(() => {
+                                        setSuggestionsOpen(false)
+                                    }, 200)
+                                }}
+                                onDescriptionInput={() => {
+                                    setActiveSuggestionIndex(-1)
+                                    if (!libraryBinding) {
+                                        setSuggestionsOpen(true)
+                                    }
+                                }}
+                                onClearLibraryBinding={clearLibraryBinding}
+                                handleSuggestionPick={handleSuggestionPick}
+                            />
+
+                            <div className="flex shrink-0 justify-end border-t px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+                                <Button
+                                    type="submit"
+                                    disabled={form.formState.isSubmitting}
+                                >
+                                    {form.formState.isSubmitting
+                                        ? 'Creando…'
+                                        : 'Crear'}
+                                </Button>
+                            </div>
+                        </form>
+                    </DialogPanel>
+                </div>
+            </Dialog>
+        </>
     )
 }

@@ -72,6 +72,7 @@ SelectScrollDownButton.displayName =
 type SelectContentProps = ComponentPropsWithoutRef<
     typeof SelectPrimitive.Content
 > & {
+    /** Portal mount; only set when body-portaled menus misbehave inside a clipped/scroll-locked ancestor. */
     container?: ComponentPropsWithoutRef<
         typeof SelectPrimitive.Portal
     >['container']
