@@ -39,6 +39,8 @@ type Props = {
     yields: YieldOptionRow[]
     disabled: boolean
     onChange: (budgetLineId: string, itemYieldId: string | null) => void
+    /** Render the menu inside this node (e.g. sheet content) so touch scroll works with dialog scroll lock. */
+    portalContainer?: HTMLElement | null
 }
 
 export function BudgetLineItemYieldSelect({
@@ -46,6 +48,7 @@ export function BudgetLineItemYieldSelect({
     yields,
     disabled,
     onChange,
+    portalContainer,
 }: Props) {
     const grouped = groupYieldsByCategory(yields)
     const groupKeys = [...grouped.keys()].sort((a, b) =>
@@ -66,7 +69,7 @@ export function BudgetLineItemYieldSelect({
             >
                 <SelectValue placeholder="—" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent container={portalContainer ?? undefined}>
                 <SelectItem value={YIELD_NONE}>Sin rendimiento</SelectItem>
                 {groupKeys.map((categoryName) => (
                     <SelectGroup key={categoryName}>

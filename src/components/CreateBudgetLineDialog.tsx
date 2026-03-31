@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
-import { type ReactNode, useEffect, useState } from 'react'
+import { type ReactNode, type RefCallback, useEffect, useState } from 'react'
 import { type Control, useForm } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -115,12 +115,14 @@ function CreateBudgetLineRubroSection({
     categories,
     categoriesLoading,
     rubroNone,
+    selectPortalContainer,
 }: {
     control: Control<FormValues>
     libraryBinding: LibraryBinding
     categories: WorkCategoryRow[]
     categoriesLoading: boolean
     rubroNone: string
+    selectPortalContainer: HTMLElement | null
 }) {
     if (libraryBinding?.kind === 'yield') {
         return (
@@ -155,7 +157,9 @@ function CreateBudgetLineRubroSection({
                                 <SelectValue placeholder="Cargando…" />
                             </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
+                        <SelectContent
+                            container={selectPortalContainer ?? undefined}
+                        >
                             <SelectItem value={rubroNone}>Sin rubro</SelectItem>
                             {categories.map((c) => (
                                 <SelectItem key={c.id} value={c.id}>
@@ -182,12 +186,14 @@ function CreateBudgetLineMeasureUnitSection({
     measureUnits,
     measureUnitsLoading,
     unitNone,
+    selectPortalContainer,
 }: {
     control: Control<FormValues>
     libraryBinding: LibraryBinding
     measureUnits: MeasureUnitRow[]
     measureUnitsLoading: boolean
     unitNone: string
+    selectPortalContainer: HTMLElement | null
 }) {
     if (libraryBinding != null) {
         if (libraryBinding.measureUnitId != null) {
@@ -208,7 +214,11 @@ function CreateBudgetLineMeasureUnitSection({
                                         <SelectValue placeholder="—" />
                                     </SelectTrigger>
                                 </FormControl>
-                                <SelectContent>
+                                <SelectContent
+                                    container={
+                                        selectPortalContainer ?? undefined
+                                    }
+                                >
                                     <SelectItem value={unitNone}>
                                         Sin unidad
                                     </SelectItem>
@@ -263,7 +273,9 @@ function CreateBudgetLineMeasureUnitSection({
                                 <SelectValue placeholder="Cargando…" />
                             </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
+                        <SelectContent
+                            container={selectPortalContainer ?? undefined}
+                        >
                             <SelectItem value={unitNone}>Sin unidad</SelectItem>
                             {measureUnits.map((u) => (
                                 <SelectItem key={u.id} value={u.id}>
@@ -308,6 +320,12 @@ export default function CreateBudgetLineDialog({
     trigger,
 }: CreateBudgetLineDialogProps) {
     const [open, setOpen] = useState(false)
+    const [dialogPortalEl, setDialogPortalEl] = useState<HTMLElement | null>(
+        null
+    )
+    const dialogContentRef: RefCallback<HTMLDivElement> = (node) => {
+        setDialogPortalEl(node)
+    }
     const [libraryBinding, setLibraryBinding] = useState<LibraryBinding>(null)
     const { accessToken, studioSlug, isQueryReady } = useAuth()
     const { activeProject } = useProject()
@@ -468,7 +486,10 @@ export default function CreateBudgetLineDialog({
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+            <DialogContent
+                ref={dialogContentRef}
+                className="sm:max-w-md max-h-[90vh] overflow-y-auto"
+            >
                 <DialogHeader>
                     <DialogTitle>Nueva línea de presupuesto</DialogTitle>
                     <DialogDescription>
@@ -517,6 +538,7 @@ export default function CreateBudgetLineDialog({
                             categories={categories}
                             categoriesLoading={categoriesLoading}
                             rubroNone={RUBRO_NONE}
+                            selectPortalContainer={dialogPortalEl}
                         />
                         <CreateBudgetLineMeasureUnitSection
                             control={form.control}
@@ -524,6 +546,7 @@ export default function CreateBudgetLineDialog({
                             measureUnits={measureUnits}
                             measureUnitsLoading={measureUnitsLoading}
                             unitNone={UNIT_NONE}
+                            selectPortalContainer={dialogPortalEl}
                         />
                         <div className="grid grid-cols-2 gap-3">
                             <FormField

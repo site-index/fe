@@ -69,11 +69,19 @@ const SelectScrollDownButton = forwardRef<
 SelectScrollDownButton.displayName =
     SelectPrimitive.ScrollDownButton.displayName
 
+type SelectContentProps = ComponentPropsWithoutRef<
+    typeof SelectPrimitive.Content
+> & {
+    container?: ComponentPropsWithoutRef<
+        typeof SelectPrimitive.Portal
+    >['container']
+}
+
 const SelectContent = forwardRef<
     ElementRef<typeof SelectPrimitive.Content>,
-    ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
->(({ className, children, position = 'popper', ...props }, ref) => (
-    <SelectPrimitive.Portal>
+    SelectContentProps
+>(({ className, children, position = 'popper', container, ...props }, ref) => (
+    <SelectPrimitive.Portal container={container}>
         <SelectPrimitive.Content
             ref={ref}
             className={cn(
@@ -90,7 +98,7 @@ const SelectContent = forwardRef<
                 className={cn(
                     'p-1',
                     position === 'popper' &&
-                        'h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]'
+                        'max-h-[var(--radix-select-content-available-height)] min-h-0 w-full min-w-[var(--radix-select-trigger-width)]'
                 )}
             >
                 {children}

@@ -4,7 +4,7 @@ import {
     useQuery,
     useQueryClient,
 } from '@tanstack/react-query'
-import { useCallback, useEffect, useState } from 'react'
+import { type RefCallback, useCallback, useEffect, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -294,11 +294,13 @@ function EditBudgetLineMetaBlock({
     itemYields,
     yieldSaving,
     onYieldChange,
+    selectPortalContainer,
 }: {
     line: BudgetLineRow
     itemYields: ItemYieldOption[]
     yieldSaving: boolean
     onYieldChange: (budgetLineId: string, itemYieldId: string | null) => void
+    selectPortalContainer: HTMLElement | null
 }) {
     return (
         <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-3">
@@ -332,6 +334,7 @@ function EditBudgetLineMetaBlock({
                     yields={itemYields}
                     disabled={yieldSaving}
                     onChange={onYieldChange}
+                    portalContainer={selectPortalContainer}
                 />
             </div>
         </div>
@@ -508,6 +511,11 @@ export default function EditBudgetLinePricingSheet({
     })
     const showQuantityHint = breakdownSum > 0 && qty === 0
 
+    const [sheetPortalEl, setSheetPortalEl] = useState<HTMLElement | null>(null)
+    const sheetContentRef: RefCallback<HTMLDivElement> = (node) => {
+        setSheetPortalEl(node)
+    }
+
     const handleSubmit = (values: FormValues) => {
         if (!line) return
         void submitBudgetLinePricing({
@@ -524,7 +532,10 @@ export default function EditBudgetLinePricingSheet({
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
-            <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+            <SheetContent
+                ref={sheetContentRef}
+                className="w-full sm:max-w-md overflow-y-auto"
+            >
                 <SheetHeader>
                     <SheetTitle>Precios y desglose</SheetTitle>
                     <SheetDescription>
@@ -546,6 +557,7 @@ export default function EditBudgetLinePricingSheet({
                                 itemYields={itemYields}
                                 yieldSaving={yieldSaving}
                                 onYieldChange={handleYieldChange}
+                                selectPortalContainer={sheetPortalEl}
                             />
                             <BudgetLinePricingFormFields
                                 form={form}
