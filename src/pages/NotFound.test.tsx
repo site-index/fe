@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import NotFound from './NotFound'
 
 describe('NotFound', () => {
-    it('renders 404 and home link for unknown routes', () => {
+    it('renders 404 messaging and home link for unknown routes', () => {
         render(
             <MemoryRouter initialEntries={['/missing-path']}>
                 <Routes>
@@ -15,11 +15,18 @@ describe('NotFound', () => {
         )
 
         expect(
-            screen.getByRole('heading', { name: '404', level: 1 })
+            screen.getByRole('heading', {
+                name: 'Página no encontrada',
+                level: 1,
+            })
         ).toBeInTheDocument()
-        expect(screen.getByText('Oops! Page not found')).toBeInTheDocument()
         expect(
-            screen.getByRole('link', { name: 'Return to Home' })
-        ).toHaveAttribute('href', '/')
+            screen.getByText(
+                'La dirección que buscás no existe o ya no está disponible.'
+            )
+        ).toBeInTheDocument()
+        expect(screen.getByText('404')).toBeInTheDocument()
+        const home = screen.getByRole('link', { name: 'Ir al inicio' })
+        expect(home).toHaveAttribute('href', '/')
     })
 })
