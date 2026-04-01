@@ -13,6 +13,7 @@ export interface StudioCatalogItemDefaultRow {
     workCategoryId: string
     workCategoryName: string
     sortOrder: number
+    measureUnitMode: 'INHERIT' | 'OVERRIDE'
     measureUnit: { id: string; code: string; name: string } | null
     linkedItems: string[]
     lines: Array<{

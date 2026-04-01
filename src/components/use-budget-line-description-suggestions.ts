@@ -36,6 +36,7 @@ export type SuggestionRow =
           description: string
           workCategoryName: string
           measureUnitId: string | null
+          measureUnitName: string | null
       }
     | {
           kind: 'catalog'
@@ -45,6 +46,7 @@ export type SuggestionRow =
           workCategoryName: string
           workCategoryId: string
           measureUnitId: string | null
+          measureUnitName: string | null
       }
 
 export function budgetLineSuggestionRowKey(row: SuggestionRow): string {
@@ -63,6 +65,7 @@ function buildSuggestionRows(
         description: y.description ?? '',
         workCategoryName: y.workCategoryName,
         measureUnitId: y.measureUnit?.id ?? null,
+        measureUnitName: y.measureUnit?.name ?? null,
     }))
     const yieldNames = new Set(
         yields.map((y) => y.name.trim().toLowerCase()).filter(Boolean)
@@ -77,6 +80,7 @@ function buildSuggestionRows(
             workCategoryName: c.workCategoryName,
             workCategoryId: c.workCategoryId,
             measureUnitId: c.measureUnit?.id ?? null,
+            measureUnitName: c.measureUnit?.name ?? null,
         }))
     return [...byYield, ...byCatalog]
 }

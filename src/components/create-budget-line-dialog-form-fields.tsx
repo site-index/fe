@@ -22,6 +22,7 @@ type LibraryBinding =
           yieldId: string
           workCategoryName: string
           measureUnitId: string | null
+          measureUnitName: string | null
       }
     | {
           kind: 'catalog'
@@ -29,6 +30,7 @@ type LibraryBinding =
           workCategoryId: string
           workCategoryName: string
           measureUnitId: string | null
+          measureUnitName: string | null
       }
 
 export type BudgetLineCreateFormValues = {
@@ -150,29 +152,21 @@ function MeasureUnitSection({
 }) {
     if (libraryBinding != null) {
         if (libraryBinding.measureUnitId != null) {
+            const displayName =
+                libraryBinding.measureUnitName ??
+                measureUnits.find((u) => u.id === value)?.name ??
+                '—'
             return (
                 <div className="space-y-2">
-                    <label
-                        htmlFor="create-budget-line-measure-unit-locked"
-                        className="text-sm font-medium"
-                    >
+                    <label className="text-sm font-medium">
                         Unidad (opcional)
                     </label>
-                    <select
+                    <p
                         id="create-budget-line-measure-unit-locked"
-                        aria-label="Unidad"
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-                        value={value}
-                        disabled
-                        onChange={(e) => onChange(e.target.value)}
+                        className="text-sm font-medium rounded-md border border-input bg-muted/40 px-3 py-2"
                     >
-                        <option value={unitNone}>Sin unidad</option>
-                        {measureUnits.map((u) => (
-                            <option key={u.id} value={u.id}>
-                                {u.name}
-                            </option>
-                        ))}
-                    </select>
+                        {displayName}
+                    </p>
                     <p className="text-xs text-muted-foreground">
                         {libraryBinding.kind === 'yield'
                             ? 'La define el rendimiento vinculado a la biblioteca.'

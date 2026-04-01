@@ -44,6 +44,7 @@ type LibraryBinding =
           yieldId: string
           workCategoryName: string
           measureUnitId: string | null
+          measureUnitName: string | null
       }
     | {
           kind: 'catalog'
@@ -51,6 +52,7 @@ type LibraryBinding =
           workCategoryId: string
           workCategoryName: string
           measureUnitId: string | null
+          measureUnitName: string | null
       }
 
 const schema = z.object({
@@ -234,6 +236,7 @@ export default function CreateBudgetLineDialog({
                 yieldId: row.yieldId,
                 workCategoryName: row.workCategoryName,
                 measureUnitId: row.measureUnitId,
+                measureUnitName: row.measureUnitName,
             })
         } else {
             form.setValue('description', row.name, { shouldValidate: true })
@@ -249,6 +252,7 @@ export default function CreateBudgetLineDialog({
                 workCategoryId: row.workCategoryId,
                 workCategoryName: row.workCategoryName,
                 measureUnitId: row.measureUnitId,
+                measureUnitName: row.measureUnitName,
             })
         }
         setSuggestionsOpen(false)

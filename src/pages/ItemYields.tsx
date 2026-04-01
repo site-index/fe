@@ -32,6 +32,7 @@ interface ItemYield {
     workCategoryName: string
     name: string
     description: string
+    measureUnitMode: 'INHERIT' | 'OVERRIDE'
     measureUnit: { id: string; code: string; name: string } | null
     components: ItemYieldLine[]
     linkedItems: string[]

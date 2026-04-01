@@ -67,6 +67,7 @@ export interface CreatedItemYield {
     workCategoryName: string
     name: string
     description: string
+    measureUnitMode: 'INHERIT' | 'OVERRIDE'
     measureUnit: { id: string; code: string; name: string } | null
     linkedItems: string[]
     components: Array<{
@@ -138,6 +139,7 @@ function useCreateItemYieldSubmit(
                 const body: {
                     workCategoryId: string
                     name: string
+                    measureUnitMode: 'OVERRIDE'
                     measureUnitId: string
                     description?: string
                     components: {
@@ -147,6 +149,7 @@ function useCreateItemYieldSubmit(
                 } = {
                     workCategoryId: values.workCategoryId,
                     name: values.name,
+                    measureUnitMode: 'OVERRIDE',
                     measureUnitId: values.measureUnitId,
                     components: {
                         linkedItems: [],
