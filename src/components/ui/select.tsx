@@ -1,24 +1,116 @@
-import * as SelectPrimitive from '@radix-ui/react-select'
-import { Check, ChevronDown, ChevronUp } from 'lucide-react'
 import {
-    type ComponentPropsWithoutRef,
-    type ElementRef,
+    Listbox,
+    ListboxButton,
+    ListboxOption,
+    ListboxOptions,
+} from '@headlessui/react'
+import { Check, ChevronDown } from 'lucide-react'
+import {
+    createContext,
     forwardRef,
+    type HTMLAttributes,
+    type ReactNode,
+    type RefObject,
+    useCallback,
+    useContext,
+    useRef,
 } from 'react'
 
 import { cn } from '@/lib/utils'
 
-const Select = SelectPrimitive.Root
+/* ------------------------------------------------------------------ */
+/*  Internal context to track item texts for SelectValue              */
+/* ------------------------------------------------------------------ */
 
-const SelectGroup = SelectPrimitive.Group
+type SelectContextValue = {
+    value?: string
+    itemTexts: RefObject<Map<string, string>>
+    registerItem: (value: string, text: string) => void
+}
 
-const SelectValue = SelectPrimitive.Value
+const SelectContext = createContext<SelectContextValue>({
+    itemTexts: { current: new Map() },
+    registerItem: () => {},
+})
+
+/* ------------------------------------------------------------------ */
+/*  Select (root)                                                     */
+/* ------------------------------------------------------------------ */
+
+interface SelectProps {
+    value?: string
+    defaultValue?: string
+    onValueChange?: (value: string) => void
+    children: ReactNode
+    disabled?: boolean
+    required?: boolean
+    name?: string
+}
+
+function Select({
+    value,
+    defaultValue,
+    onValueChange,
+    disabled,
+    required: _required,
+    name: _name,
+    children,
+}: SelectProps) {
+    const itemTexts = useRef(new Map<string, string>())
+    const registerItem = useCallback((val: string, text: string) => {
+        itemTexts.current.set(val, text)
+    }, [])
+
+    return (
+        <SelectContext.Provider
+            value={{ value: value ?? defaultValue, itemTexts, registerItem }}
+        >
+            <Listbox
+                value={value ?? defaultValue ?? ''}
+                onChange={onValueChange ?? (() => {})}
+                disabled={disabled}
+            >
+                {children}
+            </Listbox>
+        </SelectContext.Provider>
+    )
+}
+
+/* ------------------------------------------------------------------ */
+/*  SelectGroup                                                       */
+/* ------------------------------------------------------------------ */
+
+function SelectGroup({ children, ...props }: HTMLAttributes<HTMLDivElement>) {
+    return (
+        <div role="group" {...props}>
+            {children}
+        </div>
+    )
+}
+
+/* ------------------------------------------------------------------ */
+/*  SelectValue                                                       */
+/* ------------------------------------------------------------------ */
+
+function SelectValue({ placeholder }: { placeholder?: string }) {
+    const { value, itemTexts } = useContext(SelectContext)
+    const text = value ? itemTexts.current.get(value) : undefined
+    return (
+        <span className="pointer-events-none line-clamp-1">
+            {text ?? placeholder ?? ''}
+        </span>
+    )
+}
+
+/* ------------------------------------------------------------------ */
+/*  SelectTrigger                                                     */
+/* ------------------------------------------------------------------ */
 
 const SelectTrigger = forwardRef<
-    ElementRef<typeof SelectPrimitive.Trigger>,
-    ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
+    HTMLButtonElement,
+    HTMLAttributes<HTMLButtonElement>
 >(({ className, children, ...props }, ref) => (
-    <SelectPrimitive.Trigger
+    <ListboxButton
         ref={ref}
         className={cn(
             'flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1',
@@ -27,135 +119,128 @@ const SelectTrigger = forwardRef<
         {...props}
     >
         {children}
-        <SelectPrimitive.Icon asChild>
-            <ChevronDown className="h-4 w-4 opacity-50" />
-        </SelectPrimitive.Icon>
-    </SelectPrimitive.Trigger>
+        <ChevronDown className="h-4 w-4 opacity-50" />
+    </ListboxButton>
 ))
-SelectTrigger.displayName = SelectPrimitive.Trigger.displayName
+SelectTrigger.displayName = 'SelectTrigger'
 
-const SelectScrollUpButton = forwardRef<
-    ElementRef<typeof SelectPrimitive.ScrollUpButton>,
-    ComponentPropsWithoutRef<typeof SelectPrimitive.ScrollUpButton>
->(({ className, ...props }, ref) => (
-    <SelectPrimitive.ScrollUpButton
-        ref={ref}
-        className={cn(
-            'flex cursor-default items-center justify-center py-1',
-            className
-        )}
-        {...props}
-    >
-        <ChevronUp className="h-4 w-4" />
-    </SelectPrimitive.ScrollUpButton>
-))
-SelectScrollUpButton.displayName = SelectPrimitive.ScrollUpButton.displayName
-
-const SelectScrollDownButton = forwardRef<
-    ElementRef<typeof SelectPrimitive.ScrollDownButton>,
-    ComponentPropsWithoutRef<typeof SelectPrimitive.ScrollDownButton>
->(({ className, ...props }, ref) => (
-    <SelectPrimitive.ScrollDownButton
-        ref={ref}
-        className={cn(
-            'flex cursor-default items-center justify-center py-1',
-            className
-        )}
-        {...props}
-    >
-        <ChevronDown className="h-4 w-4" />
-    </SelectPrimitive.ScrollDownButton>
-))
-SelectScrollDownButton.displayName =
-    SelectPrimitive.ScrollDownButton.displayName
-
-type SelectContentProps = ComponentPropsWithoutRef<
-    typeof SelectPrimitive.Content
-> & {
-    /** Portal mount; only set when body-portaled menus misbehave inside a clipped/scroll-locked ancestor. */
-    container?: ComponentPropsWithoutRef<
-        typeof SelectPrimitive.Portal
-    >['container']
-}
+/* ------------------------------------------------------------------ */
+/*  SelectContent                                                     */
+/* ------------------------------------------------------------------ */
 
 const SelectContent = forwardRef<
-    ElementRef<typeof SelectPrimitive.Content>,
-    SelectContentProps
->(({ className, children, position = 'popper', container, ...props }, ref) => (
-    <SelectPrimitive.Portal container={container}>
-        <SelectPrimitive.Content
+    HTMLDivElement,
+    HTMLAttributes<HTMLDivElement> & {
+        position?: string
+        container?: Element | null
+    }
+>(
+    (
+        {
+            className,
+            children,
+            position: _position,
+            container: _container,
+            ...props
+        },
+        ref
+    ) => (
+        <ListboxOptions
             ref={ref}
+            anchor="bottom start"
             className={cn(
-                'relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
-                position === 'popper' &&
-                    'w-[var(--radix-select-trigger-width)] min-w-[var(--radix-select-trigger-width)] data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1',
+                'z-50 max-h-96 min-w-[var(--button-width)] overflow-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md',
+                'transition duration-100 ease-in data-[closed]:opacity-0',
                 className
             )}
-            position={position}
             {...props}
         >
-            <SelectScrollUpButton />
-            <SelectPrimitive.Viewport
-                className={cn(
-                    'p-1',
-                    position === 'popper' &&
-                        'max-h-[var(--radix-select-content-available-height)] min-h-0 w-full min-w-[var(--radix-select-trigger-width)]'
-                )}
-            >
-                {children}
-            </SelectPrimitive.Viewport>
-            <SelectScrollDownButton />
-        </SelectPrimitive.Content>
-    </SelectPrimitive.Portal>
-))
-SelectContent.displayName = SelectPrimitive.Content.displayName
+            {children}
+        </ListboxOptions>
+    )
+)
+SelectContent.displayName = 'SelectContent'
 
-const SelectLabel = forwardRef<
-    ElementRef<typeof SelectPrimitive.Label>,
-    ComponentPropsWithoutRef<typeof SelectPrimitive.Label>
->(({ className, ...props }, ref) => (
-    <SelectPrimitive.Label
-        ref={ref}
-        className={cn('py-1.5 pl-8 pr-2 text-sm font-semibold', className)}
-        {...props}
-    />
-))
-SelectLabel.displayName = SelectPrimitive.Label.displayName
+/* ------------------------------------------------------------------ */
+/*  SelectLabel                                                       */
+/* ------------------------------------------------------------------ */
+
+const SelectLabel = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
+    ({ className, ...props }, ref) => (
+        <div
+            ref={ref}
+            className={cn('py-1.5 pl-8 pr-2 text-sm font-semibold', className)}
+            {...props}
+        />
+    )
+)
+SelectLabel.displayName = 'SelectLabel'
+
+/* ------------------------------------------------------------------ */
+/*  SelectItem                                                        */
+/* ------------------------------------------------------------------ */
 
 const SelectItem = forwardRef<
-    ElementRef<typeof SelectPrimitive.Item>,
-    ComponentPropsWithoutRef<typeof SelectPrimitive.Item>
->(({ className, children, ...props }, ref) => (
-    <SelectPrimitive.Item
-        ref={ref}
-        className={cn(
-            'relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 focus:bg-accent focus:text-accent-foreground',
-            className
-        )}
-        {...props}
-    >
-        <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
-            <SelectPrimitive.ItemIndicator>
-                <Check className="h-4 w-4" />
-            </SelectPrimitive.ItemIndicator>
-        </span>
+    HTMLDivElement,
+    HTMLAttributes<HTMLDivElement> & { value: string; disabled?: boolean }
+>(({ className, children, value, disabled, ...props }, ref) => {
+    const ctx = useContext(SelectContext)
 
-        <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
-    </SelectPrimitive.Item>
-))
-SelectItem.displayName = SelectPrimitive.Item.displayName
+    // Register text synchronously for SelectValue display
+    if (typeof children === 'string') {
+        ctx.registerItem(value, children)
+    }
+
+    return (
+        <ListboxOption
+            ref={ref}
+            value={value}
+            disabled={disabled}
+            className={cn(
+                'relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[focus]:bg-accent data-[focus]:text-accent-foreground',
+                className
+            )}
+            {...props}
+        >
+            {({ selected }) => (
+                <>
+                    <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+                        {selected && <Check className="h-4 w-4" />}
+                    </span>
+                    <span>{children}</span>
+                </>
+            )}
+        </ListboxOption>
+    )
+})
+SelectItem.displayName = 'SelectItem'
+
+/* ------------------------------------------------------------------ */
+/*  SelectSeparator                                                   */
+/* ------------------------------------------------------------------ */
 
 const SelectSeparator = forwardRef<
-    ElementRef<typeof SelectPrimitive.Separator>,
-    ComponentPropsWithoutRef<typeof SelectPrimitive.Separator>
+    HTMLDivElement,
+    HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-    <SelectPrimitive.Separator
+    <div
         ref={ref}
         className={cn('-mx-1 my-1 h-px bg-muted', className)}
         {...props}
     />
 ))
-SelectSeparator.displayName = SelectPrimitive.Separator.displayName
+SelectSeparator.displayName = 'SelectSeparator'
+
+/* ------------------------------------------------------------------ */
+/*  Scroll buttons (no-op stubs for API compat)                       */
+/* ------------------------------------------------------------------ */
+
+function SelectScrollUpButton(_props: Record<string, unknown>) {
+    return null
+}
+function SelectScrollDownButton(_props: Record<string, unknown>) {
+    return null
+}
 
 export {
     Select,

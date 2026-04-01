@@ -11,6 +11,7 @@ import {
     useState,
 } from 'react'
 import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { Button } from '@/components/ui/button'
@@ -25,7 +26,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { useAuth } from '@/contexts/AuthContext'
 import { type Project, useProject } from '@/contexts/ProjectContext'
-import { useToast } from '@/hooks/use-toast'
 import { apiFetch, getApiErrorMessage } from '@/lib/api'
 
 const schema = z.object({
@@ -49,7 +49,6 @@ export default function CreateProjectDialog({
     const { accessToken, studioSlug } = useAuth()
     const { setActiveProject } = useProject()
     const queryClient = useQueryClient()
-    const { toast } = useToast()
 
     const form = useForm<FormValues>({
         resolver: zodResolver(schema),
@@ -71,13 +70,11 @@ export default function CreateProjectDialog({
             })
             await queryClient.invalidateQueries({ queryKey: ['projects'] })
             setActiveProject(created)
-            toast({ title: 'Proyecto creado', description: created.name })
+            toast.success('Proyecto creado', { description: created.name })
             form.reset()
             setOpen(false)
         } catch (err) {
-            toast({
-                variant: 'destructive',
-                title: 'Error al crear proyecto',
+            toast.error('Error al crear proyecto', {
                 description: getApiErrorMessage(err),
             })
         }

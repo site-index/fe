@@ -1,60 +1,104 @@
-import * as AccordionPrimitive from '@radix-ui/react-accordion'
-import { ChevronDown } from 'lucide-react'
 import {
-    type ComponentPropsWithoutRef,
-    type ElementRef,
-    forwardRef,
-} from 'react'
+    Disclosure,
+    DisclosureButton,
+    DisclosurePanel,
+} from '@headlessui/react'
+import { ChevronDown } from 'lucide-react'
+import { forwardRef, type HTMLAttributes } from 'react'
 
 import { cn } from '@/lib/utils'
 
-const Accordion = AccordionPrimitive.Root
+/* ------------------------------------------------------------------ */
+/*  Accordion root — wrapper div (coordination handled by Disclosure) */
+/* ------------------------------------------------------------------ */
 
-const AccordionItem = forwardRef<
-    ElementRef<typeof AccordionPrimitive.Item>,
-    ComponentPropsWithoutRef<typeof AccordionPrimitive.Item>
->(({ className, ...props }, ref) => (
-    <AccordionPrimitive.Item
-        ref={ref}
-        className={cn('border-b', className)}
-        {...props}
-    />
-))
+interface AccordionProps extends HTMLAttributes<HTMLDivElement> {
+    type?: 'single' | 'multiple'
+    collapsible?: boolean
+    value?: string
+    defaultValue?: string
+    onValueChange?: (value: string) => void
+}
+
+const Accordion = forwardRef<HTMLDivElement, AccordionProps>(
+    (
+        {
+            type: _type,
+            collapsible: _collapsible,
+            value: _value,
+            defaultValue: _defaultValue,
+            onValueChange: _onValueChange,
+            className,
+            ...props
+        },
+        ref
+    ) => <div ref={ref} className={cn('', className)} {...props} />
+)
+Accordion.displayName = 'Accordion'
+
+/* ------------------------------------------------------------------ */
+/*  AccordionItem — single Disclosure                                 */
+/* ------------------------------------------------------------------ */
+
+interface AccordionItemProps extends HTMLAttributes<HTMLDivElement> {
+    value: string
+    disabled?: boolean
+}
+
+const AccordionItem = forwardRef<HTMLDivElement, AccordionItemProps>(
+    (
+        { value: _value, disabled: _disabled, className, children, ...props },
+        ref
+    ) => (
+        <Disclosure
+            as="div"
+            ref={ref}
+            defaultOpen={false}
+            className={cn('border-b', className)}
+            {...props}
+        >
+            {children}
+        </Disclosure>
+    )
+)
 AccordionItem.displayName = 'AccordionItem'
 
+/* ------------------------------------------------------------------ */
+/*  AccordionTrigger                                                  */
+/* ------------------------------------------------------------------ */
+
 const AccordionTrigger = forwardRef<
-    ElementRef<typeof AccordionPrimitive.Trigger>,
-    ComponentPropsWithoutRef<typeof AccordionPrimitive.Trigger>
+    HTMLButtonElement,
+    HTMLAttributes<HTMLButtonElement>
 >(({ className, children, ...props }, ref) => (
-    <AccordionPrimitive.Header className="flex">
-        <AccordionPrimitive.Trigger
+    <h3 className="flex">
+        <DisclosureButton
             ref={ref}
             className={cn(
-                'flex flex-1 items-center justify-between py-4 font-medium transition-all hover:underline [&[data-state=open]>svg]:rotate-180',
+                'flex flex-1 items-center justify-between py-4 font-medium transition-all hover:underline [&[data-open]>svg]:rotate-180',
                 className
             )}
             {...props}
         >
             {children}
             <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
-        </AccordionPrimitive.Trigger>
-    </AccordionPrimitive.Header>
+        </DisclosureButton>
+    </h3>
 ))
-AccordionTrigger.displayName = AccordionPrimitive.Trigger.displayName
+AccordionTrigger.displayName = 'AccordionTrigger'
+
+/* ------------------------------------------------------------------ */
+/*  AccordionContent                                                  */
+/* ------------------------------------------------------------------ */
 
 const AccordionContent = forwardRef<
-    ElementRef<typeof AccordionPrimitive.Content>,
-    ComponentPropsWithoutRef<typeof AccordionPrimitive.Content>
+    HTMLDivElement,
+    HTMLAttributes<HTMLDivElement>
 >(({ className, children, ...props }, ref) => (
-    <AccordionPrimitive.Content
-        ref={ref}
-        className="overflow-hidden text-sm transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"
-        {...props}
-    >
+    <DisclosurePanel ref={ref} className="overflow-hidden text-sm" {...props}>
         <div className={cn('pb-4 pt-0', className)}>{children}</div>
-    </AccordionPrimitive.Content>
+    </DisclosurePanel>
 ))
-
-AccordionContent.displayName = AccordionPrimitive.Content.displayName
+AccordionContent.displayName = 'AccordionContent'
 
 export { Accordion, AccordionContent, AccordionItem, AccordionTrigger }

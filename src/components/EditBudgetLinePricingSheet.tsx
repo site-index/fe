@@ -8,6 +8,7 @@ import {
 import { X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
+import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { BudgetLineItemYieldSelect } from '@/components/BudgetLineItemYieldSelect'
@@ -24,7 +25,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
-import { useToast } from '@/hooks/use-toast'
 import { apiFetch, getApiErrorMessage } from '@/lib/api'
 import {
     formatCurrency,
@@ -134,7 +134,6 @@ async function submitBudgetLinePricing(args: {
     accessToken: string | null
     studioSlug: string | null
     queryClient: ReturnType<typeof useQueryClient>
-    toast: ReturnType<typeof useToast>['toast']
     onSuccess: () => void
 }): Promise<void> {
     const {
@@ -144,7 +143,6 @@ async function submitBudgetLinePricing(args: {
         accessToken,
         studioSlug,
         queryClient,
-        toast,
         onSuccess,
     } = args
     try {
@@ -171,15 +169,12 @@ async function submitBudgetLinePricing(args: {
         await queryClient.invalidateQueries({
             queryKey: ['dashboard', projectId],
         })
-        toast({
-            title: 'Precios actualizados',
+        toast.success('Precios actualizados', {
             description: line.description,
         })
         onSuccess()
     } catch (err) {
-        toast({
-            variant: 'destructive',
-            title: 'No se pudo guardar',
+        toast.error('No se pudo guardar', {
             description: getApiErrorMessage(err),
         })
     }
@@ -199,7 +194,6 @@ function useBudgetLineYieldLink(options: {
     accessToken: string | null
     studioSlug: string
     queryClient: QueryClient
-    toast: ReturnType<typeof useToast>['toast']
     onLineUpdated?: (line: BudgetLineRow) => void
 }) {
     const {
@@ -209,7 +203,6 @@ function useBudgetLineYieldLink(options: {
         accessToken,
         studioSlug,
         queryClient,
-        toast,
         onLineUpdated,
     } = options
 
@@ -248,29 +241,18 @@ function useBudgetLineYieldLink(options: {
                     queryKey: ['dashboard', projectId],
                 })
                 onLineUpdated?.(updated)
-                toast({
-                    title: 'Rendimiento actualizado',
+                toast.success('Rendimiento actualizado', {
                     description: updated.description,
                 })
             } catch (err) {
-                toast({
-                    variant: 'destructive',
-                    title: 'No se pudo actualizar el rendimiento',
+                toast.error('No se pudo actualizar el rendimiento', {
                     description: getApiErrorMessage(err),
                 })
             } finally {
                 setYieldSaving(false)
             }
         },
-        [
-            line,
-            projectId,
-            accessToken,
-            studioSlug,
-            queryClient,
-            toast,
-            onLineUpdated,
-        ]
+        [line, projectId, accessToken, studioSlug, queryClient, onLineUpdated]
     )
 
     return { itemYields, yieldSaving, handleYieldChange }
@@ -441,7 +423,6 @@ export default function EditBudgetLinePricingSheet({
     const { accessToken, studioSlug } = useAuth()
     const { activeProject } = useProject()
     const queryClient = useQueryClient()
-    const { toast } = useToast()
 
     const { itemYields, yieldSaving, handleYieldChange } =
         useBudgetLineYieldLink({
@@ -451,7 +432,6 @@ export default function EditBudgetLinePricingSheet({
             accessToken,
             studioSlug,
             queryClient,
-            toast,
             onLineUpdated,
         })
 
@@ -505,7 +485,6 @@ export default function EditBudgetLinePricingSheet({
             accessToken,
             studioSlug,
             queryClient,
-            toast,
             onSuccess: () => onOpenChange(false),
         })
     }

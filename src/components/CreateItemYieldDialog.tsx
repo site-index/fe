@@ -13,6 +13,7 @@ import {
     useState,
 } from 'react'
 import { useForm, type UseFormReturn } from 'react-hook-form'
+import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { Button } from '@/components/ui/button'
@@ -34,7 +35,6 @@ import {
 } from '@/components/ui/select'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
-import { useToast } from '@/hooks/use-toast'
 import { apiFetch, getApiErrorMessage } from '@/lib/api'
 import type { MeasureUnitRow } from '@/types/measure-unit'
 import {
@@ -129,7 +129,6 @@ function useCreateItemYieldSubmit(
     measureUnits: MeasureUnitRow[],
     form: UseFormReturn<FormValues>,
     queryClient: ReturnType<typeof useQueryClient>,
-    toast: ReturnType<typeof useToast>['toast'],
     onCreated: ((id: string) => void) | undefined,
     setOpen: (v: boolean) => void
 ) {
@@ -171,8 +170,7 @@ function useCreateItemYieldSubmit(
                 await queryClient.invalidateQueries({
                     queryKey: ['item-yields', projectId],
                 })
-                toast({
-                    title: 'Rendimiento creado',
+                toast.success('Rendimiento creado', {
                     description: created.name,
                 })
                 form.reset({
@@ -184,9 +182,7 @@ function useCreateItemYieldSubmit(
                 setOpen(false)
                 onCreated?.(created.id)
             } catch (err) {
-                toast({
-                    variant: 'destructive',
-                    title: 'Error al crear el rendimiento',
+                toast.error('Error al crear el rendimiento', {
                     description: getApiErrorMessage(err),
                 })
             }
@@ -200,7 +196,6 @@ function useCreateItemYieldSubmit(
             queryClient,
             setOpen,
             studioSlug,
-            toast,
         ]
     )
 }
@@ -352,7 +347,6 @@ export default function CreateItemYieldDialog({
     const { accessToken, studioSlug } = useAuth()
     const { activeProject } = useProject()
     const queryClient = useQueryClient()
-    const { toast } = useToast()
 
     const form = useForm<FormValues>({
         resolver: zodResolver(schema),
@@ -404,7 +398,6 @@ export default function CreateItemYieldDialog({
         measureUnits,
         form,
         queryClient,
-        toast,
         onCreated,
         setOpen
     )

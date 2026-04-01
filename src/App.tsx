@@ -8,8 +8,6 @@ import ErrorBoundary from '@/components/ErrorBoundary'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { PwaUpdateBanner } from '@/components/PwaUpdateBanner'
 import { Toaster as Sonner } from '@/components/ui/sonner'
-import { Toaster } from '@/components/ui/toaster'
-import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ProjectProvider } from '@/contexts/ProjectContext'
 
@@ -50,59 +48,56 @@ const App = () => (
             storageKey="site-index-theme"
         >
             <QueryClientProvider client={queryClient}>
-                <TooltipProvider>
-                    <AuthProvider>
-                        <Toaster />
-                        <Sonner />
-                        <PwaUpdateBanner />
-                        <BrowserRouter>
-                            <Suspense fallback={<PageLoader />}>
-                                <Routes>
-                                    <Route path="/login" element={<Login />} />
-                                    <Route element={<ProtectedRoute />}>
+                <AuthProvider>
+                    <Sonner />
+                    <PwaUpdateBanner />
+                    <BrowserRouter>
+                        <Suspense fallback={<PageLoader />}>
+                            <Routes>
+                                <Route path="/login" element={<Login />} />
+                                <Route element={<ProtectedRoute />}>
+                                    <Route
+                                        element={
+                                            <ProjectProvider>
+                                                <AppLayout />
+                                            </ProjectProvider>
+                                        }
+                                    >
                                         <Route
-                                            element={
-                                                <ProjectProvider>
-                                                    <AppLayout />
-                                                </ProjectProvider>
-                                            }
-                                        >
-                                            <Route
-                                                path="/"
-                                                element={<Dashboard />}
-                                            />
-                                            <Route
-                                                path="/budget-lines"
-                                                element={<BudgetLines />}
-                                            />
-                                            <Route
-                                                path="/item-yields"
-                                                element={<ItemYields />}
-                                            />
-                                            <Route
-                                                path="/studio-catalog-items"
-                                                element={<StudioCatalogItems />}
-                                            />
-                                            <Route
-                                                path="/certifications"
-                                                element={<Certification />}
-                                            />
-                                            <Route
-                                                path="/assumptions"
-                                                element={<Assumptions />}
-                                            />
-                                            <Route
-                                                path="/settings"
-                                                element={<SettingsPage />}
-                                            />
-                                        </Route>
+                                            path="/"
+                                            element={<Dashboard />}
+                                        />
+                                        <Route
+                                            path="/budget-lines"
+                                            element={<BudgetLines />}
+                                        />
+                                        <Route
+                                            path="/item-yields"
+                                            element={<ItemYields />}
+                                        />
+                                        <Route
+                                            path="/studio-catalog-items"
+                                            element={<StudioCatalogItems />}
+                                        />
+                                        <Route
+                                            path="/certifications"
+                                            element={<Certification />}
+                                        />
+                                        <Route
+                                            path="/assumptions"
+                                            element={<Assumptions />}
+                                        />
+                                        <Route
+                                            path="/settings"
+                                            element={<SettingsPage />}
+                                        />
                                     </Route>
-                                    <Route path="*" element={<NotFound />} />
-                                </Routes>
-                            </Suspense>
-                        </BrowserRouter>
-                    </AuthProvider>
-                </TooltipProvider>
+                                </Route>
+                                <Route path="*" element={<NotFound />} />
+                            </Routes>
+                        </Suspense>
+                    </BrowserRouter>
+                </AuthProvider>
             </QueryClientProvider>
         </ThemeProvider>
     </ErrorBoundary>

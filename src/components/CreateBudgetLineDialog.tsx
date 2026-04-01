@@ -14,6 +14,7 @@ import {
     useState,
 } from 'react'
 import { useForm, type UseFormReturn, useWatch } from 'react-hook-form'
+import { toast } from 'sonner'
 import { z } from 'zod'
 
 import type { BudgetLineCreateFormValues } from '@/components/create-budget-line-dialog-form-fields'
@@ -25,7 +26,6 @@ import {
 } from '@/components/use-budget-line-description-suggestions'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
-import { useToast } from '@/hooks/use-toast'
 import { apiFetch, getApiErrorMessage } from '@/lib/api'
 import { filterBudgetLineSuggestionRows } from '@/lib/budget-line-suggestion-filter'
 import { optionalNonNegStr, toNum } from '@/lib/form-utils'
@@ -133,7 +133,6 @@ export default function CreateBudgetLineDialog({
     const { accessToken, studioSlug, isQueryReady } = useAuth()
     const { activeProject } = useProject()
     const queryClient = useQueryClient()
-    const { toast } = useToast()
 
     const defaultForm: FormValues = {
         description: '',
@@ -324,17 +323,14 @@ export default function CreateBudgetLineDialog({
             await queryClient.invalidateQueries({
                 queryKey: ['dashboard', activeProject.id],
             })
-            toast({
-                title: 'Línea de presupuesto creada',
+            toast.success('Línea de presupuesto creada', {
                 description: created.description,
             })
             form.reset(defaultForm)
             setLibraryBinding(null)
             setOpen(false)
         } catch (err) {
-            toast({
-                variant: 'destructive',
-                title: 'No se pudo crear la línea',
+            toast.error('No se pudo crear la línea', {
                 description: getApiErrorMessage(err),
             })
         }
