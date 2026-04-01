@@ -13,10 +13,7 @@ export function filterBudgetLineSuggestionRows(
     }
     const query = description.trim()
     if (query === '') {
-        return suggestionRows.slice(0, 14)
+        return suggestionRows
     }
-    return fuse
-        .search(query)
-        .map((result) => result.item)
-        .slice(0, 20)
+    return fuse.search(query).map((result) => result.item)
 }

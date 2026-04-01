@@ -211,7 +211,7 @@ function ItemYieldDetail({ d, onBack }: { d: ItemYield; onBack: () => void }) {
                 <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
                     <p className="text-sm font-semibold mb-2 flex items-center gap-2">
                         <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                        Líneas de presupuesto vinculadas
+                        Ítems de Cómputo & Presupuesto vinculados
                     </p>
                     <div className="space-y-1">
                         {d.linkedItems.map((id) => (
@@ -220,7 +220,7 @@ function ItemYieldDetail({ d, onBack }: { d: ItemYield; onBack: () => void }) {
                                 to="/budget-lines"
                                 className="block text-sm text-primary hover:underline"
                             >
-                                Línea #{id} → Ver en presupuesto
+                                Ítem #{id} → Ver en Cómputo & Presupuesto
                             </Link>
                         ))}
                     </div>

@@ -23,7 +23,7 @@ import ThemeToggle from './ThemeToggle'
 
 const navItems = [
     { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-    { to: '/budget-lines', label: 'Líneas de presupuesto', icon: Calculator },
+    { to: '/budget-lines', label: 'Cómputo & Presupuesto', icon: Calculator },
     { to: '/item-yields', label: 'Rendimientos', icon: FlaskConical },
     {
         to: '/studio-catalog-items',

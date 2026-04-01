@@ -130,7 +130,8 @@ function CertificationBody({
             <div className="space-y-3 md:hidden">
                 {rows.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
-                        No hay líneas de presupuesto con cantidad planificada.
+                        No hay ítems de Cómputo & Presupuesto con cantidad
+                        planificada.
                     </p>
                 ) : (
                     rows.map((row, i) => (
@@ -201,8 +202,8 @@ function CertificationBody({
                                         colSpan={5}
                                         className="px-4 py-8 text-center text-muted-foreground"
                                     >
-                                        No hay líneas de presupuesto con
-                                        cantidad planificada.
+                                        No hay ítems de Cómputo & Presupuesto
+                                        con cantidad planificada.
                                     </td>
                                 </tr>
                             ) : (

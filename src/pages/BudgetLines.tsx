@@ -115,7 +115,7 @@ function BudgetLinesBody({
 
     return (
         <PageDataWrapper
-            title="Presupuesto"
+            title="Cómputo & Presupuesto"
             projectsLoading={projectsLoading}
             emptyProject={empty}
             emptyMessage="Elegí o creá un proyecto para ver el presupuesto."
@@ -134,7 +134,7 @@ function BudgetLinesBody({
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
                     <h1 className="text-xl font-black tracking-tight">
-                        Presupuesto
+                        Cómputo & Presupuesto
                     </h1>
                     <CreateBudgetLineDialog
                         trigger={

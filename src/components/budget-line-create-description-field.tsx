@@ -1,4 +1,3 @@
-import type Fuse from 'fuse.js'
 import type { ChangeEvent, Ref } from 'react'
 import { useMemo, useState } from 'react'
 
@@ -22,6 +21,7 @@ import {
     type SuggestionRow,
     useBudgetLineDescriptionSuggestions,
 } from '@/components/use-budget-line-description-suggestions'
+import { filterBudgetLineSuggestionRows } from '@/lib/budget-line-suggestion-filter'
 import { cn } from '@/lib/utils'
 
 function suggestionKey(row: SuggestionRow): string {
@@ -157,25 +157,16 @@ function DescriptionSuggestionList({
     suggestionsLoading,
     onPick,
 }: {
-    fuse: Fuse<SuggestionRow> | null
+    fuse: ReturnType<typeof useBudgetLineDescriptionSuggestions>['fuse']
     suggestionRows: SuggestionRow[]
     description: string
     suggestionsLoading: boolean
     onPick: (row: SuggestionRow) => void
 }) {
-    const rows = useMemo(() => {
-        if (!fuse || suggestionRows.length === 0) {
-            return []
-        }
-        const q = description.trim()
-        if (q === '') {
-            return suggestionRows.slice(0, 14)
-        }
-        return fuse
-            .search(q)
-            .map((r) => r.item)
-            .slice(0, 20)
-    }, [fuse, description, suggestionRows])
+    const rows = useMemo(
+        () => filterBudgetLineSuggestionRows(fuse, suggestionRows, description),
+        [fuse, description, suggestionRows]
+    )
 
     if (suggestionsLoading) {
         return (
