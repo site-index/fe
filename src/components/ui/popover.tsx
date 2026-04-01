@@ -178,7 +178,7 @@ const PopoverContent = forwardRef<HTMLDivElement, PopoverContentProps>(
                 top: rect.bottom + sideOffset,
             }
             // Expose anchor width as a CSS variable for consumer classes
-            ;(next as Record<string, unknown>)['--radix-popover-anchor-width'] =
+            ;(next as Record<string, unknown>)['--popover-anchor-width'] =
                 `${rect.width}px`
             switch (align) {
                 case 'start':

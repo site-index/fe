@@ -4,13 +4,6 @@ import { useMemo, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import {
-    Command,
-    CommandEmpty,
-    CommandGroup,
-    CommandItem,
-    CommandList,
-} from '@/components/ui/command'
-import {
     FormControl,
     FormItem,
     FormLabel,
@@ -18,6 +11,13 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
+import {
+    SuggestionPanel,
+    SuggestionPanelEmpty,
+    SuggestionPanelGroup,
+    SuggestionPanelItem,
+    SuggestionPanelList,
+} from '@/components/ui/suggestion-panel'
 import {
     type SuggestionRow,
     useBudgetLineDescriptionSuggestions,
@@ -129,7 +129,7 @@ export function BudgetLineCreateDescriptionField({
                 </PopoverAnchor>
                 <PopoverContent
                     className={cn(
-                        'p-0 w-[var(--radix-popover-anchor-width)] max-h-[min(280px,50vh)] overflow-hidden',
+                        'p-0 w-[var(--popover-anchor-width)] max-h-[min(280px,50vh)] overflow-hidden',
                         'max-w-[calc(100vw-2rem)]'
                     )}
                     align="start"
@@ -186,20 +186,20 @@ function DescriptionSuggestionList({
     }
 
     return (
-        <Command shouldFilter={false} className="max-h-[min(280px,50vh)]">
-            <CommandList>
-                <CommandEmpty className="py-3 text-xs text-muted-foreground">
-                    No hay coincidencias. Seguí escribiendo o elegí texto libre.
-                </CommandEmpty>
-                <CommandGroup heading="Biblioteca">
+        <SuggestionPanel className="max-h-[min(280px,50vh)]">
+            <SuggestionPanelList>
+                {rows.length === 0 ? (
+                    <SuggestionPanelEmpty className="py-3 px-2 text-xs text-muted-foreground">
+                        No hay coincidencias. Seguí escribiendo o elegí texto
+                        libre.
+                    </SuggestionPanelEmpty>
+                ) : null}
+                <SuggestionPanelGroup heading="Biblioteca">
                     {rows.map((row) => (
-                        <CommandItem
+                        <SuggestionPanelItem
                             key={suggestionKey(row)}
-                            value={suggestionKey(row)}
-                            onMouseDown={(e) => {
-                                e.preventDefault()
-                                onPick(row)
-                            }}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => onPick(row)}
                             className="flex flex-col items-start gap-0.5"
                         >
                             <span className="font-medium">{row.name}</span>
@@ -215,10 +215,10 @@ function DescriptionSuggestionList({
                                     {row.description}
                                 </span>
                             ) : null}
-                        </CommandItem>
+                        </SuggestionPanelItem>
                     ))}
-                </CommandGroup>
-            </CommandList>
-        </Command>
+                </SuggestionPanelGroup>
+            </SuggestionPanelList>
+        </SuggestionPanel>
     )
 }
