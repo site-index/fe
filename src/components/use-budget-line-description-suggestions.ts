@@ -2,7 +2,8 @@ import { useQuery } from '@tanstack/react-query'
 import Fuse from 'fuse.js'
 import { useMemo } from 'react'
 
-import { apiFetch } from '@/lib/api'
+import { getStudioCatalogItems } from '@/api/catalog.api'
+import { getProjectItemYields } from '@/api/item-yields.api'
 import { qk } from '@/lib/query-keys'
 import type { ItemYield } from '@/types/item-yield'
 
@@ -93,21 +94,25 @@ export function useBudgetLineDescriptionSuggestions(
 
     const { data: itemYields = [], isPending: yieldsLoading } = useQuery({
         queryKey: qk.itemYields(projectId),
-        queryFn: () =>
-            apiFetch<ItemYieldApiRow[]>(
-                `/v1/projects/${projectId}/item-yields`,
-                { token: accessToken, studioSlug }
-            ),
+        queryFn: async () => {
+            const rows = await getProjectItemYields(projectId, {
+                token: accessToken,
+                studioSlug,
+            })
+            return rows as ItemYieldApiRow[]
+        },
         enabled: queryEnabled,
     })
 
     const { data: catalogDefaults = [], isPending: catalogLoading } = useQuery({
         queryKey: qk.studioCatalogItems,
-        queryFn: () =>
-            apiFetch<StudioCatalogItemApiRow[]>('/v1/studio-catalog-items', {
+        queryFn: async () => {
+            const rows = await getStudioCatalogItems({
                 token: accessToken,
                 studioSlug,
-            }),
+            })
+            return rows as StudioCatalogItemApiRow[]
+        },
         enabled: queryEnabled,
     })
 

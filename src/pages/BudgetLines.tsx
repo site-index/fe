@@ -2,13 +2,14 @@ import { useQuery } from '@tanstack/react-query'
 import { ChevronRight, Plus } from 'lucide-react'
 import { useState } from 'react'
 
+import { getProjectBudgetLines } from '@/api/budget-lines.api'
+import { getWorkCategories } from '@/api/catalog.api'
 import CreateBudgetLineDialog from '@/components/CreateBudgetLineDialog'
 import EditBudgetLinePricingSheet from '@/components/EditBudgetLinePricingSheet'
 import PageDataWrapper from '@/components/PageDataWrapper'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
-import { apiFetch } from '@/lib/api'
 import { qk } from '@/lib/query-keys'
 import type { BudgetLineRow } from '@/types/budget-line'
 import type { WorkCategoryRow } from '@/types/work-category'
@@ -156,17 +157,17 @@ function useBudgetLinesVm() {
     const { data, isPending, error } = useQuery({
         queryKey: qk.budgetLines(activeProject.id),
         queryFn: () =>
-            apiFetch<BudgetLineRow[]>(
-                `/v1/projects/${activeProject.id}/budget-lines`,
-                { token: accessToken, studioSlug }
-            ),
+            getProjectBudgetLines(activeProject.id, {
+                token: accessToken,
+                studioSlug,
+            }),
         enabled: queryEnabled,
     })
 
     const { data: categories = [], isPending: categoriesPending } = useQuery({
         queryKey: qk.workCategories,
         queryFn: () =>
-            apiFetch<WorkCategoryRow[]>('/v1/work-categories', {
+            getWorkCategories({
                 token: accessToken,
                 studioSlug,
             }),

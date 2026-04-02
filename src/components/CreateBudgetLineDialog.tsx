@@ -17,6 +17,11 @@ import { useForm, type UseFormReturn, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
+import {
+    type CreateBudgetLineInput,
+    createProjectBudgetLine,
+} from '@/api/budget-lines.api'
+import { getMeasureUnits, getWorkCategories } from '@/api/catalog.api'
 import type { BudgetLineCreateFormValues } from '@/components/create-budget-line-dialog-form-fields'
 import { CreateBudgetLineDialogFormFields } from '@/components/create-budget-line-dialog-form-fields'
 import { Button } from '@/components/ui/button'
@@ -26,13 +31,10 @@ import {
 } from '@/components/use-budget-line-description-suggestions'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
-import { apiFetch, getApiErrorMessage } from '@/lib/api'
+import { getApiErrorMessage } from '@/lib/api'
 import { filterBudgetLineSuggestionRows } from '@/lib/budget-line-suggestion-filter'
 import { optionalNonNegStr, toNum } from '@/lib/form-utils'
 import { qk } from '@/lib/query-keys'
-import type { BudgetLineRow } from '@/types/budget-line'
-import type { MeasureUnitRow } from '@/types/measure-unit'
-import type { WorkCategoryRow } from '@/types/work-category'
 
 const RUBRO_NONE = '__none__'
 const UNIT_NONE = '__none__'
@@ -160,7 +162,7 @@ export default function CreateBudgetLineDialog({
     const { data: categories = [], isPending: categoriesLoading } = useQuery({
         queryKey: qk.workCategories,
         queryFn: () =>
-            apiFetch<WorkCategoryRow[]>('/v1/work-categories', {
+            getWorkCategories({
                 token: accessToken,
                 studioSlug,
             }),
@@ -171,7 +173,7 @@ export default function CreateBudgetLineDialog({
         useQuery({
             queryKey: qk.measureUnits,
             queryFn: () =>
-                apiFetch<MeasureUnitRow[]>('/v1/measure-units', {
+                getMeasureUnits({
                     token: accessToken,
                     studioSlug,
                 }),
@@ -317,21 +319,17 @@ export default function CreateBudgetLineDialog({
 
     const onSubmit = async (submitted: FormValues) => {
         try {
-            const body = buildBudgetLineCreateBody(
+            const baseBody = buildBudgetLineCreateBody(
                 submitted,
                 libraryBinding,
                 RUBRO_NONE
             )
-            appendOptionalBudgetNumericFields(body, submitted, UNIT_NONE)
+            appendOptionalBudgetNumericFields(baseBody, submitted, UNIT_NONE)
 
-            const created = await apiFetch<BudgetLineRow>(
-                `/v1/projects/${activeProject.id}/budget-lines`,
-                {
-                    method: 'POST',
-                    body,
-                    token: accessToken,
-                    studioSlug,
-                }
+            const created = await createProjectBudgetLine(
+                activeProject.id,
+                baseBody as unknown as CreateBudgetLineInput,
+                { token: accessToken, studioSlug }
             )
             await queryClient.invalidateQueries({
                 queryKey: qk.budgetLines(activeProject.id),

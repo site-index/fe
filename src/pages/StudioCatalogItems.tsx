@@ -2,32 +2,13 @@ import { useQuery } from '@tanstack/react-query'
 import { Library } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
+import {
+    getStudioCatalogItems,
+    type StudioCatalogItemDefaultRow,
+} from '@/api/catalog.api'
 import PageDataWrapper from '@/components/PageDataWrapper'
 import { useAuth } from '@/contexts/AuthContext'
-import { apiFetch } from '@/lib/api'
 import { qk } from '@/lib/query-keys'
-
-export interface StudioCatalogItemDefaultRow {
-    catalogItemId: string
-    code: string
-    name: string
-    workCategoryId: string
-    workCategoryName: string
-    sortOrder: number
-    measureUnitMode: 'INHERIT' | 'OVERRIDE'
-    measureUnit: { id: string; code: string; name: string } | null
-    linkedItems: string[]
-    lines: Array<{
-        id: string
-        material: string
-        unit: string
-        quantityPerUnit: number
-        purchaseUnit: string
-        yieldPerPurchase: number
-        wastePercent: number
-    }>
-    studioDefaultUpdatedAt: string | null
-}
 
 export default function StudioCatalogItems() {
     const { accessToken, studioSlug, isQueryReady } = useAuth()
@@ -39,13 +20,10 @@ export default function StudioCatalogItems() {
     } = useQuery<StudioCatalogItemDefaultRow[], Error>({
         queryKey: qk.studioCatalogItems,
         queryFn: () =>
-            apiFetch<StudioCatalogItemDefaultRow[]>(
-                '/v1/studio-catalog-items',
-                {
-                    token: accessToken,
-                    studioSlug,
-                }
-            ),
+            getStudioCatalogItems({
+                token: accessToken,
+                studioSlug,
+            }),
         enabled: isQueryReady,
     })
 

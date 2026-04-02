@@ -11,6 +11,11 @@ import { useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
+import {
+    patchProjectBudgetLineItemYield,
+    patchProjectBudgetLinePricing,
+} from '@/api/budget-lines.api'
+import { getProjectItemYieldOptions } from '@/api/item-yields.api'
 import { BudgetLineItemYieldSelect } from '@/components/BudgetLineItemYieldSelect'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -25,7 +30,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
-import { apiFetch, getApiErrorMessage } from '@/lib/api'
+import { getApiErrorMessage } from '@/lib/api'
 import {
     formatCurrency,
     nonNegStr,
@@ -148,22 +153,19 @@ async function submitBudgetLinePricing(args: {
         onSuccess,
     } = args
     try {
-        await apiFetch<BudgetLineRow>(
-            `/v1/projects/${projectId}/budget-lines/${line.id}`,
+        await patchProjectBudgetLinePricing(
+            projectId,
+            line.id,
             {
-                method: 'PATCH',
-                token: accessToken,
-                studioSlug,
-                body: {
-                    quantity:
-                        values.quantityStr.trim() === ''
-                            ? null
-                            : toNum(values.quantityStr),
-                    amountMaterial: toNum(values.amountMaterialStr),
-                    amountLabor: toNum(values.amountLaborStr),
-                    amountEquipment: toNum(values.amountEquipmentStr),
-                },
-            }
+                quantity:
+                    values.quantityStr.trim() === ''
+                        ? null
+                        : toNum(values.quantityStr),
+                amountMaterial: toNum(values.amountMaterialStr),
+                amountLabor: toNum(values.amountLaborStr),
+                amountEquipment: toNum(values.amountEquipmentStr),
+            },
+            { token: accessToken, studioSlug: studioSlug ?? '' }
         )
         await queryClient.invalidateQueries({
             queryKey: qk.budgetLines(projectId),
@@ -208,10 +210,10 @@ function useBudgetLineYieldLink(options: {
     const { data: itemYields = [] } = useQuery({
         queryKey: qk.itemYields(projectId),
         queryFn: () =>
-            apiFetch<ItemYieldOption[]>(
-                `/v1/projects/${projectId}/item-yields`,
-                { token: accessToken, studioSlug }
-            ),
+            getProjectItemYieldOptions(projectId, {
+                token: accessToken,
+                studioSlug,
+            }),
         enabled: yieldsQueryEnabled,
     })
 
@@ -220,13 +222,13 @@ function useBudgetLineYieldLink(options: {
             if (!line || budgetLineId !== line.id) return
             setYieldSaving(true)
             try {
-                const updated = await apiFetch<BudgetLineRow>(
-                    `/v1/projects/${projectId}/budget-lines/${line.id}`,
+                const updated = await patchProjectBudgetLineItemYield(
+                    projectId,
+                    line.id,
+                    itemYieldId,
                     {
-                        method: 'PATCH',
                         token: accessToken,
                         studioSlug,
-                        body: { itemYieldId },
                     }
                 )
                 await queryClient.invalidateQueries({

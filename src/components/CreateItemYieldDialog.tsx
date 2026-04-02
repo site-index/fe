@@ -16,6 +16,11 @@ import { useForm, type UseFormReturn } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
+import { getMeasureUnits, getWorkCategories } from '@/api/catalog.api'
+import {
+    type CreateItemYieldInput,
+    createProjectItemYield,
+} from '@/api/item-yields.api'
 import { Button } from '@/components/ui/button'
 import {
     Form,
@@ -35,9 +40,8 @@ import {
 } from '@/components/ui/select'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
-import { apiFetch, getApiErrorMessage } from '@/lib/api'
+import { getApiErrorMessage } from '@/lib/api'
 import { qk } from '@/lib/query-keys'
-import type { ItemYield } from '@/types/item-yield'
 import type { MeasureUnitRow } from '@/types/measure-unit'
 import {
     OTHER_WORK_CATEGORY_CODE,
@@ -117,38 +121,18 @@ function useCreateItemYieldSubmit(
     return useCallback(
         async (values: FormValues) => {
             try {
-                const body: {
-                    workCategoryId: string
-                    name: string
-                    measureUnitMode: 'OVERRIDE'
-                    measureUnitId: string
-                    description?: string
-                    components: {
-                        linkedItems: string[]
-                        lines: []
-                    }
-                } = {
+                const body: CreateItemYieldInput = {
                     workCategoryId: values.workCategoryId,
                     name: values.name,
-                    measureUnitMode: 'OVERRIDE',
                     measureUnitId: values.measureUnitId,
-                    components: {
-                        linkedItems: [],
-                        lines: [],
-                    },
                 }
                 if (values.description.trim() !== '') {
                     body.description = values.description.trim()
                 }
-                const created = await apiFetch<ItemYield>(
-                    `/v1/projects/${projectId}/item-yields`,
-                    {
-                        method: 'POST',
-                        body,
-                        token: accessToken,
-                        studioSlug,
-                    }
-                )
+                const created = await createProjectItemYield(projectId, body, {
+                    token: accessToken,
+                    studioSlug,
+                })
                 await queryClient.invalidateQueries({
                     queryKey: qk.itemYields(projectId),
                 })
@@ -346,7 +330,7 @@ export default function CreateItemYieldDialog({
     const { data: categories = [], isPending: categoriesLoading } = useQuery({
         queryKey: qk.workCategories,
         queryFn: () =>
-            apiFetch<WorkCategoryRow[]>('/v1/work-categories', {
+            getWorkCategories({
                 token: accessToken,
                 studioSlug,
             }),
@@ -357,7 +341,7 @@ export default function CreateItemYieldDialog({
         useQuery({
             queryKey: qk.measureUnits,
             queryFn: () =>
-                apiFetch<MeasureUnitRow[]>('/v1/measure-units', {
+                getMeasureUnits({
                     token: accessToken,
                     studioSlug,
                 }),

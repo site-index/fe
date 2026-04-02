@@ -9,12 +9,12 @@ import {
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
+import { getProjectItemYields } from '@/api/item-yields.api'
 import CreateItemYieldDialog from '@/components/CreateItemYieldDialog'
 import PageDataWrapper from '@/components/PageDataWrapper'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
-import { apiFetch } from '@/lib/api'
 import { qk } from '@/lib/query-keys'
 import type { ItemYield, ItemYieldLine } from '@/types/item-yield'
 
@@ -290,13 +290,10 @@ export default function ItemYields() {
     } = useQuery({
         queryKey: qk.itemYields(activeProject.id),
         queryFn: () =>
-            apiFetch<ItemYield[]>(
-                `/v1/projects/${activeProject.id}/item-yields`,
-                {
-                    token: accessToken,
-                    studioSlug,
-                }
-            ),
+            getProjectItemYields(activeProject.id, {
+                token: accessToken,
+                studioSlug,
+            }),
         enabled: isQueryReady && !empty && !projectsLoading,
     })
 
