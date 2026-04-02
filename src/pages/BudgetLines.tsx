@@ -307,6 +307,9 @@ function BudgetLinesBody({
 }: ReturnType<typeof useBudgetLinesVm>) {
     const [pricingLine, setPricingLine] = useState<BudgetLineRow | null>(null)
     const [showBreakdown, setShowBreakdown] = useState(false)
+    const [collapsedSections, setCollapsedSections] = useState<
+        Record<string, boolean>
+    >({})
     const sections = buildSections(rows, categories)
 
     return (
@@ -379,60 +382,114 @@ function BudgetLinesBody({
                             vía API.
                         </p>
                     ) : (
-                        sections.map((section) => (
-                            <div key={section.key}>
-                                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 bg-muted/50 px-3 py-1.5 print:px-2 print:py-1">
-                                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                        {section.rubroNumber != null
-                                            ? `Rubro ${section.rubroNumber}`
-                                            : 'Rubro'}{' '}
-                                        · {section.name}
-                                    </span>
-                                    <CreateBudgetLineDialog
-                                        defaultWorkCategoryId={
-                                            section.workCategoryId
-                                        }
-                                        trigger={
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                className="h-8 w-8 px-0 text-sm print:hidden"
-                                                aria-label="Nuevo ítem"
-                                                title="Nuevo ítem"
-                                            >
-                                                <Plus className="h-4 w-4" />
-                                            </Button>
-                                        }
-                                    />
-                                </div>
-                                {section.lines.length === 0 ? (
-                                    <p className="border-b border-border/50 px-3 py-2 text-xs text-muted-foreground print:px-2 print:py-1.5">
-                                        Sin ítems todavía en este rubro.
-                                    </p>
-                                ) : (
-                                    section.lines.map((line) => (
-                                        <div key={line.id}>
-                                            <BudgetLineRow
-                                                line={line}
-                                                rubroNumber={
-                                                    section.rubroNumber
-                                                }
-                                                showBreakdown={showBreakdown}
-                                                onOpen={setPricingLine}
+                        sections.map((section) => {
+                            const isCollapsed =
+                                collapsedSections[section.key] ?? false
+                            const sectionSubtotal = section.lines.reduce(
+                                (acc, line) => acc + line.total,
+                                0
+                            )
+
+                            return (
+                                <div key={section.key}>
+                                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 bg-muted/50 px-3 py-1.5 print:px-2 print:py-1">
+                                        <button
+                                            type="button"
+                                            className="flex min-w-0 flex-1 items-center gap-1.5 text-left md:hidden"
+                                            onClick={() =>
+                                                setCollapsedSections(
+                                                    (prev) => ({
+                                                        ...prev,
+                                                        [section.key]: !(
+                                                            prev[section.key] ??
+                                                            false
+                                                        ),
+                                                    })
+                                                )
+                                            }
+                                            aria-expanded={!isCollapsed}
+                                            aria-label={`Alternar rubro ${section.name}`}
+                                        >
+                                            <ChevronRight
+                                                className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
+                                                    isCollapsed
+                                                        ? ''
+                                                        : 'rotate-90'
+                                                }`}
                                             />
-                                            <BudgetLineMobileRow
-                                                line={line}
-                                                rubroNumber={
-                                                    section.rubroNumber
+                                            <span className="truncate text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                                {section.rubroNumber != null
+                                                    ? `Rubro ${section.rubroNumber}`
+                                                    : 'Rubro'}{' '}
+                                                · {section.name}
+                                            </span>
+                                        </button>
+                                        <span className="hidden min-w-0 flex-1 truncate text-xs font-semibold uppercase tracking-wide text-muted-foreground md:inline">
+                                            {section.rubroNumber != null
+                                                ? `Rubro ${section.rubroNumber}`
+                                                : 'Rubro'}{' '}
+                                            · {section.name}
+                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-mono text-xs font-semibold">
+                                                $
+                                                {sectionSubtotal.toLocaleString(
+                                                    'es-AR'
+                                                )}
+                                            </span>
+                                            <CreateBudgetLineDialog
+                                                defaultWorkCategoryId={
+                                                    section.workCategoryId
                                                 }
-                                                showBreakdown={showBreakdown}
-                                                onOpen={setPricingLine}
+                                                trigger={
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="h-8 w-8 px-0 text-sm print:hidden"
+                                                        aria-label="Nuevo ítem"
+                                                        title="Nuevo ítem"
+                                                    >
+                                                        <Plus className="h-4 w-4" />
+                                                    </Button>
+                                                }
                                             />
                                         </div>
-                                    ))
-                                )}
-                            </div>
-                        ))
+                                    </div>
+                                    {section.lines.length === 0 ? (
+                                        <p className="border-b border-border/50 px-3 py-2 text-xs text-muted-foreground print:px-2 print:py-1.5">
+                                            Sin ítems todavía en este rubro.
+                                        </p>
+                                    ) : (
+                                        section.lines.map((line) => (
+                                            <div key={line.id}>
+                                                <BudgetLineRow
+                                                    line={line}
+                                                    rubroNumber={
+                                                        section.rubroNumber
+                                                    }
+                                                    showBreakdown={
+                                                        showBreakdown
+                                                    }
+                                                    onOpen={setPricingLine}
+                                                />
+                                                {isCollapsed ? null : (
+                                                    <BudgetLineMobileRow
+                                                        line={line}
+                                                        rubroNumber={
+                                                            section.rubroNumber
+                                                        }
+                                                        showBreakdown={
+                                                            showBreakdown
+                                                        }
+                                                        onOpen={setPricingLine}
+                                                    />
+                                                )}
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            )
+                        })
                     )}
                 </div>
             </div>

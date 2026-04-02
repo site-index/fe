@@ -66,6 +66,7 @@ type Props = {
     onDescriptionInput: () => void
     onClearLibraryBinding: () => void
     handleSuggestionPick: (row: SuggestionRow) => void
+    isBreakdownActive: boolean
 }
 
 function RubroSection({
@@ -245,6 +246,7 @@ export function CreateBudgetLineDialogFormFields({
     onDescriptionInput,
     onClearLibraryBinding,
     handleSuggestionPick,
+    isBreakdownActive,
 }: Props) {
     const activeRow = filteredSuggestionRows[activeSuggestionIndex]
     const activeDescendant =
@@ -385,8 +387,14 @@ export function CreateBudgetLineDialogFormFields({
                         id="create-budget-line-unit-price"
                         inputMode="decimal"
                         placeholder="—"
+                        disabled={isBreakdownActive}
                         {...form.register('unitPriceStr')}
                     />
+                    {isBreakdownActive ? (
+                        <p className="text-xs text-muted-foreground">
+                            Se calcula automáticamente como MAT + MO + EQ.
+                        </p>
+                    ) : null}
                     {form.formState.errors.unitPriceStr ? (
                         <p className="text-sm text-destructive">
                             {form.formState.errors.unitPriceStr.message}

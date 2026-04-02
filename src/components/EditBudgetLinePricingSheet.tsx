@@ -32,6 +32,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
 import { getApiErrorMessage } from '@/lib/api'
 import {
+    breakdownSumFromStrings,
     formatCurrency,
     nonNegStr,
     optionalNonNegStr,
@@ -56,24 +57,24 @@ function parseBudgetLineAmountStrings(watched: {
     amountEquipmentStr: string
     quantityStr: string
 }): { breakdownSum: number; qty: number } {
-    const materialVal = watched.amountMaterialStr
-        ? toNum(watched.amountMaterialStr)
-        : 0
-    const laborVal = watched.amountLaborStr ? toNum(watched.amountLaborStr) : 0
-    const equipmentVal = watched.amountEquipmentStr
-        ? toNum(watched.amountEquipmentStr)
-        : 0
+    const breakdownSum = breakdownSumFromStrings({
+        amountMaterialStr: watched.amountMaterialStr,
+        amountLaborStr: watched.amountLaborStr,
+        amountEquipmentStr: watched.amountEquipmentStr,
+    })
     const quantityVal = watched.quantityStr.trim()
         ? toNum(watched.quantityStr)
         : 0
     const qty =
         Number.isFinite(quantityVal) && quantityVal > 0 ? quantityVal : 0
-    const partsOk =
-        Number.isFinite(materialVal) &&
-        Number.isFinite(laborVal) &&
-        Number.isFinite(equipmentVal)
-    const breakdownSum = partsOk ? materialVal + laborVal + equipmentVal : 0
     return { breakdownSum, qty }
+}
+
+function formatUnitPriceInputValue(value: number): string {
+    if (Number.isInteger(value)) {
+        return String(value)
+    }
+    return String(Number(value.toFixed(6)))
 }
 
 function unitRateFromBreakdown(
@@ -318,6 +319,7 @@ function BudgetLinePricingFormFields({
     computedUnitPrice,
     showQuantityHint,
     showsManualCostWarning,
+    isBreakdownActive,
 }: {
     form: ReturnType<typeof useForm<FormValues>>
     unitLabel: string
@@ -325,6 +327,7 @@ function BudgetLinePricingFormFields({
     computedUnitPrice: number
     showQuantityHint: boolean
     showsManualCostWarning: boolean
+    isBreakdownActive: boolean
 }) {
     return (
         <>
@@ -386,6 +389,19 @@ function BudgetLinePricingFormFields({
                     </FormItem>
                 )}
             />
+            <div className="space-y-2">
+                <FormLabel>Precio unitario (ARS / {unitLabel})</FormLabel>
+                <Input
+                    value={formatUnitPriceInputValue(computedUnitPrice)}
+                    disabled={isBreakdownActive}
+                    readOnly
+                />
+                {isBreakdownActive ? (
+                    <p className="text-xs text-muted-foreground">
+                        Se calcula automáticamente como MAT + MO + EQ.
+                    </p>
+                ) : null}
+            </div>
 
             <Card className="bg-muted/50">
                 <CardContent className="py-3 px-4 space-y-1">
@@ -488,6 +504,7 @@ export default function EditBudgetLinePricingSheet({
     const showQuantityHint = breakdownSum > 0 && qty === 0
     const showsManualCostWarning =
         breakdownSum <= 0 && (line?.unitPriceStored ?? null) != null
+    const isBreakdownActive = breakdownSum > 0
 
     const handleSubmit = (values: FormValues) => {
         if (!line) return
@@ -554,6 +571,7 @@ export default function EditBudgetLinePricingSheet({
                                         showsManualCostWarning={
                                             showsManualCostWarning
                                         }
+                                        isBreakdownActive={isBreakdownActive}
                                     />
                                 </div>
                                 <div className="flex shrink-0 justify-end border-t px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">

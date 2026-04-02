@@ -33,7 +33,12 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
 import { getApiErrorMessage } from '@/lib/api'
 import { filterBudgetLineSuggestionRows } from '@/lib/budget-line-suggestion-filter'
-import { optionalNonNegStr, toNum } from '@/lib/form-utils'
+import {
+    breakdownSumFromStrings,
+    isBreakdownActiveFromStrings,
+    optionalNonNegStr,
+    toNum,
+} from '@/lib/form-utils'
 import { qk } from '@/lib/query-keys'
 
 const RUBRO_NONE = '__none__'
@@ -158,6 +163,8 @@ export default function CreateBudgetLineDialog({
         control: form.control,
         defaultValue: defaultForm,
     }) as BudgetLineCreateFormValues
+    const breakdownSum = breakdownSumFromStrings(values)
+    const isBreakdownActive = isBreakdownActiveFromStrings(values)
 
     const { data: categories = [], isPending: categoriesLoading } = useQuery({
         queryKey: qk.workCategories,
@@ -237,6 +244,18 @@ export default function CreateBudgetLineDialog({
             form.setValue('measureUnitId', UNIT_NONE, { shouldValidate: true })
         }
     }, [libraryBinding, form])
+
+    useEffect(() => {
+        if (!open || !isBreakdownActive) {
+            return
+        }
+        const nextUnitPrice = String(breakdownSum)
+        if (values.unitPriceStr !== nextUnitPrice) {
+            form.setValue('unitPriceStr', nextUnitPrice, {
+                shouldValidate: true,
+            })
+        }
+    }, [breakdownSum, form, isBreakdownActive, open, values.unitPriceStr])
 
     const handleSuggestionPick = (row: SuggestionRow) => {
         const measureUnitId = row.measureUnitId ?? UNIT_NONE
@@ -322,12 +341,22 @@ export default function CreateBudgetLineDialog({
 
     const onSubmit = async (submitted: FormValues) => {
         try {
+            const normalizedSubmitted = isBreakdownActiveFromStrings(submitted)
+                ? {
+                      ...submitted,
+                      unitPriceStr: String(breakdownSumFromStrings(submitted)),
+                  }
+                : submitted
             const baseBody = buildBudgetLineCreateBody(
-                submitted,
+                normalizedSubmitted,
                 libraryBinding,
                 RUBRO_NONE
             )
-            appendOptionalBudgetNumericFields(baseBody, submitted, UNIT_NONE)
+            appendOptionalBudgetNumericFields(
+                baseBody,
+                normalizedSubmitted,
+                UNIT_NONE
+            )
 
             const created = await createProjectBudgetLine(
                 activeProject.id,
@@ -467,6 +496,7 @@ export default function CreateBudgetLineDialog({
                                 }}
                                 onClearLibraryBinding={clearLibraryBinding}
                                 handleSuggestionPick={handleSuggestionPick}
+                                isBreakdownActive={isBreakdownActive}
                             />
 
                             <div className="flex shrink-0 justify-end border-t px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
