@@ -33,10 +33,10 @@ export default function Dashboard() {
     if (!data) {
         return (
             <PageDataWrapper
-                title="Dashboard"
+                title="Tablero"
                 projectsLoading={projectsLoading}
                 emptyProject={emptyProject}
-                emptyMessage="No projects in this studio."
+                emptyMessage="No hay proyectos en este estudio."
                 isPending={isPending}
                 error={error}
             >
@@ -49,10 +49,10 @@ export default function Dashboard() {
         <div className="space-y-6">
             <div>
                 <h1 className="text-xl sm:text-2xl font-black tracking-tight">
-                    Dashboard
+                    Tablero
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                    {activeProject.name} — overview
+                    {activeProject.name} — resumen
                 </p>
             </div>
 
@@ -70,16 +70,16 @@ export default function Dashboard() {
                     flaky
                 />
                 <MetricCard
-                    label="Spend to date"
+                    label="Gasto acumulado"
                     value={data.spent}
                     subtitle={data.spentPercent}
                     icon={TrendingUp}
                     trend="neutral"
                 />
                 <MetricCard
-                    label="Open assumptions"
+                    label="Supuestos abiertos"
                     value={String(data.openAssumptionsCount)}
-                    subtitle={`${data.highImpactAssumptionsCount} high impact`}
+                    subtitle={`${data.highImpactAssumptionsCount} de alto impacto`}
                     icon={AlertTriangle}
                     trend="negative"
                 />
@@ -94,12 +94,12 @@ export default function Dashboard() {
 
             <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
                 <h2 className="text-base font-bold mb-3">
-                    Latest system assumptions
+                    Últimos supuestos del sistema
                 </h2>
                 <ul className="space-y-2">
                     {data.recentAssumptions.length === 0 ? (
                         <li className="text-sm text-muted-foreground">
-                            No recent open assumptions.
+                            No hay supuestos abiertos recientes.
                         </li>
                     ) : (
                         data.recentAssumptions.map((a, i) => (

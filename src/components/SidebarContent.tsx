@@ -22,7 +22,7 @@ import SiteLogo from './SiteLogo'
 import ThemeToggle from './ThemeToggle'
 
 const navItems = [
-    { to: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { to: '/', label: 'Tablero', icon: LayoutDashboard },
     { to: '/budget-lines', label: 'Cómputo & Presupuesto', icon: Calculator },
     { to: '/item-yields', label: 'Rendimientos', icon: FlaskConical },
     {
@@ -30,8 +30,8 @@ const navItems = [
         label: 'Biblioteca del estudio',
         icon: Library,
     },
-    { to: '/certifications', label: 'Certification', icon: ClipboardCheck },
-    { to: '/assumptions', label: 'Assumptions', icon: AlertTriangle },
+    { to: '/certifications', label: 'Certificación', icon: ClipboardCheck },
+    { to: '/assumptions', label: 'Supuestos', icon: AlertTriangle },
 ]
 
 interface SidebarContentProps {
@@ -78,7 +78,9 @@ export default function SidebarContent({ onNavigate }: SidebarContentProps) {
                         projects.length <= 1 && 'cursor-default'
                     )}
                 >
-                    <p className="text-xs text-sidebar-muted">Active project</p>
+                    <p className="text-xs text-sidebar-muted">
+                        Proyecto activo
+                    </p>
                     <div className="flex items-center justify-between">
                         <p className="text-sm font-semibold text-sidebar-foreground truncate">
                             {activeProject.name}
@@ -161,7 +163,7 @@ export default function SidebarContent({ onNavigate }: SidebarContentProps) {
                     )}
                 >
                     <Settings className="h-4.5 w-4.5 shrink-0" />
-                    Settings
+                    Configuración
                     <span className="ml-auto">
                         <ThemeToggle />
                     </span>

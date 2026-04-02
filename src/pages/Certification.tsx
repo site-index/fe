@@ -40,7 +40,7 @@ function formatDate(iso: string | null): string {
     if (!iso) return '—'
     try {
         const d = new Date(iso)
-        return d.toLocaleDateString('en-US', {
+        return d.toLocaleDateString('es-AR', {
             day: 'numeric',
             month: 'short',
             year: 'numeric',
@@ -105,10 +105,10 @@ function CertificationBody({
         <div className="space-y-6">
             <div>
                 <h1 className="text-xl sm:text-2xl font-black tracking-tight">
-                    Certification
+                    Certificación
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                    Job-wide progress — accumulated certifications
+                    Avance general de la obra por certificaciones acumuladas
                 </p>
             </div>
 
@@ -116,13 +116,13 @@ function CertificationBody({
                 <div className="flex items-center gap-3 mb-3">
                     <CheckCircle2 className="h-5 w-5 text-positive" />
                     <p className="font-bold">
-                        Overall progress:{' '}
+                        Avance total:{' '}
                         <span className="font-mono">{summary?.pct ?? 0}%</span>
                     </p>
                 </div>
                 <ProgressBar pct={summary?.pct ?? 0} />
                 <p className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
-                    <Clock className="h-3 w-3" /> Last certification:{' '}
+                    <Clock className="h-3 w-3" /> Última certificación:{' '}
                     {formatDate(summary?.lastCertLabel ?? null)}
                 </p>
             </div>
@@ -150,7 +150,7 @@ function CertificationBody({
                                     </span>{' '}
                                     <span className="font-mono">
                                         {row.plannedQuantity.toLocaleString(
-                                            'en-US'
+                                            'es-AR'
                                         )}{' '}
                                         {row.unit}
                                     </span>
@@ -161,7 +161,7 @@ function CertificationBody({
                                     </span>{' '}
                                     <span className="font-mono">
                                         {row.certifiedQuantity.toLocaleString(
-                                            'en-US'
+                                            'es-AR'
                                         )}{' '}
                                         {row.unit}
                                     </span>
@@ -180,19 +180,19 @@ function CertificationBody({
                         <thead>
                             <tr className="border-b border-border bg-muted/50">
                                 <th className="px-4 py-3 text-left font-semibold text-muted-foreground">
-                                    Line
+                                    Línea
                                 </th>
                                 <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                    Unit
+                                    Unidad
                                 </th>
                                 <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                    Planned
+                                    Planificado
                                 </th>
                                 <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                    Certified
+                                    Certificado
                                 </th>
                                 <th className="px-4 py-3 font-semibold text-muted-foreground w-48">
-                                    Progress
+                                    Avance
                                 </th>
                             </tr>
                         </thead>
@@ -221,12 +221,12 @@ function CertificationBody({
                                         </td>
                                         <td className="px-4 py-3 text-right font-mono">
                                             {row.plannedQuantity.toLocaleString(
-                                                'en-US'
+                                                'es-AR'
                                             )}
                                         </td>
                                         <td className="px-4 py-3 text-right font-mono">
                                             {row.certifiedQuantity.toLocaleString(
-                                                'en-US'
+                                                'es-AR'
                                             )}
                                         </td>
                                         <td className="px-4 py-3">
@@ -242,9 +242,9 @@ function CertificationBody({
 
             <div className="rounded-lg border border-dashed border-border bg-muted/30 p-6 text-center">
                 <p className="text-sm text-muted-foreground">
-                    <strong>Detailed certification:</strong> period entry,
-                    trade-level approval, and theoretical consumption back-calc
-                    will expand in later iterations.
+                    <strong>Certificación detallada:</strong> carga por período,
+                    aprobación por rubro y retrocálculo de consumos teóricos se
+                    suman en próximas iteraciones.
                 </p>
             </div>
         </div>
@@ -255,10 +255,10 @@ export default function Certification() {
     const vm = useCertificationVm()
     return (
         <PageDataWrapper
-            title="Certification"
+            title="Certificación"
             projectsLoading={vm.projectsLoading}
             emptyProject={vm.empty}
-            emptyMessage="Select a project to view certifications."
+            emptyMessage="Elegí un proyecto para ver certificaciones."
             isPending={vm.isPending}
             error={vm.error}
         >

@@ -25,9 +25,9 @@ type AssumptionRow = {
 }
 
 const typeLabels = {
-    imputation: 'Imputation',
-    deviation: 'Variance',
-    price_alert: 'Price',
+    imputation: 'Imputación',
+    deviation: 'Desvío',
+    price_alert: 'Precio',
 }
 
 const impactColors = {
@@ -84,10 +84,10 @@ export default function Assumptions() {
 
     return (
         <PageDataWrapper
-            title="Assumptions"
+            title="Supuestos"
             projectsLoading={projectsLoading}
             emptyProject={empty}
-            emptyMessage="Select a project to view open assumptions."
+            emptyMessage="Elegí un proyecto para ver supuestos abiertos."
             isPending={isPending}
             error={error}
         >
@@ -95,30 +95,32 @@ export default function Assumptions() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h1 className="text-xl sm:text-2xl font-black tracking-tight">
-                            Assumptions
+                            Supuestos
                         </h1>
                         <p className="text-sm text-muted-foreground">
-                            System decision queue — async review
+                            Cola de decisiones del sistema para revisión
+                            asíncrona
                         </p>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <ArrowUpDown className="h-3.5 w-3.5" />
-                        Sort:{' '}
+                        Orden:{' '}
                         <span className="font-semibold text-foreground">
-                            Money · Time · Impact
+                            Dinero · Tiempo · Impacto
                         </span>
                     </div>
                 </div>
 
                 <div className="rounded-lg border border-dashed border-border bg-muted/30 p-4 text-center text-sm text-muted-foreground">
-                    <strong>Custom sort mix:</strong> sliders for Money / Time /
-                    Impact to rebalance queue priority. <em>(Phase 2)</em>
+                    <strong>Mezcla de orden personalizada:</strong> deslizadores
+                    de Dinero / Tiempo / Impacto para reequilibrar la prioridad
+                    de la cola. <em>(Fase 2)</em>
                 </div>
 
                 <div className="space-y-3">
                     {rows.length === 0 ? (
                         <p className="text-sm text-muted-foreground">
-                            No open assumptions.
+                            No hay supuestos abiertos.
                         </p>
                     ) : (
                         rows.map((a) => {
@@ -145,9 +147,9 @@ export default function Assumptions() {
                                         </div>
                                         <p className="text-sm">{a.text}</p>
                                         <p className="mt-1 text-xs font-mono text-muted-foreground">
-                                            Amount involved: $
+                                            Monto involucrado: $
                                             {a.amountARS.toLocaleString(
-                                                'en-US'
+                                                'es-AR'
                                             )}
                                         </p>
                                     </div>
@@ -172,11 +174,11 @@ export default function Assumptions() {
                                             size="sm"
                                             variant="secondary"
                                             disabled
-                                            title="Editing coming soon"
+                                            title="Edición disponible próximamente"
                                             className="opacity-60"
                                         >
                                             <Edit3 className="h-3.5 w-3.5" />
-                                            Edit
+                                            Editar
                                         </Button>
                                     </div>
                                 </div>
@@ -187,7 +189,7 @@ export default function Assumptions() {
 
                 <div className="flex justify-center">
                     <Button variant="outline" disabled className="opacity-60">
-                        Confirm all low-impact (Pareto 90%)
+                        Confirmar todos los de bajo impacto (Pareto 90%)
                     </Button>
                 </div>
             </div>
