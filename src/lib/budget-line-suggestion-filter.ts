@@ -6,14 +6,31 @@ import type { SuggestionRow } from '@/components/use-budget-line-description-sug
 export function filterBudgetLineSuggestionRows(
     fuse: Fuse<SuggestionRow> | null,
     suggestionRows: SuggestionRow[],
-    description: string
+    description: string,
+    workCategoryId: string | null
 ): SuggestionRow[] {
     if (fuse == null || suggestionRows.length === 0) {
         return []
     }
+    const scopedRows =
+        workCategoryId == null
+            ? suggestionRows
+            : suggestionRows.filter(
+                  (row) => row.workCategoryId === workCategoryId
+              )
+    if (scopedRows.length === 0) {
+        return []
+    }
     const query = description.trim()
     if (query === '') {
-        return suggestionRows
+        return scopedRows
     }
-    return fuse.search(query).map((result) => result.item)
+    return fuse
+        .search(query)
+        .map((result) => result.item)
+        .filter((row) =>
+            workCategoryId == null
+                ? true
+                : row.workCategoryId === workCategoryId
+        )
 }

@@ -198,9 +198,12 @@ export default function CreateBudgetLineDialog({
             filterBudgetLineSuggestionRows(
                 fuse,
                 suggestionRows,
-                values.description
+                values.description,
+                values.workCategoryId === RUBRO_NONE
+                    ? null
+                    : values.workCategoryId
             ),
-        [fuse, suggestionRows, values.description]
+        [fuse, suggestionRows, values.description, values.workCategoryId]
     )
 
     const showSuggestions =

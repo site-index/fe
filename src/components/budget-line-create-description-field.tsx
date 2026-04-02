@@ -164,7 +164,13 @@ function DescriptionSuggestionList({
     onPick: (row: SuggestionRow) => void
 }) {
     const rows = useMemo(
-        () => filterBudgetLineSuggestionRows(fuse, suggestionRows, description),
+        () =>
+            filterBudgetLineSuggestionRows(
+                fuse,
+                suggestionRows,
+                description,
+                null
+            ),
         [fuse, description, suggestionRows]
     )
 
