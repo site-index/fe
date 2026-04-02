@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { apiFetch, getApiErrorMessage } from '@/lib/api'
+import { qk } from '@/lib/query-keys'
 
 type ProjectDetail = {
     id: string
@@ -34,7 +35,7 @@ export function ProjectSpendCard({
     const inputRef = useRef<HTMLInputElement>(null)
 
     const { data: projectDetail, error: projectError } = useQuery({
-        queryKey: ['project-detail', projectId],
+        queryKey: qk.projectDetail(projectId),
         queryFn: () =>
             apiFetch<ProjectDetail>(`/v1/projects/${projectId}`, {
                 token: accessToken,
@@ -58,13 +59,13 @@ export function ProjectSpendCard({
             }),
         onSuccess: () => {
             void queryClient.invalidateQueries({
-                queryKey: ['project-detail', projectId],
+                queryKey: qk.projectDetail(projectId),
             })
             void queryClient.invalidateQueries({
-                queryKey: ['dashboard', projectId],
+                queryKey: qk.dashboard(projectId),
             })
             void queryClient.invalidateQueries({
-                queryKey: ['assumptions', projectId],
+                queryKey: qk.assumptions(projectId),
             })
         },
     })

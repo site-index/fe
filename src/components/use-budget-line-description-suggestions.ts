@@ -3,6 +3,8 @@ import Fuse from 'fuse.js'
 import { useMemo } from 'react'
 
 import { apiFetch } from '@/lib/api'
+import { qk } from '@/lib/query-keys'
+import type { ItemYield } from '@/types/item-yield'
 
 type MeasureUnitApiShape = {
     id: string
@@ -10,14 +12,10 @@ type MeasureUnitApiShape = {
     name: string
 }
 
-type ItemYieldApiRow = {
-    id: string
-    workCategoryId: string
-    workCategoryName: string
-    name: string
-    description: string
-    measureUnit: MeasureUnitApiShape | null
-}
+type ItemYieldApiRow = Pick<
+    ItemYield,
+    'id' | 'workCategoryId' | 'workCategoryName' | 'name' | 'description'
+> & { measureUnit: MeasureUnitApiShape | null }
 
 type StudioCatalogItemApiRow = {
     catalogItemId: string
@@ -94,7 +92,7 @@ export function useBudgetLineDescriptionSuggestions(
     const queryEnabled = dialogOpen && projectId !== '__empty__'
 
     const { data: itemYields = [], isPending: yieldsLoading } = useQuery({
-        queryKey: ['item-yields', projectId],
+        queryKey: qk.itemYields(projectId),
         queryFn: () =>
             apiFetch<ItemYieldApiRow[]>(
                 `/v1/projects/${projectId}/item-yields`,
@@ -104,7 +102,7 @@ export function useBudgetLineDescriptionSuggestions(
     })
 
     const { data: catalogDefaults = [], isPending: catalogLoading } = useQuery({
-        queryKey: ['studio-catalog-items', accessToken, studioSlug],
+        queryKey: qk.studioCatalogItems,
         queryFn: () =>
             apiFetch<StudioCatalogItemApiRow[]>('/v1/studio-catalog-items', {
                 token: accessToken,

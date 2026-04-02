@@ -29,6 +29,7 @@ import { useProject } from '@/contexts/ProjectContext'
 import { apiFetch, getApiErrorMessage } from '@/lib/api'
 import { filterBudgetLineSuggestionRows } from '@/lib/budget-line-suggestion-filter'
 import { optionalNonNegStr, toNum } from '@/lib/form-utils'
+import { qk } from '@/lib/query-keys'
 import type { BudgetLineRow } from '@/types/budget-line'
 import type { MeasureUnitRow } from '@/types/measure-unit'
 import type { WorkCategoryRow } from '@/types/work-category'
@@ -157,7 +158,7 @@ export default function CreateBudgetLineDialog({
     }) as BudgetLineCreateFormValues
 
     const { data: categories = [], isPending: categoriesLoading } = useQuery({
-        queryKey: ['work-categories'],
+        queryKey: qk.workCategories,
         queryFn: () =>
             apiFetch<WorkCategoryRow[]>('/v1/work-categories', {
                 token: accessToken,
@@ -168,7 +169,7 @@ export default function CreateBudgetLineDialog({
 
     const { data: measureUnits = [], isPending: measureUnitsLoading } =
         useQuery({
-            queryKey: ['measure-units'],
+            queryKey: qk.measureUnits,
             queryFn: () =>
                 apiFetch<MeasureUnitRow[]>('/v1/measure-units', {
                     token: accessToken,
@@ -333,10 +334,10 @@ export default function CreateBudgetLineDialog({
                 }
             )
             await queryClient.invalidateQueries({
-                queryKey: ['budget-lines', activeProject.id],
+                queryKey: qk.budgetLines(activeProject.id),
             })
             await queryClient.invalidateQueries({
-                queryKey: ['dashboard', activeProject.id],
+                queryKey: qk.dashboard(activeProject.id),
             })
             toast.success('Línea de presupuesto creada', {
                 description: created.description,

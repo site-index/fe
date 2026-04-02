@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
 import { apiFetch } from '@/lib/api'
+import { qk } from '@/lib/query-keys'
 
 type AssumptionRow = {
     id: string
@@ -43,7 +44,7 @@ export default function Assumptions() {
     const [resolvingId, setResolvingId] = useState<string | null>(null)
 
     const { data, isPending, error } = useQuery({
-        queryKey: ['assumptions', activeProject.id],
+        queryKey: qk.assumptions(activeProject.id),
         queryFn: () =>
             apiFetch<AssumptionRow[]>(
                 `/v1/projects/${activeProject.id}/assumptions`,
@@ -71,10 +72,10 @@ export default function Assumptions() {
         },
         onSuccess: () => {
             void queryClient.invalidateQueries({
-                queryKey: ['assumptions', activeProject.id],
+                queryKey: qk.assumptions(activeProject.id),
             })
             void queryClient.invalidateQueries({
-                queryKey: ['dashboard', activeProject.id],
+                queryKey: qk.dashboard(activeProject.id),
             })
         },
     })

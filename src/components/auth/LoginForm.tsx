@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select'
 import { useAuth } from '@/contexts/AuthContext'
 import { ApiError, getApiErrorMessage } from '@/lib/api'
+import { qk } from '@/lib/query-keys'
 import { cn } from '@/lib/utils'
 
 type StudioChoice = { slug: string; name: string }
@@ -85,7 +86,7 @@ export default function LoginForm({ onSuccess, className }: Props) {
             await login(email.trim(), password, slug)
             setStudioChoices(null)
             setStudioSlugPick('')
-            await queryClient.invalidateQueries({ queryKey: ['projects'] })
+            await queryClient.invalidateQueries({ queryKey: qk.projects })
             onSuccess?.()
         } catch (err) {
             const caught = loginCatchState(err)

@@ -32,7 +32,9 @@ import {
     optionalNonNegStr,
     toNum,
 } from '@/lib/form-utils'
+import { qk } from '@/lib/query-keys'
 import type { BudgetLineRow } from '@/types/budget-line'
+import type { ItemYieldOption } from '@/types/item-yield'
 
 const schema = z.object({
     amountMaterialStr: nonNegStr,
@@ -164,10 +166,10 @@ async function submitBudgetLinePricing(args: {
             }
         )
         await queryClient.invalidateQueries({
-            queryKey: ['budget-lines', projectId],
+            queryKey: qk.budgetLines(projectId),
         })
         await queryClient.invalidateQueries({
-            queryKey: ['dashboard', projectId],
+            queryKey: qk.dashboard(projectId),
         })
         toast.success('Precios actualizados', {
             description: line.description,
@@ -178,13 +180,6 @@ async function submitBudgetLinePricing(args: {
             description: getApiErrorMessage(err),
         })
     }
-}
-
-type ItemYieldOption = {
-    id: string
-    name: string
-    workCategoryId: string
-    workCategoryName: string
 }
 
 function useBudgetLineYieldLink(options: {
@@ -211,7 +206,7 @@ function useBudgetLineYieldLink(options: {
     const yieldsQueryEnabled = open && projectId !== '__empty__'
 
     const { data: itemYields = [] } = useQuery({
-        queryKey: ['item-yields', projectId, 'edit-sheet'],
+        queryKey: qk.itemYields(projectId),
         queryFn: () =>
             apiFetch<ItemYieldOption[]>(
                 `/v1/projects/${projectId}/item-yields`,
@@ -235,10 +230,10 @@ function useBudgetLineYieldLink(options: {
                     }
                 )
                 await queryClient.invalidateQueries({
-                    queryKey: ['budget-lines', projectId],
+                    queryKey: qk.budgetLines(projectId),
                 })
                 await queryClient.invalidateQueries({
-                    queryKey: ['dashboard', projectId],
+                    queryKey: qk.dashboard(projectId),
                 })
                 onLineUpdated?.(updated)
                 toast.success('Rendimiento actualizado', {

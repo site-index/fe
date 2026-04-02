@@ -27,6 +27,7 @@ import { Input } from '@/components/ui/input'
 import { useAuth } from '@/contexts/AuthContext'
 import { type Project, useProject } from '@/contexts/ProjectContext'
 import { apiFetch, getApiErrorMessage } from '@/lib/api'
+import { qk } from '@/lib/query-keys'
 
 const schema = z.object({
     name: z
@@ -68,7 +69,7 @@ export default function CreateProjectDialog({
                 token: accessToken,
                 studioSlug,
             })
-            await queryClient.invalidateQueries({ queryKey: ['projects'] })
+            await queryClient.invalidateQueries({ queryKey: qk.projects })
             setActiveProject(created)
             toast.success('Proyecto creado', { description: created.name })
             form.reset()

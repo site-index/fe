@@ -36,6 +36,8 @@ import {
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
 import { apiFetch, getApiErrorMessage } from '@/lib/api'
+import { qk } from '@/lib/query-keys'
+import type { ItemYield } from '@/types/item-yield'
 import type { MeasureUnitRow } from '@/types/measure-unit'
 import {
     OTHER_WORK_CATEGORY_CODE,
@@ -60,26 +62,6 @@ const schema = z.object({
 })
 
 type FormValues = z.infer<typeof schema>
-
-export interface CreatedItemYield {
-    id: string
-    workCategoryId: string
-    workCategoryName: string
-    name: string
-    description: string
-    measureUnitMode: 'INHERIT' | 'OVERRIDE'
-    measureUnit: { id: string; code: string; name: string } | null
-    linkedItems: string[]
-    components: Array<{
-        id: string
-        material: string
-        unit: string
-        quantityPerUnit: number
-        purchaseUnit: string
-        yieldPerPurchase: number
-        wastePercent: number
-    }>
-}
 
 interface CreateItemYieldDialogProps {
     trigger?: ReactNode
@@ -158,7 +140,7 @@ function useCreateItemYieldSubmit(
                 if (values.description.trim() !== '') {
                     body.description = values.description.trim()
                 }
-                const created = await apiFetch<CreatedItemYield>(
+                const created = await apiFetch<ItemYield>(
                     `/v1/projects/${projectId}/item-yields`,
                     {
                         method: 'POST',
@@ -168,7 +150,7 @@ function useCreateItemYieldSubmit(
                     }
                 )
                 await queryClient.invalidateQueries({
-                    queryKey: ['item-yields', projectId],
+                    queryKey: qk.itemYields(projectId),
                 })
                 toast.success('Rendimiento creado', {
                     description: created.name,
@@ -362,7 +344,7 @@ export default function CreateItemYieldDialog({
         open && Boolean(accessToken && studioSlug.trim())
 
     const { data: categories = [], isPending: categoriesLoading } = useQuery({
-        queryKey: ['work-categories', accessToken, studioSlug],
+        queryKey: qk.workCategories,
         queryFn: () =>
             apiFetch<WorkCategoryRow[]>('/v1/work-categories', {
                 token: accessToken,
@@ -373,7 +355,7 @@ export default function CreateItemYieldDialog({
 
     const { data: measureUnits = [], isPending: measureUnitsLoading } =
         useQuery({
-            queryKey: ['measure-units', accessToken, studioSlug],
+            queryKey: qk.measureUnits,
             queryFn: () =>
                 apiFetch<MeasureUnitRow[]>('/v1/measure-units', {
                     token: accessToken,

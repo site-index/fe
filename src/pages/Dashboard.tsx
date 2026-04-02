@@ -8,6 +8,7 @@ import PageDataWrapper from '@/components/PageDataWrapper'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
 import { apiFetch } from '@/lib/api'
+import { qk } from '@/lib/query-keys'
 import type { DashboardData } from '@/types/dashboard'
 
 export default function Dashboard() {
@@ -17,7 +18,7 @@ export default function Dashboard() {
     const emptyProject = activeProject.id === '__empty__'
 
     const { data, isPending, error } = useQuery({
-        queryKey: ['dashboard', activeProject.id],
+        queryKey: qk.dashboard(activeProject.id),
         queryFn: () =>
             apiFetch<DashboardData>(
                 `/v1/projects/${activeProject.id}/dashboard`,

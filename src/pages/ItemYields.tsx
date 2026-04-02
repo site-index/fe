@@ -15,30 +15,8 @@ import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
 import { apiFetch } from '@/lib/api'
-
-interface ItemYieldLine {
-    id: string
-    material: string
-    unit: string
-    quantityPerUnit: number
-    purchaseUnit: string
-    yieldPerPurchase: number
-    wastePercent: number
-}
-
-interface ItemYield {
-    id: string
-    workCategoryId: string
-    workCategoryName: string
-    name: string
-    description: string
-    measureUnitMode: 'INHERIT' | 'OVERRIDE'
-    measureUnit: { id: string; code: string; name: string } | null
-    components: ItemYieldLine[]
-    linkedItems: string[]
-    /** Present when this row is a snapshot of a global catalog ítem. */
-    catalogItemId: string | null
-}
+import { qk } from '@/lib/query-keys'
+import type { ItemYield, ItemYieldLine } from '@/types/item-yield'
 
 function itemUnitLabel(y: ItemYield): string {
     return y.measureUnit?.name ?? '—'
@@ -310,7 +288,7 @@ export default function ItemYields() {
         isPending,
         error,
     } = useQuery({
-        queryKey: ['item-yields', activeProject.id],
+        queryKey: qk.itemYields(activeProject.id),
         queryFn: () =>
             apiFetch<ItemYield[]>(
                 `/v1/projects/${activeProject.id}/item-yields`,

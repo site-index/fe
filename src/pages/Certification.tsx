@@ -5,6 +5,7 @@ import PageDataWrapper from '@/components/PageDataWrapper'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
 import { apiFetch } from '@/lib/api'
+import { qk } from '@/lib/query-keys'
 
 type CertRow = {
     description: string
@@ -60,7 +61,7 @@ function useCertificationVm() {
     const queryEnabled = isQueryReady && !empty && !projectsLoading
 
     const qRows = useQuery({
-        queryKey: ['certifications', activeProject.id],
+        queryKey: qk.certifications(activeProject.id),
         queryFn: () =>
             apiFetch<CertRow[]>(
                 `/v1/projects/${activeProject.id}/certifications`,
@@ -70,7 +71,7 @@ function useCertificationVm() {
     })
 
     const qSummary = useQuery({
-        queryKey: ['certifications-summary', activeProject.id],
+        queryKey: qk.certificationsSummary(activeProject.id),
         queryFn: () =>
             apiFetch<CertSummary>(
                 `/v1/projects/${activeProject.id}/certifications/summary`,

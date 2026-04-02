@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 import PageDataWrapper from '@/components/PageDataWrapper'
 import { useAuth } from '@/contexts/AuthContext'
 import { apiFetch } from '@/lib/api'
+import { qk } from '@/lib/query-keys'
 
 export interface StudioCatalogItemDefaultRow {
     catalogItemId: string
@@ -36,7 +37,7 @@ export default function StudioCatalogItems() {
         isPending,
         error,
     } = useQuery<StudioCatalogItemDefaultRow[], Error>({
-        queryKey: ['studio-catalog-items', accessToken, studioSlug],
+        queryKey: qk.studioCatalogItems,
         queryFn: () =>
             apiFetch<StudioCatalogItemDefaultRow[]>(
                 '/v1/studio-catalog-items',

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
 import { apiFetch } from '@/lib/api'
+import { qk } from '@/lib/query-keys'
 import type { BudgetLineRow } from '@/types/budget-line'
 import type { WorkCategoryRow } from '@/types/work-category'
 
@@ -153,7 +154,7 @@ function useBudgetLinesVm() {
     const queryEnabled = isQueryReady && !empty && !projectsLoading
 
     const { data, isPending, error } = useQuery({
-        queryKey: ['budget-lines', activeProject.id],
+        queryKey: qk.budgetLines(activeProject.id),
         queryFn: () =>
             apiFetch<BudgetLineRow[]>(
                 `/v1/projects/${activeProject.id}/budget-lines`,
@@ -163,7 +164,7 @@ function useBudgetLinesVm() {
     })
 
     const { data: categories = [], isPending: categoriesPending } = useQuery({
-        queryKey: ['work-categories'],
+        queryKey: qk.workCategories,
         queryFn: () =>
             apiFetch<WorkCategoryRow[]>('/v1/work-categories', {
                 token: accessToken,

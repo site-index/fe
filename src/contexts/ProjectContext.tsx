@@ -9,6 +9,7 @@ import {
 
 import { useAuth } from '@/contexts/AuthContext'
 import { apiFetch } from '@/lib/api'
+import { qk } from '@/lib/query-keys'
 
 export interface Project {
     id: string
@@ -37,7 +38,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         isPending: projectsLoading,
         error: projectsError,
     } = useQuery({
-        queryKey: ['projects'],
+        queryKey: qk.projects,
         queryFn: () =>
             apiFetch<Array<{ id: string; name: string }>>('/v1/projects', {
                 token: accessToken,
