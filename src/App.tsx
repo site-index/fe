@@ -13,6 +13,7 @@ import { ProjectProvider } from '@/contexts/ProjectContext'
 
 const Dashboard = lazy(() => import('@/pages/Dashboard'))
 const BudgetLines = lazy(() => import('@/pages/BudgetLines'))
+const ResourceDemand = lazy(() => import('@/pages/ResourceDemand'))
 const ItemYields = lazy(() => import('@/pages/ItemYields'))
 const StudioCatalogItems = lazy(() => import('@/pages/StudioCatalogItems'))
 const Certification = lazy(() => import('@/pages/Certification'))
@@ -70,6 +71,10 @@ const App = () => (
                                         <Route
                                             path="/budget-lines"
                                             element={<BudgetLines />}
+                                        />
+                                        <Route
+                                            path="/resource-demand"
+                                            element={<ResourceDemand />}
                                         />
                                         <Route
                                             path="/item-yields"

@@ -7,6 +7,7 @@ import {
     LayoutDashboard,
     Library,
     LogOut,
+    PackageSearch,
     Settings,
     User,
 } from 'lucide-react'
@@ -24,6 +25,11 @@ import ThemeToggle from './ThemeToggle'
 const navItems = [
     { to: '/', label: 'Tablero', icon: LayoutDashboard },
     { to: '/budget-lines', label: 'Cómputo & Presupuesto', icon: Calculator },
+    {
+        to: '/resource-demand',
+        label: 'Demanda de recursos',
+        icon: PackageSearch,
+    },
     { to: '/item-yields', label: 'Rendimientos', icon: FlaskConical },
     {
         to: '/studio-catalog-items',

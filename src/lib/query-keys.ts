@@ -5,6 +5,8 @@ export const qk = {
     studioCatalogItems: ['studio-catalog-items'] as const,
     itemYields: (projectId: string) => ['item-yields', projectId] as const,
     budgetLines: (projectId: string) => ['budget-lines', projectId] as const,
+    resourceDemand: (projectId: string) =>
+        ['resource-demand', projectId] as const,
     dashboard: (projectId: string) => ['dashboard', projectId] as const,
     assumptions: (projectId: string) => ['assumptions', projectId] as const,
     projectDetail: (projectId: string) =>

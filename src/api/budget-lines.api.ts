@@ -18,9 +18,9 @@ export type CreateBudgetLineInput = {
 
 export type PatchBudgetLinePricingInput = {
     quantity: number | null
-    amountMaterial: number
-    amountLabor: number
-    amountEquipment: number
+    amountMaterial?: number
+    amountLabor?: number
+    amountEquipment?: number
 }
 
 function createBudgetLineBody(

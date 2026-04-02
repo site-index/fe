@@ -1,9 +1,19 @@
 export type ItemYieldLine = {
-    id: string
-    material: string
-    unit: string
+    resourceId: string
+    resourceName: string
+    resourceKind: 'MATERIAL' | 'LABOR' | 'EQUIPMENT'
+    baseMeasureUnit: {
+        id: string
+        code: string
+        name: string
+    }
+    purchaseMeasureUnit: {
+        id: string
+        code: string
+        name: string
+    } | null
+    purchaseMeasureUnitId?: string | null
     quantityPerUnit: number
-    purchaseUnit: string
     yieldPerPurchase: number
     wastePercent: number
 }

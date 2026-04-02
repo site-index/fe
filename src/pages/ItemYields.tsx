@@ -69,18 +69,21 @@ function ConverterWidget({ itemYield }: { itemYield: ItemYield }) {
                         )
                         return (
                             <tr
-                                key={comp.id}
+                                key={comp.resourceId}
                                 className="border-t border-border"
                             >
-                                <td className="py-1.5">{comp.material}</td>
+                                <td className="py-1.5">{comp.resourceName}</td>
                                 <td className="py-1.5 text-right font-mono">
-                                    {net.toFixed(1)} {comp.unit}
+                                    {net.toFixed(1)} {comp.baseMeasureUnit.name}
                                 </td>
                                 <td className="py-1.5 text-right font-mono">
-                                    {withWaste.toFixed(1)} {comp.unit}
+                                    {withWaste.toFixed(1)}{' '}
+                                    {comp.baseMeasureUnit.name}
                                 </td>
                                 <td className="py-1.5 text-right font-mono font-semibold">
-                                    {purchaseUnits} {comp.purchaseUnit}
+                                    {purchaseUnits}{' '}
+                                    {comp.purchaseMeasureUnit?.name ??
+                                        comp.baseMeasureUnit.name}
                                 </td>
                             </tr>
                         )
@@ -155,20 +158,21 @@ function ItemYieldDetail({ d, onBack }: { d: ItemYield; onBack: () => void }) {
                         <tbody>
                             {d.components.map((comp) => (
                                 <tr
-                                    key={comp.id}
+                                    key={comp.resourceId}
                                     className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors"
                                 >
                                     <td className="px-4 py-3 font-medium">
-                                        {comp.material}
+                                        {comp.resourceName}
                                     </td>
                                     <td className="px-4 py-3 text-right font-mono">
                                         {comp.quantityPerUnit}
                                     </td>
                                     <td className="px-4 py-3 text-right font-mono text-xs">
-                                        {comp.unit}
+                                        {comp.baseMeasureUnit.name}
                                     </td>
                                     <td className="px-4 py-3 text-right font-mono text-xs">
-                                        {comp.purchaseUnit}
+                                        {comp.purchaseMeasureUnit?.name ??
+                                            comp.baseMeasureUnit.name}
                                     </td>
                                     <td className="px-4 py-3 text-right font-mono">
                                         {comp.yieldPerPurchase}
