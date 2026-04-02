@@ -120,13 +120,16 @@ function buildBudgetLineCreateBody(
 
 interface CreateBudgetLineDialogProps {
     trigger?: ReactNode
+    defaultWorkCategoryId?: string | null
 }
 
 // eslint-disable-next-line complexity
 export default function CreateBudgetLineDialog({
     trigger,
+    defaultWorkCategoryId = null,
 }: CreateBudgetLineDialogProps) {
     const [open, setOpen] = useState(false)
+    const [creationMode, setCreationMode] = useState<'type' | 'new'>('type')
     const [libraryBinding, setLibraryBinding] = useState<LibraryBinding>(null)
     const [suggestionsOpen, setSuggestionsOpen] = useState(false)
     const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1)
@@ -136,7 +139,7 @@ export default function CreateBudgetLineDialog({
 
     const defaultForm: FormValues = {
         description: '',
-        workCategoryId: RUBRO_NONE,
+        workCategoryId: defaultWorkCategoryId ?? RUBRO_NONE,
         measureUnitId: UNIT_NONE,
         quantityStr: '',
         unitPriceStr: '',
@@ -199,12 +202,35 @@ export default function CreateBudgetLineDialog({
     )
 
     const showSuggestions =
+        creationMode === 'type' &&
         open &&
         !libraryBinding &&
         suggestionsOpen &&
         queryEnabled &&
         !suggestionsLoading &&
         hasCorpus
+
+    useEffect(() => {
+        if (!open) {
+            return
+        }
+        if (defaultWorkCategoryId) {
+            form.setValue('workCategoryId', defaultWorkCategoryId, {
+                shouldValidate: true,
+            })
+        }
+    }, [defaultWorkCategoryId, form, open])
+
+    const handleCreationModeChange = (mode: 'type' | 'new') => {
+        setCreationMode(mode)
+        if (mode === 'new') {
+            setSuggestionsOpen(false)
+            setActiveSuggestionIndex(-1)
+            if (libraryBinding != null) {
+                setLibraryBinding(null)
+            }
+        }
+    }
 
     useEffect(() => {
         if (libraryBinding == null) {
@@ -261,7 +287,9 @@ export default function CreateBudgetLineDialog({
     const clearLibraryBinding = () => {
         setLibraryBinding(null)
         form.setValue('measureUnitId', UNIT_NONE, { shouldValidate: true })
-        form.setValue('workCategoryId', RUBRO_NONE, { shouldValidate: true })
+        form.setValue('workCategoryId', defaultWorkCategoryId ?? RUBRO_NONE, {
+            shouldValidate: true,
+        })
     }
 
     const onDescriptionKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -301,11 +329,46 @@ export default function CreateBudgetLineDialog({
 
     const onSubmit = async (submitted: FormValues) => {
         try {
-            const body = buildBudgetLineCreateBody(
-                submitted,
-                libraryBinding,
-                RUBRO_NONE
-            )
+            const body =
+                creationMode === 'new'
+                    ? buildBudgetLineCreateBody(submitted, null, RUBRO_NONE)
+                    : buildBudgetLineCreateBody(
+                          submitted,
+                          libraryBinding,
+                          RUBRO_NONE
+                      )
+            if (creationMode === 'new') {
+                if (submitted.workCategoryId === RUBRO_NONE) {
+                    toast.error('Falta rubro', {
+                        description:
+                            'Para crear un ítem nuevo tenés que elegir un rubro.',
+                    })
+                    return
+                }
+                const createdType = await apiFetch<{ id: string }>(
+                    `/v1/projects/${activeProject.id}/item-yields`,
+                    {
+                        method: 'POST',
+                        body: {
+                            workCategoryId: submitted.workCategoryId,
+                            name: submitted.description,
+                            description:
+                                'Tipo creado desde Cómputo & Presupuesto',
+                            measureUnitMode:
+                                submitted.measureUnitId === UNIT_NONE
+                                    ? 'INHERIT'
+                                    : 'OVERRIDE',
+                            ...(submitted.measureUnitId === UNIT_NONE
+                                ? {}
+                                : { measureUnitId: submitted.measureUnitId }),
+                            components: { linkedItems: [], lines: [] },
+                        },
+                        token: accessToken,
+                        studioSlug,
+                    }
+                )
+                body.itemYieldId = createdType.id
+            }
             appendOptionalBudgetNumericFields(body, submitted, UNIT_NONE)
 
             const created = await apiFetch<BudgetLineRow>(
@@ -328,6 +391,7 @@ export default function CreateBudgetLineDialog({
             })
             form.reset(defaultForm)
             setLibraryBinding(null)
+            setCreationMode('type')
             setOpen(false)
         } catch (err) {
             toast.error('No se pudo crear la línea', {
@@ -337,8 +401,12 @@ export default function CreateBudgetLineDialog({
     }
 
     const resetDialog = () => {
-        form.reset(defaultForm)
+        form.reset({
+            ...defaultForm,
+            workCategoryId: defaultWorkCategoryId ?? RUBRO_NONE,
+        })
         setLibraryBinding(null)
+        setCreationMode('type')
         setSuggestionsOpen(false)
         setActiveSuggestionIndex(-1)
     }
@@ -389,7 +457,7 @@ export default function CreateBudgetLineDialog({
                     <DialogPanel className="flex max-h-[min(90vh,100dvh)] w-full max-w-md flex-col rounded-lg border bg-background shadow-lg">
                         <div className="flex shrink-0 items-center justify-between border-b px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
                             <DialogTitle className="text-lg font-semibold leading-none tracking-tight">
-                                Nueva línea de presupuesto
+                                Nuevo ítem de presupuesto
                             </DialogTitle>
                             <Button
                                 type="button"
@@ -413,6 +481,8 @@ export default function CreateBudgetLineDialog({
                                     form as UseFormReturn<BudgetLineCreateFormValues>
                                 }
                                 values={values}
+                                creationMode={creationMode}
+                                onCreationModeChange={handleCreationModeChange}
                                 libraryBinding={libraryBinding}
                                 categories={categories}
                                 categoriesLoading={categoriesLoading}

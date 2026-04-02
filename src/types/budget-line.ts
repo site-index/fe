@@ -1,6 +1,8 @@
 export type BudgetLineRow = {
     id: string
     workCategoryId: string | null
+    workCategoryNumber: number | null
+    itemNumber: number
     workCategoryName: string
     description: string
     measureUnit: { id: string; code: string; name: string } | null
@@ -16,4 +18,6 @@ export type BudgetLineRow = {
     amountMaterial: number
     amountLabor: number
     amountEquipment: number
+    itemTypeStableId: string | null
+    usesUnitPriceOverride: boolean
 }

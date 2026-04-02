@@ -47,6 +47,8 @@ export type BudgetLineCreateFormValues = {
 type Props = {
     form: UseFormReturn<BudgetLineCreateFormValues>
     values: BudgetLineCreateFormValues
+    creationMode: 'type' | 'new'
+    onCreationModeChange: (mode: 'type' | 'new') => void
     libraryBinding: LibraryBinding
     categories: WorkCategoryRow[]
     categoriesLoading: boolean
@@ -226,6 +228,8 @@ function MeasureUnitSection({
 export function CreateBudgetLineDialogFormFields({
     form,
     values,
+    creationMode,
+    onCreationModeChange,
     libraryBinding,
     categories,
     categoriesLoading,
@@ -253,9 +257,40 @@ export function CreateBudgetLineDialogFormFields({
             : undefined
 
     const descField = form.register('description')
+    const usesManualPrice =
+        values.unitPriceStr.trim() !== '' &&
+        values.amountMaterialStr.trim() === '' &&
+        values.amountLaborStr.trim() === '' &&
+        values.amountEquipmentStr.trim() === ''
 
     return (
         <div className="flex-1 space-y-4 overflow-y-auto px-4 py-3">
+            <div className="space-y-2">
+                <label className="text-sm font-medium">Origen del ítem</label>
+                <div className="grid grid-cols-2 gap-2">
+                    <Button
+                        type="button"
+                        variant={
+                            creationMode === 'type' ? 'default' : 'outline'
+                        }
+                        onClick={() => onCreationModeChange('type')}
+                    >
+                        Desde TIPO
+                    </Button>
+                    <Button
+                        type="button"
+                        variant={creationMode === 'new' ? 'default' : 'outline'}
+                        onClick={() => onCreationModeChange('new')}
+                    >
+                        Crear nuevo
+                    </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                    {creationMode === 'type'
+                        ? 'Elegí un TIPO de la biblioteca para crear una INSTANCIA en este proyecto.'
+                        : 'Creás una INSTANCIA nueva y se guarda un TIPO asociado para reutilizarlo después.'}
+                </p>
+            </div>
             <div className="space-y-2">
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                     <label
@@ -387,6 +422,12 @@ export function CreateBudgetLineDialogFormFields({
                     {form.formState.errors.unitPriceStr ? (
                         <p className="text-sm text-destructive">
                             {form.formState.errors.unitPriceStr.message}
+                        </p>
+                    ) : null}
+                    {usesManualPrice ? (
+                        <p className="text-xs text-amber-700">
+                            Cargado solo por costo unitario: esta estimación es
+                            menos confiable que una basada en recursos reales.
                         </p>
                     ) : null}
                 </div>

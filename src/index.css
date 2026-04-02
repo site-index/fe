@@ -108,3 +108,19 @@
     color: hsl(var(--negative));
     font-weight: 600;
 }
+
+@media print {
+    @page {
+        size: A4 landscape;
+        margin: 10mm;
+    }
+
+    body {
+        background: #fff !important;
+        color: #000 !important;
+    }
+
+    button {
+        box-shadow: none !important;
+    }
+}

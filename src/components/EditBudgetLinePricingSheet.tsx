@@ -320,12 +320,14 @@ function BudgetLinePricingFormFields({
     computedTotal,
     computedUnitPrice,
     showQuantityHint,
+    showsManualCostWarning,
 }: {
     form: ReturnType<typeof useForm<FormValues>>
     unitLabel: string
     computedTotal: number
     computedUnitPrice: number
     showQuantityHint: boolean
+    showsManualCostWarning: boolean
 }) {
     return (
         <>
@@ -408,12 +410,25 @@ function BudgetLinePricingFormFields({
                             línea (importes unitarios × cantidad).
                         </p>
                     ) : null}
+                    {showsManualCostWarning ? (
+                        <p className="text-xs text-amber-700 pt-1">
+                            Esta línea está resuelta por costo unitario manual.
+                            Es válida, pero menos confiable que una asignación
+                            por recursos (MAT-MO-EQ).
+                        </p>
+                    ) : null}
                 </CardContent>
             </Card>
+            <p className="text-xs text-muted-foreground">
+                La unidad principal es la visible en planilla. Configurá
+                unidades alternativas dentro del rendimiento para cálculos de
+                materiales y recursos cuando aplique.
+            </p>
         </>
     )
 }
 
+// eslint-disable-next-line complexity
 export default function EditBudgetLinePricingSheet({
     line,
     open,
@@ -475,6 +490,8 @@ export default function EditBudgetLinePricingSheet({
         quantityStr: watched.quantityStr ?? '',
     })
     const showQuantityHint = breakdownSum > 0 && qty === 0
+    const showsManualCostWarning =
+        breakdownSum <= 0 && (line?.unitPriceStored ?? null) != null
 
     const handleSubmit = (values: FormValues) => {
         if (!line) return
@@ -538,6 +555,9 @@ export default function EditBudgetLinePricingSheet({
                                         computedTotal={computedTotal}
                                         computedUnitPrice={computedUnitPrice}
                                         showQuantityHint={showQuantityHint}
+                                        showsManualCostWarning={
+                                            showsManualCostWarning
+                                        }
                                     />
                                 </div>
                                 <div className="flex shrink-0 justify-end border-t px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
