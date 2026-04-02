@@ -412,9 +412,8 @@ function BudgetLinePricingFormFields({
                     ) : null}
                     {showsManualCostWarning ? (
                         <p className="text-xs text-amber-700 pt-1">
-                            Esta línea está resuelta por costo unitario manual.
-                            Es válida, pero menos confiable que una asignación
-                            por recursos (MAT-MO-EQ).
+                            Se registró un assumption automático para revisar
+                            esta línea por costo unitario manual.
                         </p>
                     ) : null}
                 </CardContent>
