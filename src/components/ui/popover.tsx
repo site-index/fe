@@ -6,8 +6,6 @@ import {
     forwardRef,
     type HTMLAttributes,
     isValidElement,
-    type MouseEvent as ReactMouseEvent,
-    type MouseEventHandler,
     type MutableRefObject,
     type ReactNode,
     type RefObject,
@@ -55,44 +53,6 @@ function Popover({
         </PopoverContext.Provider>
     )
 }
-
-/* ------------------------------------------------------------------ */
-/*  Trigger (click-toggle — not used by current consumers but kept)   */
-/* ------------------------------------------------------------------ */
-
-const PopoverTrigger = forwardRef<
-    HTMLButtonElement,
-    HTMLAttributes<HTMLButtonElement> & { asChild?: boolean }
->(({ asChild, children, onClick, ...props }, _ref) => {
-    const { open, onOpenChange, anchorRef } = useContext(PopoverContext)
-
-    const handleClick = (e: ReactMouseEvent<HTMLButtonElement>) => {
-        onOpenChange?.(!open)
-        ;(onClick as MouseEventHandler<HTMLButtonElement>)?.(e)
-    }
-
-    if (asChild && isValidElement(children)) {
-        // Slotted child needs anchor ref merged; cloneElement ref is intentional.
-        // eslint-disable-next-line react-hooks/refs -- asChild merges ref onto child
-        return cloneElement(children, {
-            ref: anchorRef,
-            onClick: handleClick,
-            ...props,
-        } as Record<string, unknown>)
-    }
-
-    return (
-        <button
-            type="button"
-            ref={anchorRef as RefObject<HTMLButtonElement>}
-            onClick={handleClick}
-            {...props}
-        >
-            {children}
-        </button>
-    )
-})
-PopoverTrigger.displayName = 'PopoverTrigger'
 
 /* ------------------------------------------------------------------ */
 /*  Anchor (positions content relative to this element)               */
@@ -169,6 +129,19 @@ const PopoverContent = forwardRef<HTMLDivElement, PopoverContentProps>(
             return () => document.removeEventListener('mousedown', handler)
         }, [open, onOpenChange, anchorRef])
 
+        // Close on Escape key
+        useEffect(() => {
+            if (!open) return
+            const handler = (e: KeyboardEvent) => {
+                if (e.key === 'Escape') {
+                    e.stopPropagation()
+                    onOpenChange?.(false)
+                }
+            }
+            document.addEventListener('keydown', handler)
+            return () => document.removeEventListener('keydown', handler)
+        }, [open, onOpenChange])
+
         // Position relative to anchor
         useEffect(() => {
             if (!open || !anchorRef.current) return
@@ -226,4 +199,4 @@ const PopoverContent = forwardRef<HTMLDivElement, PopoverContentProps>(
 )
 PopoverContent.displayName = 'PopoverContent'
 
-export { Popover, PopoverAnchor, PopoverContent, PopoverTrigger }
+export { Popover, PopoverAnchor, PopoverContent }

@@ -215,42 +215,12 @@ const SelectItem = forwardRef<
 })
 SelectItem.displayName = 'SelectItem'
 
-/* ------------------------------------------------------------------ */
-/*  SelectSeparator                                                   */
-/* ------------------------------------------------------------------ */
-
-const SelectSeparator = forwardRef<
-    HTMLDivElement,
-    HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-    <div
-        ref={ref}
-        className={cn('-mx-1 my-1 h-px bg-muted', className)}
-        {...props}
-    />
-))
-SelectSeparator.displayName = 'SelectSeparator'
-
-/* ------------------------------------------------------------------ */
-/*  Scroll buttons (no-op stubs for API compat)                       */
-/* ------------------------------------------------------------------ */
-
-function SelectScrollUpButton(_props: Record<string, unknown>) {
-    return null
-}
-function SelectScrollDownButton(_props: Record<string, unknown>) {
-    return null
-}
-
 export {
     Select,
     SelectContent,
     SelectGroup,
     SelectItem,
     SelectLabel,
-    SelectScrollDownButton,
-    SelectScrollUpButton,
-    SelectSeparator,
     SelectTrigger,
     SelectValue,
 }
