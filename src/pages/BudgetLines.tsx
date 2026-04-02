@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { ChevronRight, Plus } from 'lucide-react'
+import { ChevronRight, ChevronsDown, ChevronsUp, Plus } from 'lucide-react'
 import { useState } from 'react'
 
 import { getProjectBudgetLines } from '@/api/budget-lines.api'
@@ -298,6 +298,10 @@ function BudgetLinesBody({
         Record<string, boolean>
     >({})
     const sections = buildSections(rows, categories)
+    const sectionKeys = sections.map((section) => section.key)
+    const allSectionsCollapsed =
+        sectionKeys.length > 0 &&
+        sectionKeys.every((key) => collapsedSections[key] ?? false)
 
     return (
         <PageDataWrapper
@@ -323,6 +327,40 @@ function BudgetLinesBody({
                         Cómputo & Presupuesto
                     </h1>
                     <div className="flex items-center gap-2 print:hidden">
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-8 w-8 px-0"
+                            aria-label={
+                                allSectionsCollapsed
+                                    ? 'Expandir rubros'
+                                    : 'Contraer rubros'
+                            }
+                            title={
+                                allSectionsCollapsed
+                                    ? 'Expandir rubros'
+                                    : 'Contraer rubros'
+                            }
+                            onClick={() => {
+                                if (sectionKeys.length === 0) return
+                                if (allSectionsCollapsed) {
+                                    setCollapsedSections({})
+                                    return
+                                }
+                                setCollapsedSections(
+                                    Object.fromEntries(
+                                        sectionKeys.map((key) => [key, true])
+                                    )
+                                )
+                            }}
+                        >
+                            {allSectionsCollapsed ? (
+                                <ChevronsDown className="h-4 w-4" />
+                            ) : (
+                                <ChevronsUp className="h-4 w-4" />
+                            )}
+                        </Button>
                         <Button
                             type="button"
                             size="sm"
