@@ -402,8 +402,8 @@ export default function CreateBudgetLineDialog({
                 className="relative z-50"
             >
                 <div className="fixed inset-0 bg-black/80" aria-hidden="true" />
-                <div className="fixed inset-0 flex items-center justify-center p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4 sm:pb-[max(1rem,env(safe-area-inset-bottom))]">
-                    <DialogPanel className="flex max-h-[min(90vh,100dvh)] w-full max-w-md flex-col rounded-lg border bg-background shadow-lg">
+                <div className="fixed inset-0 flex items-start justify-center p-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:items-center sm:p-4 sm:pt-4 sm:pb-[max(1rem,env(safe-area-inset-bottom))]">
+                    <DialogPanel className="flex max-h-[min(90vh,100dvh)] w-full max-w-none flex-col rounded-lg border bg-background shadow-lg sm:max-w-md">
                         <div className="flex shrink-0 items-center justify-between border-b px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
                             <DialogTitle className="text-lg font-semibold leading-none tracking-tight">
                                 Nuevo ítem de presupuesto

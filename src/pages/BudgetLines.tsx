@@ -93,7 +93,7 @@ function BudgetLineRow({
         <button
             type="button"
             onClick={() => onOpen(line)}
-            className="grid w-full grid-cols-[90px_minmax(260px,1.6fr)_90px_110px_repeat(3,110px)_130px_130px_36px] items-center gap-2 border-b border-border/50 px-3 py-2 text-left text-sm transition-colors hover:bg-muted/40 print:grid-cols-[70px_minmax(220px,1.6fr)_60px_80px_repeat(3,80px)_90px_90px_24px] print:gap-1 print:px-2 print:py-1.5"
+            className="hidden w-full grid-cols-[90px_minmax(260px,1.6fr)_90px_110px_repeat(3,110px)_130px_130px_36px] items-center gap-2 border-b border-border/50 px-3 py-2 text-left text-sm transition-colors hover:bg-muted/40 md:grid print:grid-cols-[70px_minmax(220px,1.6fr)_60px_80px_repeat(3,80px)_90px_90px_24px] print:gap-1 print:px-2 print:py-1.5"
         >
             <span className="font-mono text-xs text-muted-foreground">
                 {code}
@@ -141,6 +141,115 @@ function BudgetLineRow({
             </span>
             <ChevronRight className="h-4 w-4 text-muted-foreground print:hidden" />
         </button>
+    )
+}
+
+function BudgetLineMobileRow({
+    line,
+    rubroNumber,
+    showBreakdown,
+    onOpen,
+}: {
+    line: BudgetLineRow
+    rubroNumber: number | null
+    showBreakdown: boolean
+    onOpen: (l: BudgetLineRow) => void
+}) {
+    const code =
+        rubroNumber != null
+            ? `${rubroNumber}.${line.itemNumber}`
+            : `—.${line.itemNumber}`
+
+    return (
+        <div className="border-b border-border/50 px-3 py-2 md:hidden">
+            <button
+                type="button"
+                onClick={() => onOpen(line)}
+                className="w-full space-y-2 rounded-md p-1 text-left transition-colors hover:bg-muted/40"
+            >
+                <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 space-y-1">
+                        <p className="font-mono text-[11px] text-muted-foreground">
+                            {code}
+                        </p>
+                        <p
+                            className={`line-clamp-2 text-sm ${line.flaky ? 'data-flaky' : ''}`}
+                        >
+                            {line.description}
+                            {line.usesUnitPriceOverride ? (
+                                <span className="ml-2 rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-amber-700">
+                                    Costo manual
+                                </span>
+                            ) : null}
+                        </p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                    <div className="space-y-0.5">
+                        <p className="text-muted-foreground">Cantidad</p>
+                        <p className="font-mono">
+                            {line.quantity.toLocaleString('es-AR')}
+                        </p>
+                    </div>
+                    <div className="space-y-0.5 text-right">
+                        <p className="text-muted-foreground">P. Unit.</p>
+                        <p
+                            className={`font-mono ${line.flaky ? 'data-flaky' : ''}`}
+                        >
+                            ${line.unitPrice.toLocaleString('es-AR')}
+                        </p>
+                    </div>
+                    <div className="space-y-0.5">
+                        <p className="text-muted-foreground">Unidad</p>
+                        <p className="font-mono">
+                            {line.measureUnit?.name ?? '—'}
+                        </p>
+                    </div>
+                    <div className="space-y-0.5 text-right">
+                        <p className="text-muted-foreground">Total</p>
+                        <p className="font-mono font-semibold">
+                            ${line.total.toLocaleString('es-AR')}
+                        </p>
+                    </div>
+                </div>
+            </button>
+
+            <details className="mt-1 rounded-md border border-border/60 bg-muted/20 px-2 py-1">
+                <summary className="cursor-pointer text-xs text-muted-foreground">
+                    Ver detalle de costos
+                </summary>
+                <div className="grid grid-cols-3 gap-2 pt-2 text-xs">
+                    <div className="space-y-0.5">
+                        <p className="text-muted-foreground">MAT</p>
+                        <p className="font-mono">
+                            {showBreakdown
+                                ? `$${line.amountMaterial.toLocaleString('es-AR')}`
+                                : '—'}
+                        </p>
+                    </div>
+                    <div className="space-y-0.5">
+                        <p className="text-muted-foreground">MO</p>
+                        <p className="font-mono">
+                            {showBreakdown
+                                ? `$${line.amountLabor.toLocaleString('es-AR')}`
+                                : '—'}
+                        </p>
+                    </div>
+                    <div className="space-y-0.5">
+                        <p className="text-muted-foreground">EQ</p>
+                        <p className="font-mono">
+                            {showBreakdown
+                                ? `$${line.amountEquipment.toLocaleString(
+                                      'es-AR'
+                                  )}`
+                                : '—'}
+                        </p>
+                    </div>
+                </div>
+            </details>
+        </div>
     )
 }
 
@@ -252,7 +361,7 @@ function BudgetLinesBody({
                 </div>
 
                 <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden">
-                    <div className="grid grid-cols-[90px_minmax(260px,1.6fr)_90px_110px_repeat(3,110px)_130px_130px_36px] items-center gap-2 border-b border-border bg-muted/40 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground print:grid-cols-[70px_minmax(220px,1.6fr)_60px_80px_repeat(3,80px)_90px_90px_24px] print:gap-1 print:px-2 print:py-1">
+                    <div className="hidden grid-cols-[90px_minmax(260px,1.6fr)_90px_110px_repeat(3,110px)_130px_130px_36px] items-center gap-2 border-b border-border bg-muted/40 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:grid print:grid-cols-[70px_minmax(220px,1.6fr)_60px_80px_repeat(3,80px)_90px_90px_24px] print:gap-1 print:px-2 print:py-1">
                         <span>N°</span>
                         <span>Ítem</span>
                         <span>Unidad</span>
@@ -272,7 +381,7 @@ function BudgetLinesBody({
                     ) : (
                         sections.map((section) => (
                             <div key={section.key}>
-                                <div className="flex items-center justify-between border-b border-border/50 bg-muted/50 px-3 py-1.5 print:px-2 print:py-1">
+                                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 bg-muted/50 px-3 py-1.5 print:px-2 print:py-1">
                                     <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                                         {section.rubroNumber != null
                                             ? `Rubro ${section.rubroNumber}`
@@ -287,10 +396,11 @@ function BudgetLinesBody({
                                             <Button
                                                 size="sm"
                                                 variant="outline"
-                                                className="h-7 gap-1.5 px-2 text-xs print:hidden"
+                                                className="h-8 w-8 px-0 text-sm print:hidden"
+                                                aria-label="Nuevo ítem"
+                                                title="Nuevo ítem"
                                             >
-                                                <Plus className="h-3.5 w-3.5" />
-                                                Nuevo ítem
+                                                <Plus className="h-4 w-4" />
                                             </Button>
                                         }
                                     />
@@ -301,13 +411,24 @@ function BudgetLinesBody({
                                     </p>
                                 ) : (
                                     section.lines.map((line) => (
-                                        <BudgetLineRow
-                                            key={line.id}
-                                            line={line}
-                                            rubroNumber={section.rubroNumber}
-                                            showBreakdown={showBreakdown}
-                                            onOpen={setPricingLine}
-                                        />
+                                        <div key={line.id}>
+                                            <BudgetLineRow
+                                                line={line}
+                                                rubroNumber={
+                                                    section.rubroNumber
+                                                }
+                                                showBreakdown={showBreakdown}
+                                                onOpen={setPricingLine}
+                                            />
+                                            <BudgetLineMobileRow
+                                                line={line}
+                                                rubroNumber={
+                                                    section.rubroNumber
+                                                }
+                                                showBreakdown={showBreakdown}
+                                                onOpen={setPricingLine}
+                                            />
+                                        </div>
                                     ))
                                 )}
                             </div>
