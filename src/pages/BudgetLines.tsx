@@ -76,12 +76,10 @@ function buildSections(
 function BudgetLineRow({
     line,
     rubroNumber,
-    showBreakdown,
     onOpen,
 }: {
     line: BudgetLineRow
     rubroNumber: number | null
-    showBreakdown: boolean
     onOpen: (l: BudgetLineRow) => void
 }) {
     const code =
@@ -112,25 +110,15 @@ function BudgetLineRow({
             <span className="font-mono text-xs text-right">
                 {line.quantity.toLocaleString('es-AR')}
             </span>
-            {showBreakdown ? (
-                <>
-                    <span className="font-mono text-xs text-right">
-                        ${line.amountMaterial.toLocaleString('es-AR')}
-                    </span>
-                    <span className="font-mono text-xs text-right">
-                        ${line.amountLabor.toLocaleString('es-AR')}
-                    </span>
-                    <span className="font-mono text-xs text-right">
-                        ${line.amountEquipment.toLocaleString('es-AR')}
-                    </span>
-                </>
-            ) : (
-                <>
-                    <span className="font-mono text-xs text-right">—</span>
-                    <span className="font-mono text-xs text-right">—</span>
-                    <span className="font-mono text-xs text-right">—</span>
-                </>
-            )}
+            <span className="font-mono text-xs text-right">
+                ${line.amountMaterial.toLocaleString('es-AR')}
+            </span>
+            <span className="font-mono text-xs text-right">
+                ${line.amountLabor.toLocaleString('es-AR')}
+            </span>
+            <span className="font-mono text-xs text-right">
+                ${line.amountEquipment.toLocaleString('es-AR')}
+            </span>
             <span
                 className={`font-mono text-xs text-right ${line.flaky ? 'data-flaky' : ''}`}
             >
@@ -306,7 +294,6 @@ function BudgetLinesBody({
     categories,
 }: ReturnType<typeof useBudgetLinesVm>) {
     const [pricingLine, setPricingLine] = useState<BudgetLineRow | null>(null)
-    const [showBreakdown, setShowBreakdown] = useState(false)
     const [collapsedSections, setCollapsedSections] = useState<
         Record<string, boolean>
     >({})
@@ -336,22 +323,6 @@ function BudgetLinesBody({
                         Cómputo & Presupuesto
                     </h1>
                     <div className="flex items-center gap-2 print:hidden">
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant={showBreakdown ? 'outline' : 'default'}
-                            onClick={() => setShowBreakdown(false)}
-                        >
-                            Ver total
-                        </Button>
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant={showBreakdown ? 'default' : 'outline'}
-                            onClick={() => setShowBreakdown(true)}
-                        >
-                            Ver MAT-MO-EQ
-                        </Button>
                         <Button
                             type="button"
                             size="sm"
@@ -467,9 +438,6 @@ function BudgetLinesBody({
                                                     rubroNumber={
                                                         section.rubroNumber
                                                     }
-                                                    showBreakdown={
-                                                        showBreakdown
-                                                    }
                                                     onOpen={setPricingLine}
                                                 />
                                                 {isCollapsed ? null : (
@@ -478,9 +446,7 @@ function BudgetLinesBody({
                                                         rubroNumber={
                                                             section.rubroNumber
                                                         }
-                                                        showBreakdown={
-                                                            showBreakdown
-                                                        }
+                                                        showBreakdown
                                                         onOpen={setPricingLine}
                                                     />
                                                 )}
