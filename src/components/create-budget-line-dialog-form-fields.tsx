@@ -1,4 +1,4 @@
-import type { KeyboardEvent } from 'react'
+import type { KeyboardEvent, ReactNode } from 'react'
 import type { UseFormReturn } from 'react-hook-form'
 
 import { CreateBudgetLineSuggestionPanel } from '@/components/create-budget-line-suggestion-panel'
@@ -15,7 +15,7 @@ import { budgetLineSuggestionRowKey } from '@/components/use-budget-line-descrip
 import type { MeasureUnitRow } from '@/types/measure-unit'
 import type { WorkCategoryRow } from '@/types/work-category'
 
-type LibraryBinding =
+export type BudgetLineLibraryBinding =
     | null
     | {
           kind: 'yield'
@@ -47,7 +47,7 @@ export type BudgetLineCreateFormValues = {
 type Props = {
     form: UseFormReturn<BudgetLineCreateFormValues>
     values: BudgetLineCreateFormValues
-    libraryBinding: LibraryBinding
+    libraryBinding: BudgetLineLibraryBinding
     categories: WorkCategoryRow[]
     categoriesLoading: boolean
     measureUnits: MeasureUnitRow[]
@@ -67,6 +67,8 @@ type Props = {
     onClearLibraryBinding: () => void
     handleSuggestionPick: (row: SuggestionRow) => void
     isBreakdownActive: boolean
+    showCatalogSuggestionHint?: boolean
+    topSection?: ReactNode
 }
 
 function RubroSection({
@@ -78,7 +80,7 @@ function RubroSection({
     onChange,
     error,
 }: {
-    libraryBinding: LibraryBinding
+    libraryBinding: BudgetLineLibraryBinding
     categories: WorkCategoryRow[]
     categoriesLoading: boolean
     rubroNone: string
@@ -143,7 +145,7 @@ function MeasureUnitSection({
     onChange,
     error,
 }: {
-    libraryBinding: LibraryBinding
+    libraryBinding: BudgetLineLibraryBinding
     measureUnits: MeasureUnitRow[]
     measureUnitsLoading: boolean
     unitNone: string
@@ -247,6 +249,8 @@ export function CreateBudgetLineDialogFormFields({
     onClearLibraryBinding,
     handleSuggestionPick,
     isBreakdownActive,
+    showCatalogSuggestionHint = true,
+    topSection,
 }: Props) {
     const activeRow = filteredSuggestionRows[activeSuggestionIndex]
     const activeDescendant =
@@ -327,11 +331,14 @@ export function CreateBudgetLineDialogFormFields({
                         Cargando sugerencias…
                     </p>
                 ) : null}
-                <p className="text-xs text-muted-foreground">
-                    Si no existe un catalog item con ese nombre, se propone uno
-                    nuevo en estado pendiente de aprobación.
-                </p>
+                {showCatalogSuggestionHint ? (
+                    <p className="text-xs text-muted-foreground">
+                        Si no existe un catalog item con ese nombre, se propone
+                        uno nuevo en estado pendiente de aprobación.
+                    </p>
+                ) : null}
             </div>
+            {topSection}
 
             <RubroSection
                 libraryBinding={libraryBinding}

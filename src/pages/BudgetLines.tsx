@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { getProjectBudgetLines } from '@/api/budget-lines.api'
 import { getWorkCategories } from '@/api/catalog.api'
 import CreateBudgetLineDialog from '@/components/CreateBudgetLineDialog'
-import EditBudgetLinePricingSheet from '@/components/EditBudgetLinePricingSheet'
+import EditBudgetLineDialog from '@/components/EditBudgetLineDialog'
 import PageDataWrapper from '@/components/PageDataWrapper'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
@@ -321,7 +321,7 @@ function BudgetLinesBody({
             isPending={isPending}
             error={error}
         >
-            <EditBudgetLinePricingSheet
+            <EditBudgetLineDialog
                 line={pricingLine}
                 open={pricingLine != null}
                 onOpenChange={(o) => {

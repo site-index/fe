@@ -23,6 +23,18 @@ export type PatchBudgetLinePricingInput = {
     amountEquipment?: number
 }
 
+export type PatchBudgetLineInput = {
+    description?: string
+    itemYieldId?: string | null
+    workCategoryId?: string | null
+    measureUnitId?: string | null
+    quantity?: number | null
+    unitPrice?: number | null
+    amountMaterial?: number
+    amountLabor?: number
+    amountEquipment?: number
+}
+
 function createBudgetLineBody(
     input: CreateBudgetLineInput
 ): Record<string, unknown> {
@@ -94,6 +106,23 @@ export function patchProjectBudgetLineItemYield(
         {
             method: 'PATCH',
             body: { itemYieldId },
+            token: ctx.token,
+            studioSlug: ctx.studioSlug,
+        }
+    )
+}
+
+export function patchProjectBudgetLine(
+    projectId: string,
+    budgetLineId: string,
+    input: PatchBudgetLineInput,
+    ctx: ApiContext
+): Promise<BudgetLineRow> {
+    return apiFetch<BudgetLineRow>(
+        `/v1/projects/${projectId}/budget-lines/${budgetLineId}`,
+        {
+            method: 'PATCH',
+            body: input,
             token: ctx.token,
             studioSlug: ctx.studioSlug,
         }
