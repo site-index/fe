@@ -19,6 +19,7 @@ import { z } from 'zod'
 import {
     type CreateBudgetLineInput,
     createProjectBudgetLine,
+    getProjectBudgetLines,
 } from '@/api/budget-lines.api'
 import { getMeasureUnits, getWorkCategories } from '@/api/catalog.api'
 import BudgetLineDialogShell from '@/components/BudgetLineDialogShell'
@@ -187,6 +188,16 @@ export default function CreateBudgetLineDialog({
             enabled: open && isQueryReady,
         })
 
+    const { data: existingBudgetLines = [] } = useQuery({
+        queryKey: qk.budgetLines(activeProject.id),
+        queryFn: () =>
+            getProjectBudgetLines(activeProject.id, {
+                token: accessToken,
+                studioSlug,
+            }),
+        enabled: open && isQueryReady,
+    })
+
     const {
         fuse,
         suggestionRows,
@@ -200,18 +211,45 @@ export default function CreateBudgetLineDialog({
         studioSlug
     )
 
-    const filteredSuggestionRows = useMemo(
+    const usedCatalogItemIds = useMemo(
         () =>
-            filterBudgetLineSuggestionRows(
-                fuse,
-                suggestionRows,
-                values.description,
-                values.workCategoryId === RUBRO_NONE
-                    ? null
-                    : values.workCategoryId
+            new Set(
+                existingBudgetLines
+                    .map((line) => line.catalogItemId)
+                    .filter((id): id is string => id != null)
             ),
-        [fuse, suggestionRows, values.description, values.workCategoryId]
+        [existingBudgetLines]
     )
+    const usedItemYieldIds = useMemo(
+        () =>
+            new Set(
+                existingBudgetLines
+                    .map((line) => line.itemYieldId)
+                    .filter((id): id is string => id != null)
+            ),
+        [existingBudgetLines]
+    )
+
+    const filteredSuggestionRows = useMemo(() => {
+        const rows = filterBudgetLineSuggestionRows(
+            fuse,
+            suggestionRows,
+            values.description,
+            values.workCategoryId === RUBRO_NONE ? null : values.workCategoryId
+        )
+        return rows.filter((row) =>
+            row.kind === 'catalog'
+                ? !usedCatalogItemIds.has(row.catalogItemId)
+                : !usedItemYieldIds.has(row.yieldId)
+        )
+    }, [
+        fuse,
+        suggestionRows,
+        values.description,
+        values.workCategoryId,
+        usedCatalogItemIds,
+        usedItemYieldIds,
+    ])
 
     const showSuggestions =
         open &&
