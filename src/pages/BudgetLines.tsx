@@ -174,33 +174,25 @@ function BudgetLineMobileRow({
                     <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                 </div>
 
-                <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
-                    <div className="space-y-0.5">
-                        <p className="text-muted-foreground">Cantidad</p>
-                        <p className="font-mono">
-                            {line.quantity.toLocaleString('es-AR')}
-                        </p>
-                    </div>
-                    <div className="space-y-0.5 text-right">
-                        <p className="text-muted-foreground">P. Unit.</p>
-                        <p
-                            className={`font-mono ${line.flaky ? 'data-flaky' : ''}`}
-                        >
-                            ${line.unitPrice.toLocaleString('es-AR')}
-                        </p>
-                    </div>
-                    <div className="space-y-0.5">
-                        <p className="text-muted-foreground">Unidad</p>
-                        <p className="font-mono">
-                            {line.measureUnit?.name ?? '—'}
-                        </p>
-                    </div>
-                    <div className="space-y-0.5 text-right">
-                        <p className="text-muted-foreground">Total</p>
-                        <p className="font-mono font-semibold">
-                            ${line.total.toLocaleString('es-AR')}
-                        </p>
-                    </div>
+                <div className="grid grid-cols-4 gap-x-2 gap-y-1 text-xs">
+                    <p className="text-muted-foreground">Cant</p>
+                    <p className="text-muted-foreground text-center">U</p>
+                    <p className="text-muted-foreground text-right">PU</p>
+                    <p className="text-muted-foreground text-right">Tot</p>
+                    <p className="font-mono">
+                        {line.quantity.toLocaleString('es-AR')}
+                    </p>
+                    <p className="font-mono text-center">
+                        {line.measureUnit?.name ?? '—'}
+                    </p>
+                    <p
+                        className={`font-mono text-right ${line.flaky ? 'data-flaky' : ''}`}
+                    >
+                        ${line.unitPrice.toLocaleString('es-AR')}
+                    </p>
+                    <p className="font-mono font-semibold text-right">
+                        ${line.total.toLocaleString('es-AR')}
+                    </p>
                 </div>
             </button>
 
