@@ -5,6 +5,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom'
 
 import AppLayout from '@/components/AppLayout'
 import ErrorBoundary from '@/components/ErrorBoundary'
+import OfflineStatusIndicator from '@/components/OfflineStatusIndicator'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { PwaUpdateBanner } from '@/components/PwaUpdateBanner'
 import { Toaster as Sonner } from '@/components/ui/sonner'
@@ -51,6 +52,7 @@ const App = () => (
             <QueryClientProvider client={queryClient}>
                 <AuthProvider>
                     <Sonner />
+                    <OfflineStatusIndicator />
                     <PwaUpdateBanner />
                     <BrowserRouter>
                         <Suspense fallback={<PageLoader />}>
