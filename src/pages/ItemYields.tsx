@@ -20,28 +20,8 @@ import { useProject } from '@/contexts/ProjectContext'
 import { qk } from '@/lib/query-keys'
 import type { ItemYield, ItemYieldLine } from '@/types/item-yield'
 
-function itemUnitLabel(y: ItemYield): string {
-    return y.measureUnit?.name ?? '—'
-}
-
-function isLineMapped(comp: ItemYieldLine): boolean {
-    return (comp.purchaseMappingStatus ?? 'MAPPED') !== 'UNMAPPED'
-}
-
-function calcPurchase(
-    comp: ItemYieldLine,
-    outputQty: number,
-    basisOutputQty: number
-) {
-    if (!isLineMapped(comp)) {
-        return { net: 0, withWaste: 0, purchaseUnits: 0 }
-    }
-    const safeBasis = basisOutputQty > 0 ? basisOutputQty : 1
-    const net = (comp.baseQuantity / safeBasis) * outputQty
-    const withWaste = net * (1 + comp.wastePercent / 100)
-    const divisor = comp.yieldPerPurchase > 0 ? comp.yieldPerPurchase : 1
-    const purchaseUnits = Math.ceil(withWaste / divisor)
-    return { net, withWaste, purchaseUnits }
+function calcConsumption(comp: ItemYieldLine, outputQty: number) {
+    return Math.max(0, comp.quantity) * Math.max(0, outputQty)
 }
 
 function ConverterWidget({ itemYield }: { itemYield: ItemYield }) {
@@ -63,7 +43,7 @@ function ConverterWidget({ itemYield }: { itemYield: ItemYield }) {
                     step={1}
                 />
                 <span className="text-sm font-mono text-muted-foreground">
-                    {itemUnitLabel(itemYield)}
+                    unidad de ítem
                 </span>
             </div>
 
@@ -71,18 +51,13 @@ function ConverterWidget({ itemYield }: { itemYield: ItemYield }) {
                 <thead>
                     <tr className="text-xs text-muted-foreground">
                         <th className="text-left py-1">Material</th>
-                        <th className="text-right py-1">Neto</th>
-                        <th className="text-right py-1">+Desperdicio</th>
-                        <th className="text-right py-1">Compra</th>
+                        <th className="text-right py-1">Cantidad</th>
+                        <th className="text-right py-1">Unidad comercial</th>
                     </tr>
                 </thead>
                 <tbody>
                     {itemYield.components.map((comp) => {
-                        const { net, withWaste, purchaseUnits } = calcPurchase(
-                            comp,
-                            quantity,
-                            itemYield.basisOutputQty ?? 1
-                        )
+                        const consumption = calcConsumption(comp, quantity)
                         return (
                             <tr
                                 key={comp.resourceId}
@@ -90,16 +65,12 @@ function ConverterWidget({ itemYield }: { itemYield: ItemYield }) {
                             >
                                 <td className="py-1.5">{comp.resourceName}</td>
                                 <td className="py-1.5 text-right font-mono">
-                                    {net.toFixed(1)} {comp.baseMeasureUnit.name}
-                                </td>
-                                <td className="py-1.5 text-right font-mono">
-                                    {withWaste.toFixed(1)}{' '}
                                     {comp.baseMeasureUnit.name}
+                                    {' · '}
+                                    {consumption.toFixed(2)}
                                 </td>
                                 <td className="py-1.5 text-right font-mono font-semibold">
-                                    {purchaseUnits}{' '}
-                                    {comp.purchaseMeasureUnit?.name ??
-                                        comp.baseMeasureUnit.name}
+                                    {comp.commercialMeasureUnit.name}
                                 </td>
                             </tr>
                         )
@@ -141,19 +112,7 @@ function ItemYieldDetail({
                     {d.workCategoryName}
                 </p>
                 <h1 className="text-2xl font-black tracking-tight">{d.name}</h1>
-                <p className="text-sm text-muted-foreground">{d.description}</p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <span className="inline-block rounded bg-muted px-2 py-0.5 text-xs font-mono">
-                        Unidad de ítem: {itemUnitLabel(d)}
-                    </span>
-                    <span className="inline-block rounded bg-muted px-2 py-0.5 text-xs font-mono">
-                        Base: {d.basisOutputQty ?? 1}
-                    </span>
-                    {d.components.some((comp) => !isLineMapped(comp)) ? (
-                        <span className="inline-block rounded border border-amber-400/40 bg-amber-500/10 px-2 py-0.5 text-xs text-amber-700">
-                            Hay compras sin mapear
-                        </span>
-                    ) : null}
                     {d.catalogItemId ? (
                         <span className="inline-block rounded border border-border bg-card px-2 py-0.5 text-xs text-muted-foreground">
                             Catálogo
@@ -193,25 +152,13 @@ function ItemYieldDetail({
                                     Material
                                 </th>
                                 <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                    Cant. base
+                                    Cantidad
                                 </th>
                                 <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
                                     Unidad
                                 </th>
                                 <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                    Unidad de compra
-                                </th>
-                                <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                    Etiqueta compra
-                                </th>
-                                <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                    Rend. por compra
-                                </th>
-                                <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                    % desperdicio
-                                </th>
-                                <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                    Estado
+                                    Unidad comercial
                                 </th>
                             </tr>
                         </thead>
@@ -225,34 +172,13 @@ function ItemYieldDetail({
                                         {comp.resourceName}
                                     </td>
                                     <td className="px-4 py-3 text-right font-mono">
-                                        {comp.baseQuantity}
+                                        {comp.quantity}
                                     </td>
                                     <td className="px-4 py-3 text-right font-mono text-xs">
                                         {comp.baseMeasureUnit.name}
                                     </td>
                                     <td className="px-4 py-3 text-right font-mono text-xs">
-                                        {comp.purchaseMeasureUnit?.name ??
-                                            comp.baseMeasureUnit.name}
-                                    </td>
-                                    <td className="px-4 py-3 text-right font-mono text-xs">
-                                        {comp.purchaseLabel?.trim() || '—'}
-                                    </td>
-                                    <td className="px-4 py-3 text-right font-mono">
-                                        {comp.yieldPerPurchase}
-                                    </td>
-                                    <td className="px-4 py-3 text-right font-mono">
-                                        {comp.wastePercent}%
-                                    </td>
-                                    <td className="px-4 py-3 text-right">
-                                        {isLineMapped(comp) ? (
-                                            <span className="inline-block rounded border border-emerald-400/40 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-emerald-700">
-                                                Mapeado
-                                            </span>
-                                        ) : (
-                                            <span className="inline-block rounded border border-amber-400/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-amber-700">
-                                                Sin mapear
-                                            </span>
-                                        )}
+                                        {comp.commercialMeasureUnit.name}
                                     </td>
                                 </tr>
                             ))}
@@ -328,7 +254,7 @@ function ItemYieldsGrid({
                                     </span>
                                 ) : null}
                                 <span className="rounded bg-muted px-2 py-0.5 text-xs font-mono">
-                                    {itemUnitLabel(d)}
+                                    {d.workCategoryName}
                                 </span>
                             </div>
                         </div>
@@ -336,9 +262,6 @@ function ItemYieldsGrid({
                             {d.workCategoryName}
                         </p>
                         <h3 className="font-bold mb-1">{d.name}</h3>
-                        <p className="text-xs text-muted-foreground line-clamp-2">
-                            {d.description}
-                        </p>
                         <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
                             <span>
                                 {d.components.length}{' '}

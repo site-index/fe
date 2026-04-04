@@ -16,13 +16,18 @@ import { useForm, type UseFormReturn } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
-import { getMeasureUnits, getWorkCategories } from '@/api/catalog.api'
+import { getStudioCatalogItems } from '@/api/catalog.api'
 import {
     type CreateItemYieldInput,
     createProjectItemYield,
     type ItemYieldLineInput,
 } from '@/api/item-yields.api'
-import { getResources, type ResourceRow } from '@/api/resources.api'
+import {
+    getResourcePrices,
+    getResources,
+    type ResourceRow,
+    setResourcePrice,
+} from '@/api/resources.api'
 import ItemYieldLinesEditor from '@/components/ItemYieldLinesEditor'
 import { Button } from '@/components/ui/button'
 import {
@@ -33,7 +38,6 @@ import {
     FormLabel,
     FormMessage,
 } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
 import {
     Select,
     SelectContent,
@@ -45,28 +49,12 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
 import { getApiErrorMessage } from '@/lib/api'
 import { qk } from '@/lib/query-keys'
-import type { MeasureUnitRow } from '@/types/measure-unit'
-import {
-    OTHER_WORK_CATEGORY_CODE,
-    type WorkCategoryRow,
-} from '@/types/work-category'
 
 const schema = z.object({
-    workCategoryId: z
+    catalogItemId: z
         .string()
-        .min(1, 'Elegí un rubro')
-        .uuid('Elegí un rubro válido'),
-    name: z
-        .string()
-        .trim()
-        .min(1, 'El nombre es obligatorio')
-        .max(500, 'Máximo 500 caracteres'),
-    description: z.string().trim().max(2000, 'Máximo 2000 caracteres'),
-    measureUnitId: z
-        .string()
-        .uuid('Elegí una unidad de medida válida')
-        .min(1, 'Elegí una unidad de medida'),
-    basisOutputQty: z.number().positive('La base debe ser mayor que 0'),
+        .min(1, 'Elegí un ítem')
+        .uuid('Elegí un ítem válido'),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -76,53 +64,29 @@ interface CreateItemYieldDialogProps {
     onCreated?: (id: string) => void
 }
 
-function defaultMeasureUnitId(units: MeasureUnitRow[]): string {
-    return units[0]?.id ?? ''
-}
-
 function useItemYieldDialogDefaults(
     open: boolean,
-    categoriesLoading: boolean,
-    categories: WorkCategoryRow[],
-    form: UseFormReturn<FormValues>,
-    measureUnitsLoading: boolean,
-    measureUnits: MeasureUnitRow[]
+    catalogItemsLoading: boolean,
+    catalogItems: Awaited<ReturnType<typeof getStudioCatalogItems>>,
+    form: UseFormReturn<FormValues>
 ): void {
     useEffect(() => {
-        if (!open || categoriesLoading || categories.length === 0) {
+        if (!open || catalogItemsLoading || catalogItems.length === 0) {
             return
         }
-        const current = form.getValues('workCategoryId')
-        const exists = categories.some((c) => c.id === current)
+        const current = form.getValues('catalogItemId')
+        const exists = catalogItems.some((c) => c.catalogItemId === current)
         if (exists) {
             return
         }
-        const other = categories.find(
-            (c) => c.code === OTHER_WORK_CATEGORY_CODE
-        )
-        if (other) {
-            form.setValue('workCategoryId', other.id)
-            return
-        }
-        form.setValue('workCategoryId', categories[0].id)
-    }, [open, categoriesLoading, categories, form])
-
-    useEffect(() => {
-        if (!open || measureUnitsLoading || measureUnits.length === 0) {
-            return
-        }
-        const current = form.getValues('measureUnitId')
-        if (current === '') {
-            form.setValue('measureUnitId', defaultMeasureUnitId(measureUnits))
-        }
-    }, [open, measureUnitsLoading, measureUnits, form])
+        form.setValue('catalogItemId', catalogItems[0].catalogItemId)
+    }, [open, catalogItemsLoading, catalogItems, form])
 }
 
 function useCreateItemYieldSubmit(
     accessToken: string | null,
     studioSlug: string,
     projectId: string,
-    measureUnits: MeasureUnitRow[],
     lines: ItemYieldLineInput[],
     form: UseFormReturn<FormValues>,
     queryClient: ReturnType<typeof useQueryClient>,
@@ -134,17 +98,11 @@ function useCreateItemYieldSubmit(
         async (values: FormValues) => {
             try {
                 const body: CreateItemYieldInput = {
-                    workCategoryId: values.workCategoryId,
-                    name: values.name,
-                    measureUnitId: values.measureUnitId,
-                    basisOutputQty: values.basisOutputQty,
+                    catalogItemId: values.catalogItemId,
                     components: {
                         linkedItems: [],
                         lines,
                     },
-                }
-                if (values.description.trim() !== '') {
-                    body.description = values.description.trim()
                 }
                 const created = await createProjectItemYield(projectId, body, {
                     token: accessToken,
@@ -157,11 +115,7 @@ function useCreateItemYieldSubmit(
                     description: created.name,
                 })
                 form.reset({
-                    workCategoryId: '',
-                    name: '',
-                    description: '',
-                    measureUnitId: defaultMeasureUnitId(measureUnits),
-                    basisOutputQty: 1,
+                    catalogItemId: '',
                 })
                 setOpen(false)
                 setLines([])
@@ -176,7 +130,6 @@ function useCreateItemYieldSubmit(
             accessToken,
             form,
             lines,
-            measureUnits,
             onCreated,
             projectId,
             queryClient,
@@ -188,51 +141,41 @@ function useCreateItemYieldSubmit(
 }
 
 function itemYieldFormCanSubmit(
-    categoriesLoading: boolean,
-    measureUnitsLoading: boolean,
-    categoriesLen: number,
-    measureUnitsLen: number,
+    catalogItemsLoading: boolean,
+    catalogItemsLen: number,
     isSubmitting: boolean
 ): boolean {
-    return (
-        !categoriesLoading &&
-        !measureUnitsLoading &&
-        categoriesLen > 0 &&
-        measureUnitsLen > 0 &&
-        !isSubmitting
-    )
+    return !catalogItemsLoading && catalogItemsLen > 0 && !isSubmitting
 }
 
 function CreateItemYieldFormFields({
     form,
     onSubmit,
-    categories,
-    categoriesLoading,
-    categoriesError,
-    measureUnits,
-    measureUnitsLoading,
+    catalogItems,
+    catalogItemsLoading,
     resources,
+    pricesByResourceId,
+    onSetResourcePrice,
     lines,
     setLines,
     canSubmit,
 }: {
     form: UseFormReturn<FormValues>
     onSubmit: (values: FormValues) => Promise<void>
-    categories: WorkCategoryRow[]
-    categoriesLoading: boolean
-    categoriesError: boolean
-    measureUnits: MeasureUnitRow[]
-    measureUnitsLoading: boolean
+    catalogItems: Awaited<ReturnType<typeof getStudioCatalogItems>>
+    catalogItemsLoading: boolean
     resources: ResourceRow[]
+    pricesByResourceId: Map<string, number>
+    onSetResourcePrice: (resourceId: string, unitPrice: number) => Promise<void>
     lines: ItemYieldLineInput[]
     setLines: (next: ItemYieldLineInput[]) => void
     canSubmit: boolean
 }) {
-    const workCategoryPlaceholder = categoriesLoading
-        ? 'Cargando rubros…'
-        : categories.length === 0
-          ? 'No hay rubros disponibles'
-          : 'Elegí un rubro'
+    const itemPlaceholder = catalogItemsLoading
+        ? 'Cargando ítems…'
+        : catalogItems.length === 0
+          ? 'No hay ítems disponibles'
+          : 'Elegí un ítem'
     return (
         <Form {...form}>
             <form
@@ -242,126 +185,44 @@ function CreateItemYieldFormFields({
                 <div className="flex-1 space-y-4 overflow-y-auto">
                     <FormField
                         control={form.control}
-                        name="workCategoryId"
+                        name="catalogItemId"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Rubro</FormLabel>
+                                <FormLabel>Ítem</FormLabel>
                                 <Select
                                     disabled={
-                                        categoriesLoading ||
-                                        categories.length === 0
+                                        catalogItemsLoading ||
+                                        catalogItems.length === 0
                                     }
                                     onValueChange={field.onChange}
                                     value={field.value}
                                 >
                                     <FormControl>
-                                        <SelectTrigger aria-label="Rubro">
+                                        <SelectTrigger aria-label="Ítem">
                                             <SelectValue
-                                                placeholder={
-                                                    workCategoryPlaceholder
-                                                }
+                                                placeholder={itemPlaceholder}
                                             />
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {categories.map((c) => (
-                                            <SelectItem key={c.id} value={c.id}>
-                                                {c.name}
+                                        {catalogItems.map((item) => (
+                                            <SelectItem
+                                                key={item.catalogItemId}
+                                                value={item.catalogItemId}
+                                            >
+                                                {item.workCategoryName} ·{' '}
+                                                {item.name}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
-                                {!categoriesLoading &&
-                                categories.length === 0 ? (
+                                {!catalogItemsLoading &&
+                                catalogItems.length === 0 ? (
                                     <p className="text-xs text-muted-foreground">
-                                        {categoriesError
-                                            ? 'No pudimos cargar los rubros. Reintentá en unos segundos.'
-                                            : 'No hay rubros disponibles para crear este rendimiento.'}
+                                        No hay ítems disponibles para crear este
+                                        rendimiento.
                                     </p>
                                 ) : null}
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="name"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Nombre</FormLabel>
-                                <FormControl>
-                                    <Input
-                                        placeholder="Ej. Hormigón H21"
-                                        {...field}
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="description"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Descripción (opcional)</FormLabel>
-                                <FormControl>
-                                    <Input
-                                        placeholder="Notas breves"
-                                        {...field}
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="basisOutputQty"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Cantidad base</FormLabel>
-                                <FormControl>
-                                    <Input
-                                        type="number"
-                                        step="0.0001"
-                                        min="0.0001"
-                                        value={field.value}
-                                        onChange={(event) => {
-                                            field.onChange(
-                                                Number(event.target.value)
-                                            )
-                                        }}
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="measureUnitId"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Unidad del ítem</FormLabel>
-                                <Select
-                                    disabled={measureUnitsLoading}
-                                    onValueChange={field.onChange}
-                                    value={field.value}
-                                >
-                                    <FormControl>
-                                        <SelectTrigger aria-label="Unidad de medida">
-                                            <SelectValue placeholder="Cargando unidades…" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {measureUnits.map((u) => (
-                                            <SelectItem key={u.id} value={u.id}>
-                                                {u.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -369,8 +230,9 @@ function CreateItemYieldFormFields({
                     <ItemYieldLinesEditor
                         lines={lines}
                         resources={resources}
-                        measureUnits={measureUnits}
+                        pricesByResourceId={pricesByResourceId}
                         disabled={form.formState.isSubmitting}
+                        onSetResourcePrice={onSetResourcePrice}
                         onChange={setLines}
                     />
                 </div>
@@ -397,36 +259,18 @@ export default function CreateItemYieldDialog({
     const form = useForm<FormValues>({
         resolver: zodResolver(schema),
         defaultValues: {
-            workCategoryId: '',
-            name: '',
-            description: '',
-            measureUnitId: '',
-            basisOutputQty: 1,
+            catalogItemId: '',
         },
     })
 
     const catalogQueriesEnabled =
         open && Boolean(accessToken && studioSlug.trim())
 
-    const {
-        data: categories = [],
-        isPending: categoriesLoading,
-        isError: categoriesError,
-    } = useQuery({
-        queryKey: qk.workCategories,
-        queryFn: () =>
-            getWorkCategories({
-                token: accessToken,
-                studioSlug,
-            }),
-        enabled: catalogQueriesEnabled,
-    })
-
-    const { data: measureUnits = [], isPending: measureUnitsLoading } =
+    const { data: catalogItems = [], isPending: catalogItemsLoading } =
         useQuery({
-            queryKey: qk.measureUnits,
+            queryKey: qk.studioCatalogItems,
             queryFn: () =>
-                getMeasureUnits({
+                getStudioCatalogItems({
                     token: accessToken,
                     studioSlug,
                 }),
@@ -441,21 +285,25 @@ export default function CreateItemYieldDialog({
             }),
         enabled: catalogQueriesEnabled,
     })
-
-    useItemYieldDialogDefaults(
-        open,
-        categoriesLoading,
-        categories,
-        form,
-        measureUnitsLoading,
-        measureUnits
+    const { data: resourcePrices = [] } = useQuery({
+        queryKey: qk.resourcePrices,
+        queryFn: () =>
+            getResourcePrices({
+                token: accessToken,
+                studioSlug,
+            }),
+        enabled: catalogQueriesEnabled,
+    })
+    const pricesByResourceId = new Map(
+        resourcePrices.map((row) => [row.resourceId, row.unitPrice] as const)
     )
+
+    useItemYieldDialogDefaults(open, catalogItemsLoading, catalogItems, form)
 
     const onSubmit = useCreateItemYieldSubmit(
         accessToken,
         studioSlug,
         activeProject.id,
-        measureUnits,
         lines,
         form,
         queryClient,
@@ -466,14 +314,10 @@ export default function CreateItemYieldDialog({
 
     const resetValues = useCallback(() => {
         form.reset({
-            workCategoryId: '',
-            name: '',
-            description: '',
-            measureUnitId: defaultMeasureUnitId(measureUnits),
-            basisOutputQty: 1,
+            catalogItemId: '',
         })
         setLines([])
-    }, [form, measureUnits])
+    }, [form])
 
     const handleOpenChange = useCallback(
         (v: boolean) => {
@@ -486,11 +330,30 @@ export default function CreateItemYieldDialog({
     )
 
     const canSubmit = itemYieldFormCanSubmit(
-        categoriesLoading,
-        measureUnitsLoading,
-        categories.length,
-        measureUnits.length,
+        catalogItemsLoading,
+        catalogItems.length,
         form.formState.isSubmitting
+    )
+    const onSetResourcePrice = useCallback(
+        async (resourceId: string, unitPrice: number) => {
+            const resource = resources.find((row) => row.id === resourceId)
+            if (!resource) {
+                return
+            }
+            await setResourcePrice(
+                resourceId,
+                {
+                    measureUnitId: resource.commercialMeasureUnit.id,
+                    unitPrice,
+                },
+                {
+                    token: accessToken,
+                    studioSlug,
+                }
+            )
+            await queryClient.invalidateQueries({ queryKey: qk.resourcePrices })
+        },
+        [accessToken, queryClient, resources, studioSlug]
     )
 
     const renderTrigger = () => {
@@ -556,12 +419,11 @@ export default function CreateItemYieldDialog({
                             <CreateItemYieldFormFields
                                 form={form}
                                 onSubmit={onSubmit}
-                                categories={categories}
-                                categoriesLoading={categoriesLoading}
-                                categoriesError={categoriesError}
-                                measureUnits={measureUnits}
-                                measureUnitsLoading={measureUnitsLoading}
+                                catalogItems={catalogItems}
+                                catalogItemsLoading={catalogItemsLoading}
                                 resources={resources}
+                                pricesByResourceId={pricesByResourceId}
+                                onSetResourcePrice={onSetResourcePrice}
                                 lines={lines}
                                 setLines={setLines}
                                 canSubmit={canSubmit}

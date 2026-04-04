@@ -4,26 +4,13 @@ import type { ItemYield, ItemYieldOption } from '@/types/item-yield'
 import type { ApiContext } from './api-context'
 
 export type CreateItemYieldInput = {
-    workCategoryId: string
-    name: string
-    description?: string
-    measureUnitId: string
-    basisOutputQty?: number
+    catalogItemId: string
     components?: ItemYieldComponentsInput
 }
 
 export type ItemYieldLineInput = {
     resourceId: string
-    purchaseMeasureUnitId?: string | null
-    purchaseLabel?: string | null
-    purchaseMappingStatus?: 'MAPPED' | 'UNMAPPED'
-    baseQuantity: number
-    yieldPerPurchase: number
-    wastePercent: number
-    scalingMode: 'VARIABLE' | 'FIXED' | 'STEP'
-    stepSize: number | null
-    stepDriverKey: string | null
-    stepDriverSourceKey: string | null
+    quantity: number
 }
 
 export type ItemYieldComponentsInput = {
@@ -32,29 +19,23 @@ export type ItemYieldComponentsInput = {
 }
 
 export type PatchItemYieldInput = {
-    workCategoryId: string
-    name: string
-    description?: string
-    measureUnitMode: 'INHERIT' | 'OVERRIDE'
-    measureUnitId?: string
-    basisOutputQty?: number
+    components: ItemYieldComponentsInput
+}
+
+type CreateItemYieldRequestBody = {
+    catalogItemId: string
     components: ItemYieldComponentsInput
 }
 
 function createItemYieldRequestBody(
     input: CreateItemYieldInput
-): PatchItemYieldInput {
+): CreateItemYieldRequestBody {
     const components = input.components ?? {
         linkedItems: [],
         lines: [],
     }
     return {
-        workCategoryId: input.workCategoryId,
-        name: input.name,
-        ...(input.description ? { description: input.description } : {}),
-        basisOutputQty: input.basisOutputQty ?? 1,
-        measureUnitMode: 'OVERRIDE' as const,
-        measureUnitId: input.measureUnitId,
+        catalogItemId: input.catalogItemId,
         components,
     }
 }

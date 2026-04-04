@@ -15,8 +15,8 @@ type MeasureUnitApiShape = {
 
 type ItemYieldApiRow = Pick<
     ItemYield,
-    'id' | 'workCategoryId' | 'workCategoryName' | 'name' | 'description'
-> & { measureUnit: MeasureUnitApiShape | null }
+    'id' | 'workCategoryId' | 'workCategoryName' | 'name'
+>
 
 type StudioCatalogItemApiRow = {
     catalogItemId: string
@@ -61,10 +61,10 @@ function buildSuggestionRows(
         yieldId: y.id,
         workCategoryId: y.workCategoryId,
         name: y.name,
-        description: y.description ?? '',
+        description: '',
         workCategoryName: y.workCategoryName,
-        measureUnitId: y.measureUnit?.id ?? null,
-        measureUnitName: y.measureUnit?.name ?? null,
+        measureUnitId: null,
+        measureUnitName: null,
     }))
     const yieldNames = new Set(
         yields.map((y) => y.name.trim().toLowerCase()).filter(Boolean)
@@ -99,7 +99,7 @@ export function useBudgetLineDescriptionSuggestions(
                 token: accessToken,
                 studioSlug,
             })
-            return rows as ItemYieldApiRow[]
+            return rows as unknown as ItemYieldApiRow[]
         },
         enabled: queryEnabled,
     })

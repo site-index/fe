@@ -11,9 +11,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import type { MeasureUnitRow } from '@/types/measure-unit'
-
-const UNIT_NONE = '__none__'
+import { cn } from '@/lib/utils'
 
 function parseNum(value: string, fallback = 0): number {
     const parsed = Number(value)
@@ -23,96 +21,39 @@ function parseNum(value: string, fallback = 0): number {
 function createEmptyLine(resourceId: string): ItemYieldLineInput {
     return {
         resourceId,
-        purchaseMeasureUnitId: null,
-        purchaseLabel: '',
-        purchaseMappingStatus: 'MAPPED',
-        baseQuantity: 1,
-        yieldPerPurchase: 1,
-        wastePercent: 0,
-        scalingMode: 'VARIABLE',
-        stepSize: null,
-        stepDriverKey: null,
-        stepDriverSourceKey: null,
+        quantity: 1,
     }
 }
 
 type Props = {
     lines: ItemYieldLineInput[]
     resources: ResourceRow[]
-    measureUnits: MeasureUnitRow[]
+    pricesByResourceId: Map<string, number>
     disabled?: boolean
     onChange: (next: ItemYieldLineInput[]) => void
+    onSetResourcePrice: (resourceId: string, unitPrice: number) => Promise<void>
 }
 
 type LineRowProps = {
     index: number
     line: ItemYieldLineInput
     disabled: boolean
-    measureUnits: MeasureUnitRow[]
     availableResources: ResourceRow[]
     selectedResource: ResourceRow | null
+    pricesByResourceId: Map<string, number>
+    onSetResourcePrice: (resourceId: string, unitPrice: number) => Promise<void>
     onPatchLine: (index: number, patch: Partial<ItemYieldLineInput>) => void
     onRemoveLine: (index: number) => void
-}
-
-function StepFields({
-    line,
-    disabled,
-    onPatch,
-}: {
-    line: ItemYieldLineInput
-    disabled: boolean
-    onPatch: (patch: Partial<ItemYieldLineInput>) => void
-}) {
-    if (line.scalingMode !== 'STEP') {
-        return null
-    }
-    return (
-        <div className="mt-2 space-y-2">
-            <Input
-                type="number"
-                min="0.000001"
-                step="0.0001"
-                disabled={disabled}
-                placeholder="Tamaño escalón"
-                value={line.stepSize ?? ''}
-                onChange={(event) =>
-                    onPatch({
-                        stepSize: parseNum(event.target.value, 0.000001),
-                    })
-                }
-            />
-            <Input
-                disabled={disabled}
-                placeholder="Driver key"
-                value={line.stepDriverKey ?? ''}
-                onChange={(event) =>
-                    onPatch({
-                        stepDriverKey: event.target.value,
-                    })
-                }
-            />
-            <Input
-                disabled={disabled}
-                placeholder="Source key (opcional)"
-                value={line.stepDriverSourceKey ?? ''}
-                onChange={(event) =>
-                    onPatch({
-                        stepDriverSourceKey: event.target.value,
-                    })
-                }
-            />
-        </div>
-    )
 }
 
 function ItemYieldLineRow({
     index,
     line,
     disabled,
-    measureUnits,
     availableResources,
     selectedResource,
+    pricesByResourceId,
+    onSetResourcePrice,
     onPatchLine,
     onRemoveLine,
 }: LineRowProps) {
@@ -128,7 +69,7 @@ function ItemYieldLineRow({
                     value={line.resourceId}
                     disabled={disabled}
                     onValueChange={(value) =>
-                        onPatchLine(index, { resourceId: value })
+                        onPatchLine(index, { resourceId: value, quantity: 1 })
                     }
                 >
                     <SelectTrigger>
@@ -143,131 +84,51 @@ function ItemYieldLineRow({
                     </SelectContent>
                 </Select>
                 <p className="mt-1 text-[11px] text-muted-foreground">
-                    Base: {selectedResource?.baseMeasureUnit.name ?? '—'}
+                    Unidad base: {selectedResource?.baseMeasureUnit.name ?? '—'}
                 </p>
             </td>
-            <td className="px-2 py-2 min-w-28">
-                <Input
-                    type="number"
-                    min="0"
-                    step="0.0001"
-                    disabled={disabled}
-                    value={line.baseQuantity}
-                    onChange={(event) =>
-                        onPatchLine(index, {
-                            baseQuantity: parseNum(event.target.value),
-                        })
-                    }
-                />
-            </td>
-            <td className="px-2 py-2 min-w-44">
-                <Input
-                    disabled={disabled}
-                    placeholder="Ej. bolsa 25kg"
-                    value={line.purchaseLabel ?? ''}
-                    onChange={(event) =>
-                        onPatchLine(index, {
-                            purchaseLabel: event.target.value,
-                        })
-                    }
-                />
-            </td>
-            <td className="px-2 py-2 min-w-44">
-                <Select
-                    value={line.purchaseMeasureUnitId ?? UNIT_NONE}
-                    disabled={disabled}
-                    onValueChange={(value) =>
-                        onPatchLine(index, {
-                            purchaseMeasureUnitId:
-                                value === UNIT_NONE ? null : value,
-                        })
-                    }
+            <td className="px-2 py-2 min-w-40">
+                <div
+                    className={cn(
+                        'rounded-md border border-input bg-muted/40 px-3 py-2 text-sm',
+                        disabled && 'opacity-70'
+                    )}
                 >
-                    <SelectTrigger>
-                        <SelectValue placeholder="Sin unidad" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value={UNIT_NONE}>Sin unidad</SelectItem>
-                        {measureUnits.map((unit) => (
-                            <SelectItem key={unit.id} value={unit.id}>
-                                {unit.name}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </td>
-            <td className="px-2 py-2 min-w-28">
-                <Input
-                    type="number"
-                    min="0"
-                    step="0.0001"
-                    disabled={disabled}
-                    value={line.yieldPerPurchase}
-                    onChange={(event) =>
-                        onPatchLine(index, {
-                            yieldPerPurchase: parseNum(event.target.value),
-                        })
-                    }
-                />
-            </td>
-            <td className="px-2 py-2 min-w-24">
-                <Input
-                    type="number"
-                    step="0.01"
-                    disabled={disabled}
-                    value={line.wastePercent}
-                    onChange={(event) =>
-                        onPatchLine(index, {
-                            wastePercent: parseNum(event.target.value),
-                        })
-                    }
-                />
-            </td>
-            <td className="px-2 py-2 min-w-28">
-                <Select
-                    value={line.scalingMode}
-                    disabled={disabled}
-                    onValueChange={(value) =>
-                        onPatchLine(index, {
-                            scalingMode: value as 'VARIABLE' | 'FIXED' | 'STEP',
-                        })
-                    }
-                >
-                    <SelectTrigger>
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="VARIABLE">Variable</SelectItem>
-                        <SelectItem value="FIXED">Fijo</SelectItem>
-                        <SelectItem value="STEP">Escalón</SelectItem>
-                    </SelectContent>
-                </Select>
-                <StepFields
-                    line={line}
-                    disabled={disabled}
-                    onPatch={(patch) => onPatchLine(index, patch)}
-                />
+                    {selectedResource?.commercialMeasureUnit.name ?? '—'}
+                </div>
             </td>
             <td className="px-2 py-2 min-w-32">
-                <Select
-                    value={line.purchaseMappingStatus ?? 'MAPPED'}
+                <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    disabled={disabled || !selectedResource}
+                    key={`price-${line.resourceId}`}
+                    defaultValue={(
+                        pricesByResourceId.get(line.resourceId) ?? 0
+                    ).toFixed(2)}
+                    onBlur={async (event) => {
+                        if (!selectedResource) {
+                            return
+                        }
+                        const unitPrice = parseNum(event.target.value, 0)
+                        await onSetResourcePrice(selectedResource.id, unitPrice)
+                    }}
+                />
+            </td>
+            <td className="px-2 py-2 min-w-28">
+                <Input
+                    type="number"
+                    min="0"
+                    step="0.0001"
                     disabled={disabled}
-                    onValueChange={(value) =>
+                    value={line.quantity}
+                    onChange={(event) =>
                         onPatchLine(index, {
-                            purchaseMappingStatus: value as
-                                | 'MAPPED'
-                                | 'UNMAPPED',
+                            quantity: parseNum(event.target.value),
                         })
                     }
-                >
-                    <SelectTrigger>
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="MAPPED">Mapeado</SelectItem>
-                        <SelectItem value="UNMAPPED">Sin mapear</SelectItem>
-                    </SelectContent>
-                </Select>
+                />
             </td>
             <td className="px-2 py-2 text-right">
                 <Button
@@ -288,9 +149,10 @@ function ItemYieldLineRow({
 export default function ItemYieldLinesEditor({
     lines,
     resources,
-    measureUnits,
+    pricesByResourceId,
     disabled = false,
     onChange,
+    onSetResourcePrice,
 }: Props) {
     const resourceById = new Map(
         resources.map((resource) => [resource.id, resource])
@@ -349,36 +211,29 @@ export default function ItemYieldLinesEditor({
                             <tr className="border-b text-xs text-muted-foreground">
                                 <th className="px-2 py-2 text-left">Recurso</th>
                                 <th className="px-2 py-2 text-left">
-                                    Cant. base
+                                    Unidad comercial
                                 </th>
+                                <th className="px-2 py-2 text-left">Precio</th>
                                 <th className="px-2 py-2 text-left">
-                                    Etiqueta compra
+                                    Cantidad
                                 </th>
-                                <th className="px-2 py-2 text-left">
-                                    Unidad compra
-                                </th>
-                                <th className="px-2 py-2 text-left">
-                                    Rend. compra
-                                </th>
-                                <th className="px-2 py-2 text-left">% desp.</th>
-                                <th className="px-2 py-2 text-left">Escala</th>
-                                <th className="px-2 py-2 text-left">Estado</th>
                                 <th className="px-2 py-2 text-right">Acción</th>
                             </tr>
                         </thead>
                         <tbody>
                             {lines.map((line, index) => (
                                 <ItemYieldLineRow
-                                    key={`${line.resourceId}-${index}`}
+                                    key={`line-${index}`}
                                     index={index}
                                     line={line}
                                     disabled={disabled}
-                                    measureUnits={measureUnits}
                                     availableResources={availableResources}
                                     selectedResource={
                                         resourceById.get(line.resourceId) ??
                                         null
                                     }
+                                    pricesByResourceId={pricesByResourceId}
+                                    onSetResourcePrice={onSetResourcePrice}
                                     onPatchLine={patchLine}
                                     onRemoveLine={removeLine}
                                 />

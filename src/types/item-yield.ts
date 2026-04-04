@@ -7,27 +7,12 @@ export type ItemYieldLine = {
         code: string
         name: string
     }
-    purchaseMeasureUnit: {
+    commercialMeasureUnit: {
         id: string
         code: string
         name: string
-    } | null
-    purchaseMeasureUnitId?: string | null
-    purchaseLabel?: string | null
-    purchaseMappingStatus?: 'MAPPED' | 'UNMAPPED'
-    baseQuantity: number
-    yieldPerPurchase: number
-    wastePercent: number
-    scalingMode: 'VARIABLE' | 'FIXED' | 'STEP'
-    stepSize: number | null
-    stepDriverKey: string | null
-    stepDriverSourceKey: string | null
-}
-
-export type ItemYieldMeasureUnit = {
-    id: string
-    code: string
-    name: string
+    }
+    quantity: number
 }
 
 export type ItemYield = {
@@ -35,10 +20,6 @@ export type ItemYield = {
     workCategoryId: string
     workCategoryName: string
     name: string
-    description: string
-    basisOutputQty: number
-    measureUnitMode: 'INHERIT' | 'OVERRIDE'
-    measureUnit: ItemYieldMeasureUnit | null
     components: ItemYieldLine[]
     linkedItems: string[]
     /** Present when this row is a snapshot of a global catalog item. */

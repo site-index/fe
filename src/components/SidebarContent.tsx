@@ -1,13 +1,9 @@
 import {
-    AlertTriangle,
     Calculator,
     ChevronDown,
-    ClipboardCheck,
     FlaskConical,
     // LayoutDashboard,
-    Library,
     LogOut,
-    PackageSearch,
     Settings,
     User,
 } from 'lucide-react'

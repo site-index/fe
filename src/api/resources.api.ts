@@ -8,6 +8,7 @@ export type ResourceRow = {
     name: string
     kind: 'MATERIAL' | 'LABOR' | 'EQUIPMENT'
     baseMeasureUnit: { id: string; code: string; name: string }
+    commercialMeasureUnit: { id: string; code: string; name: string }
 }
 
 export type ResourcePriceRow = {
@@ -65,6 +66,22 @@ export function setResourcePrice(
         token: ctx.token,
         studioSlug: ctx.studioSlug,
     })
+}
+
+export function patchResourceCommercialUnit(
+    resourceId: string,
+    commercialMeasureUnitId: string,
+    ctx: ApiContext
+): Promise<ResourceRow> {
+    return apiFetch<ResourceRow>(
+        `/v1/resources/${resourceId}/commercial-unit`,
+        {
+            method: 'PATCH',
+            body: { commercialMeasureUnitId },
+            token: ctx.token,
+            studioSlug: ctx.studioSlug,
+        }
+    )
 }
 
 export function getProjectResourceDemand(
