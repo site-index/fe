@@ -41,6 +41,7 @@ import {
     toNum,
 } from '@/lib/form-utils'
 import { qk } from '@/lib/query-keys'
+import type { WorkCategoryRow } from '@/types/work-category'
 
 const WORK_CATEGORY_NONE = '__none__'
 const UNIT_NONE = '__none__'
@@ -125,6 +126,30 @@ function buildBudgetLineCreateBody(
         }
     }
     return body
+}
+
+function ensureManualWorkCategoryForSubmit(args: {
+    submitted: FormValues
+    libraryBinding: LibraryBinding
+    categories: WorkCategoryRow[]
+    workCategoryNoneValue: string
+    setWorkCategory: (value: string) => void
+}): FormValues | null {
+    if (args.libraryBinding != null) {
+        return args.submitted
+    }
+    if (args.submitted.workCategoryId !== args.workCategoryNoneValue) {
+        return args.submitted
+    }
+    const fallback = args.categories[0]?.id
+    if (!fallback) {
+        return null
+    }
+    args.setWorkCategory(fallback)
+    return {
+        ...args.submitted,
+        workCategoryId: fallback,
+    }
 }
 
 interface CreateBudgetLineDialogProps {
@@ -269,8 +294,23 @@ export default function CreateBudgetLineDialog({
             form.setValue('workCategoryId', defaultWorkCategoryId, {
                 shouldValidate: true,
             })
+            return
         }
-    }, [defaultWorkCategoryId, form, open])
+        if (libraryBinding != null) {
+            return
+        }
+        const current = form.getValues('workCategoryId')
+        if (current !== WORK_CATEGORY_NONE) {
+            return
+        }
+        const fallback = categories[0]?.id
+        if (!fallback) {
+            return
+        }
+        form.setValue('workCategoryId', fallback, {
+            shouldValidate: true,
+        })
+    }, [categories, defaultWorkCategoryId, form, libraryBinding, open])
 
     useEffect(() => {
         if (libraryBinding == null) {
@@ -385,12 +425,32 @@ export default function CreateBudgetLineDialog({
 
     const onSubmit = async (submitted: FormValues) => {
         try {
+            const withRequiredCategory = ensureManualWorkCategoryForSubmit({
+                submitted,
+                libraryBinding,
+                categories,
+                workCategoryNoneValue: WORK_CATEGORY_NONE,
+                setWorkCategory: (value) =>
+                    form.setValue('workCategoryId', value, {
+                        shouldValidate: true,
+                    }),
+            })
+            if (!withRequiredCategory) {
+                form.setError('workCategoryId', {
+                    type: 'manual',
+                    message:
+                        'No hay rubros disponibles para crear este ítem. Revisá la configuración del estudio.',
+                })
+                return
+            }
             const normalizedSubmitted = isBreakdownActiveFromStrings(submitted)
                 ? {
-                      ...submitted,
-                      unitPriceStr: String(breakdownSumFromStrings(submitted)),
+                      ...withRequiredCategory,
+                      unitPriceStr: String(
+                          breakdownSumFromStrings(withRequiredCategory)
+                      ),
                   }
-                : submitted
+                : withRequiredCategory
             const baseBody = buildBudgetLineCreateBody(
                 normalizedSubmitted,
                 libraryBinding,

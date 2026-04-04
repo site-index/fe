@@ -86,7 +86,12 @@ function useItemYieldDialogDefaults(
     measureUnits: MeasureUnitRow[]
 ): void {
     useEffect(() => {
-        if (!open || categoriesLoading) {
+        if (!open || categoriesLoading || categories.length === 0) {
+            return
+        }
+        const current = form.getValues('workCategoryId')
+        const exists = categories.some((c) => c.id === current)
+        if (exists) {
             return
         }
         const other = categories.find(
@@ -94,7 +99,9 @@ function useItemYieldDialogDefaults(
         )
         if (other) {
             form.setValue('workCategoryId', other.id)
+            return
         }
+        form.setValue('workCategoryId', categories[0].id)
     }, [open, categoriesLoading, categories, form])
 
     useEffect(() => {
@@ -189,6 +196,7 @@ function CreateItemYieldFormFields({
     onSubmit,
     categories,
     categoriesLoading,
+    categoriesError,
     measureUnits,
     measureUnitsLoading,
     canSubmit,
@@ -197,10 +205,16 @@ function CreateItemYieldFormFields({
     onSubmit: (values: FormValues) => Promise<void>
     categories: WorkCategoryRow[]
     categoriesLoading: boolean
+    categoriesError: boolean
     measureUnits: MeasureUnitRow[]
     measureUnitsLoading: boolean
     canSubmit: boolean
 }) {
+    const workCategoryPlaceholder = categoriesLoading
+        ? 'Cargando rubros…'
+        : categories.length === 0
+          ? 'No hay rubros disponibles'
+          : 'Elegí un rubro'
     return (
         <Form {...form}>
             <form
@@ -215,13 +229,20 @@ function CreateItemYieldFormFields({
                             <FormItem>
                                 <FormLabel>Rubro</FormLabel>
                                 <Select
-                                    disabled={categoriesLoading}
+                                    disabled={
+                                        categoriesLoading ||
+                                        categories.length === 0
+                                    }
                                     onValueChange={field.onChange}
                                     value={field.value}
                                 >
                                     <FormControl>
                                         <SelectTrigger aria-label="Rubro">
-                                            <SelectValue placeholder="Cargando rubros…" />
+                                            <SelectValue
+                                                placeholder={
+                                                    workCategoryPlaceholder
+                                                }
+                                            />
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
@@ -232,6 +253,14 @@ function CreateItemYieldFormFields({
                                         ))}
                                     </SelectContent>
                                 </Select>
+                                {!categoriesLoading &&
+                                categories.length === 0 ? (
+                                    <p className="text-xs text-muted-foreground">
+                                        {categoriesError
+                                            ? 'No pudimos cargar los rubros. Reintentá en unos segundos.'
+                                            : 'No hay rubros disponibles para crear este rendimiento.'}
+                                    </p>
+                                ) : null}
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -353,7 +382,11 @@ export default function CreateItemYieldDialog({
     const catalogQueriesEnabled =
         open && Boolean(accessToken && studioSlug.trim())
 
-    const { data: categories = [], isPending: categoriesLoading } = useQuery({
+    const {
+        data: categories = [],
+        isPending: categoriesLoading,
+        isError: categoriesError,
+    } = useQuery({
         queryKey: qk.workCategories,
         queryFn: () =>
             getWorkCategories({
@@ -487,6 +520,7 @@ export default function CreateItemYieldDialog({
                                 onSubmit={onSubmit}
                                 categories={categories}
                                 categoriesLoading={categoriesLoading}
+                                categoriesError={categoriesError}
                                 measureUnits={measureUnits}
                                 measureUnitsLoading={measureUnitsLoading}
                                 canSubmit={canSubmit}

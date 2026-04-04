@@ -144,7 +144,7 @@ function ItemYieldDetail({ d, onBack }: { d: ItemYield; onBack: () => void }) {
                     )}
                     {d.catalogItemApprovalStatus === 'PENDING_APPROVAL' ? (
                         <span className="inline-block rounded border border-amber-400/40 bg-amber-500/10 px-2 py-0.5 text-xs text-amber-700">
-                            Pendiente de aprobación
+                            No aprobado
                         </span>
                     ) : null}
                 </div>
@@ -153,6 +153,12 @@ function ItemYieldDetail({ d, onBack }: { d: ItemYield; onBack: () => void }) {
                         Este rendimiento copia el ítem global del catálogo: el
                         rubro y el nombre del ítem vienen fijados por esa
                         definición (en la app no se editan acá).
+                    </p>
+                ) : null}
+                {d.catalogItemApprovalStatus === 'PENDING_APPROVAL' ? (
+                    <p className="text-xs text-amber-700 mt-2 max-w-xl">
+                        Este ítem y su rendimiento están en estado no aprobado
+                        hasta que se apruebe el catalog item propuesto.
                     </p>
                 ) : null}
             </div>
@@ -297,7 +303,7 @@ function ItemYieldsGrid({
                                 {d.catalogItemApprovalStatus ===
                                 'PENDING_APPROVAL' ? (
                                     <span className="rounded border border-amber-400/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-amber-700">
-                                        Pend.
+                                        No ap.
                                     </span>
                                 ) : null}
                                 <span className="rounded bg-muted px-2 py-0.5 text-xs font-mono">
@@ -377,18 +383,6 @@ export default function ItemYields() {
                         <h1 className="text-xl sm:text-2xl font-black tracking-tight">
                             Rendimientos por ítem
                         </h1>
-                        <p className="text-sm text-muted-foreground">
-                            Rendimientos de esta obra (copia del catálogo al
-                            crear el proyecto). Los defaults del estudio se
-                            editan en{' '}
-                            <Link
-                                to="/studio-catalog-items"
-                                className="text-primary hover:underline"
-                            >
-                                Biblioteca del estudio
-                            </Link>
-                            .
-                        </p>
                     </div>
                     <CreateItemYieldDialog
                         onCreated={setSelectedId}
