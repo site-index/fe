@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { ChevronRight, ChevronsDown, ChevronsUp, Plus } from 'lucide-react'
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { getProjectBudgetLines } from '@/api/budget-lines.api'
@@ -68,6 +68,10 @@ function buildSections(
         })
     }
     return sections
+}
+
+function subtotalFromLines(lines: BudgetLineRow[]): number {
+    return lines.reduce((acc, line) => acc + line.total, 0)
 }
 
 /* ------------------------------------------------------------------ */
@@ -224,6 +228,75 @@ function BudgetLineMobileRow({
     )
 }
 
+function BudgetSectionBlock({
+    section,
+    isCollapsed,
+    onToggle,
+    onOpen,
+    onAdd,
+}: {
+    section: BudgetSection
+    isCollapsed: boolean
+    onToggle: () => void
+    onOpen: (line: BudgetLineRow) => void
+    onAdd: ReactNode
+}) {
+    const sectionSubtotal = subtotalFromLines(section.lines)
+    return (
+        <div>
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 bg-muted/50 px-3 py-1.5 print:px-2 print:py-1">
+                <button
+                    type="button"
+                    className="flex min-w-0 flex-1 items-center gap-1.5 text-left md:hidden"
+                    onClick={onToggle}
+                    aria-expanded={!isCollapsed}
+                    aria-label={`Alternar rubro ${section.name}`}
+                >
+                    <ChevronRight
+                        className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
+                            isCollapsed ? '' : 'rotate-90'
+                        }`}
+                    />
+                    <span className="truncate text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        {section.name}
+                    </span>
+                </button>
+                <span className="hidden min-w-0 flex-1 truncate text-xs font-semibold uppercase tracking-wide text-muted-foreground md:inline">
+                    {section.name}
+                </span>
+                <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-semibold">
+                        ${sectionSubtotal.toLocaleString('es-AR')}
+                    </span>
+                    {onAdd}
+                </div>
+            </div>
+            {section.lines.length === 0 ? (
+                <p className="border-b border-border/50 px-3 py-2 text-xs text-muted-foreground print:px-2 print:py-1.5">
+                    Sin ítems todavía en este rubro.
+                </p>
+            ) : (
+                section.lines.map((line) => (
+                    <div key={line.id}>
+                        <BudgetLineRow
+                            line={line}
+                            categoryNumber={section.categoryNumber}
+                            onOpen={onOpen}
+                        />
+                        {isCollapsed ? null : (
+                            <BudgetLineMobileRow
+                                line={line}
+                                showBreakdown
+                                onOpen={onOpen}
+                            />
+                        )}
+                    </div>
+                ))
+            )}
+        </div>
+    )
+}
+
 /* ------------------------------------------------------------------ */
 /*  View-model hook                                                    */
 /* ------------------------------------------------------------------ */
@@ -374,105 +447,44 @@ function BudgetLinesBody({
                         sections.map((section) => {
                             const isCollapsed =
                                 collapsedSections[section.key] ?? false
-                            const sectionSubtotal = section.lines.reduce(
-                                (acc, line) => acc + line.total,
-                                0
-                            )
 
                             return (
-                                <div key={section.key}>
-                                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 bg-muted/50 px-3 py-1.5 print:px-2 print:py-1">
-                                        <button
-                                            type="button"
-                                            className="flex min-w-0 flex-1 items-center gap-1.5 text-left md:hidden"
-                                            onClick={() =>
-                                                setCollapsedSections(
-                                                    (prev) => ({
-                                                        ...prev,
-                                                        [section.key]: !(
-                                                            prev[section.key] ??
-                                                            false
-                                                        ),
-                                                    })
-                                                )
+                                <BudgetSectionBlock
+                                    key={section.key}
+                                    section={section}
+                                    isCollapsed={isCollapsed}
+                                    onToggle={() =>
+                                        setCollapsedSections((prev) => ({
+                                            ...prev,
+                                            [section.key]: !(
+                                                prev[section.key] ?? false
+                                            ),
+                                        }))
+                                    }
+                                    onOpen={(selectedLine) =>
+                                        navigate(
+                                            `/budget-lines/${selectedLine.id}/yield`
+                                        )
+                                    }
+                                    onAdd={
+                                        <CreateBudgetLineDialog
+                                            defaultWorkCategoryId={
+                                                section.workCategoryId
                                             }
-                                            aria-expanded={!isCollapsed}
-                                            aria-label={`Alternar rubro ${section.name}`}
-                                        >
-                                            <ChevronRight
-                                                className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
-                                                    isCollapsed
-                                                        ? ''
-                                                        : 'rotate-90'
-                                                }`}
-                                            />
-                                            <span className="truncate text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                                {section.name}
-                                            </span>
-                                        </button>
-                                        <span className="hidden min-w-0 flex-1 truncate text-xs font-semibold uppercase tracking-wide text-muted-foreground md:inline">
-                                            {section.name}
-                                        </span>
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-mono text-xs font-semibold">
-                                                $
-                                                {sectionSubtotal.toLocaleString(
-                                                    'es-AR'
-                                                )}
-                                            </span>
-                                            <CreateBudgetLineDialog
-                                                defaultWorkCategoryId={
-                                                    section.workCategoryId
-                                                }
-                                                trigger={
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        className="h-8 w-8 px-0 text-sm print:hidden"
-                                                        aria-label="Nuevo ítem"
-                                                        title="Nuevo ítem"
-                                                    >
-                                                        <Plus className="h-4 w-4" />
-                                                    </Button>
-                                                }
-                                            />
-                                        </div>
-                                    </div>
-                                    {section.lines.length === 0 ? (
-                                        <p className="border-b border-border/50 px-3 py-2 text-xs text-muted-foreground print:px-2 print:py-1.5">
-                                            Sin ítems todavía en este rubro.
-                                        </p>
-                                    ) : (
-                                        section.lines.map((line) => (
-                                            <div key={line.id}>
-                                                <BudgetLineRow
-                                                    line={line}
-                                                    categoryNumber={
-                                                        section.categoryNumber
-                                                    }
-                                                    onOpen={(selectedLine) =>
-                                                        navigate(
-                                                            `/budget-lines/${selectedLine.id}/yield`
-                                                        )
-                                                    }
-                                                />
-                                                {isCollapsed ? null : (
-                                                    <BudgetLineMobileRow
-                                                        line={line}
-                                                        showBreakdown
-                                                        onOpen={(
-                                                            selectedLine
-                                                        ) =>
-                                                            navigate(
-                                                                `/budget-lines/${selectedLine.id}/yield`
-                                                            )
-                                                        }
-                                                    />
-                                                )}
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
+                                            trigger={
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="h-8 w-8 px-0 text-sm print:hidden"
+                                                    aria-label="Nuevo ítem"
+                                                    title="Nuevo ítem"
+                                                >
+                                                    <Plus className="h-4 w-4" />
+                                                </Button>
+                                            }
+                                        />
+                                    }
+                                />
                             )
                         })
                     )}

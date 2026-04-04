@@ -71,6 +71,43 @@ type Props = {
     topSection?: ReactNode
 }
 
+function FieldError({ message }: { message?: string }) {
+    if (!message) {
+        return null
+    }
+    return <p className="text-sm text-destructive">{message}</p>
+}
+
+function libraryBindingHintText(
+    binding: NonNullable<BudgetLineLibraryBinding>
+) {
+    return binding.kind === 'yield'
+        ? 'La define el rendimiento vinculado a la biblioteca.'
+        : 'La define el ítem del catálogo.'
+}
+
+function AmountInputField(args: {
+    id: string
+    label: string
+    register: ReturnType<UseFormReturn<BudgetLineCreateFormValues>['register']>
+    error?: string
+}) {
+    return (
+        <div className="space-y-2">
+            <label htmlFor={args.id} className="text-sm font-medium">
+                {args.label}
+            </label>
+            <Input
+                id={args.id}
+                inputMode="decimal"
+                placeholder="0"
+                {...args.register}
+            />
+            <FieldError message={args.error} />
+        </div>
+    )
+}
+
 function WorkCategorySection({
     libraryBinding,
     categories,
@@ -153,35 +190,28 @@ function MeasureUnitSection({
     onChange: (value: string) => void
     error?: string
 }) {
+    if (libraryBinding?.measureUnitId != null) {
+        const displayName =
+            libraryBinding.measureUnitName ??
+            measureUnits.find((u) => u.id === value)?.name ??
+            '—'
+        return (
+            <div className="space-y-2">
+                <label className="text-sm font-medium">Unidad (opcional)</label>
+                <p
+                    id="create-budget-line-measure-unit-locked"
+                    className="text-sm font-medium rounded-md border border-input bg-muted/40 px-3 py-2"
+                >
+                    {displayName}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                    {libraryBindingHintText(libraryBinding)}
+                </p>
+                <FieldError message={error} />
+            </div>
+        )
+    }
     if (libraryBinding != null) {
-        if (libraryBinding.measureUnitId != null) {
-            const displayName =
-                libraryBinding.measureUnitName ??
-                measureUnits.find((u) => u.id === value)?.name ??
-                '—'
-            return (
-                <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                        Unidad (opcional)
-                    </label>
-                    <p
-                        id="create-budget-line-measure-unit-locked"
-                        className="text-sm font-medium rounded-md border border-input bg-muted/40 px-3 py-2"
-                    >
-                        {displayName}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                        {libraryBinding.kind === 'yield'
-                            ? 'La define el rendimiento vinculado a la biblioteca.'
-                            : 'La define el ítem del catálogo.'}
-                    </p>
-                    {error ? (
-                        <p className="text-sm text-destructive">{error}</p>
-                    ) : null}
-                </div>
-            )
-        }
-
         return (
             <div className="space-y-2">
                 <label className="text-sm font-medium">Unidad (opcional)</label>
@@ -189,9 +219,7 @@ function MeasureUnitSection({
                     Sin unidad
                 </p>
                 <p className="text-xs text-muted-foreground">
-                    {libraryBinding.kind === 'yield'
-                        ? 'La define el rendimiento vinculado a la biblioteca.'
-                        : 'La define el ítem del catálogo.'}
+                    {libraryBindingHintText(libraryBinding)}
                 </p>
             </div>
         )
@@ -220,7 +248,7 @@ function MeasureUnitSection({
                     </option>
                 ))}
             </select>
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
+            <FieldError message={error} />
         </div>
     )
 }
@@ -322,9 +350,9 @@ export function CreateBudgetLineDialogFormFields({
                     ) : null}
                 </div>
                 {form.formState.errors.description ? (
-                    <p className="text-sm text-destructive">
-                        {form.formState.errors.description.message}
-                    </p>
+                    <FieldError
+                        message={form.formState.errors.description.message}
+                    />
                 ) : null}
                 {suggestionsLoading && showSuggestions ? (
                     <p className="text-xs text-muted-foreground">
@@ -377,11 +405,9 @@ export function CreateBudgetLineDialogFormFields({
                         placeholder="—"
                         {...form.register('quantityStr')}
                     />
-                    {form.formState.errors.quantityStr ? (
-                        <p className="text-sm text-destructive">
-                            {form.formState.errors.quantityStr.message}
-                        </p>
-                    ) : null}
+                    <FieldError
+                        message={form.formState.errors.quantityStr?.message}
+                    />
                 </div>
                 <div className="space-y-2">
                     <label
@@ -402,11 +428,9 @@ export function CreateBudgetLineDialogFormFields({
                             Se calcula automáticamente como MAT + MO + EQ.
                         </p>
                     ) : null}
-                    {form.formState.errors.unitPriceStr ? (
-                        <p className="text-sm text-destructive">
-                            {form.formState.errors.unitPriceStr.message}
-                        </p>
-                    ) : null}
+                    <FieldError
+                        message={form.formState.errors.unitPriceStr?.message}
+                    />
                 </div>
             </div>
 
@@ -420,72 +444,31 @@ export function CreateBudgetLineDialogFormFields({
                             Importes en ARS por cada unidad de medida de la
                             línea (no el total de la obra).
                         </p>
-                        <div className="space-y-2">
-                            <label
-                                htmlFor="create-budget-line-amount-material"
-                                className="text-sm font-medium"
-                            >
-                                Materiales (ARS / unidad)
-                            </label>
-                            <Input
-                                id="create-budget-line-amount-material"
-                                inputMode="decimal"
-                                placeholder="0"
-                                {...form.register('amountMaterialStr')}
-                            />
-                            {form.formState.errors.amountMaterialStr ? (
-                                <p className="text-sm text-destructive">
-                                    {
-                                        form.formState.errors.amountMaterialStr
-                                            .message
-                                    }
-                                </p>
-                            ) : null}
-                        </div>
-                        <div className="space-y-2">
-                            <label
-                                htmlFor="create-budget-line-amount-labor"
-                                className="text-sm font-medium"
-                            >
-                                Mano de obra (ARS / unidad)
-                            </label>
-                            <Input
-                                id="create-budget-line-amount-labor"
-                                inputMode="decimal"
-                                placeholder="0"
-                                {...form.register('amountLaborStr')}
-                            />
-                            {form.formState.errors.amountLaborStr ? (
-                                <p className="text-sm text-destructive">
-                                    {
-                                        form.formState.errors.amountLaborStr
-                                            .message
-                                    }
-                                </p>
-                            ) : null}
-                        </div>
-                        <div className="space-y-2">
-                            <label
-                                htmlFor="create-budget-line-amount-equipment"
-                                className="text-sm font-medium"
-                            >
-                                Equipo (ARS / unidad)
-                            </label>
-                            <Input
-                                id="create-budget-line-amount-equipment"
-                                inputMode="decimal"
-                                placeholder="0"
-                                {...form.register('amountEquipmentStr')}
-                            />
-                            {form.formState.errors.amountEquipmentStr ? (
-                                <p className="text-sm text-destructive">
-                                    {
-                                        form.formState.errors.amountEquipmentStr
-                                            .message
-                                    }
-                                </p>
-                            ) : null}
-                        </div>
+                        <AmountInputField
+                            id="create-budget-line-amount-material"
+                            label="Materiales (ARS / unidad)"
+                            register={form.register('amountMaterialStr')}
+                            error={
+                                form.formState.errors.amountMaterialStr?.message
+                            }
+                        />
+                        <AmountInputField
+                            id="create-budget-line-amount-labor"
+                            label="Mano de obra (ARS / unidad)"
+                            register={form.register('amountLaborStr')}
+                            error={
+                                form.formState.errors.amountLaborStr?.message
+                            }
+                        />
+                        <AmountInputField
+                            id="create-budget-line-amount-equipment"
+                            label="Equipo (ARS / unidad)"
+                            register={form.register('amountEquipmentStr')}
+                            error={
+                                form.formState.errors.amountEquipmentStr
+                                    ?.message
+                            }
+                        />
                     </AccordionContent>
                 </AccordionItem>
             </Accordion>

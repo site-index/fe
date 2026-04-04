@@ -20,6 +20,16 @@ function mergeRefs<T>(...refs: (Ref<T> | undefined | null)[]): Ref<T> {
     }
 }
 
+function composeHandlers(
+    parentHandler: (...args: unknown[]) => void,
+    childHandler: (...args: unknown[]) => void
+): (...args: unknown[]) => void {
+    return (...args: unknown[]) => {
+        parentHandler(...args)
+        childHandler(...args)
+    }
+}
+
 /**
  * Renders the single child element, merging the Slot's props (className,
  * event handlers, ref, etc.) onto it.  Enables the `asChild` pattern.
@@ -43,20 +53,20 @@ const Slot = forwardRef<
 
     // Compose event handlers: parent first, then child
     for (const key of Object.keys(childProps)) {
-        if (
+        const childValue = childProps[key]
+        const parentValue = (props as Record<string, unknown>)[key]
+        const isComposedEvent =
             key.startsWith('on') &&
-            typeof childProps[key] === 'function' &&
-            typeof (props as Record<string, unknown>)[key] === 'function'
-        ) {
-            const parentHandler = (props as Record<string, unknown>)[key] as (
-                ...a: unknown[]
-            ) => void
-            const childHandler = childProps[key] as (...a: unknown[]) => void
-            merged[key] = (...args: unknown[]) => {
-                parentHandler(...args)
-                childHandler(...args)
-            }
-        } else if (!(key in merged)) {
+            typeof childValue === 'function' &&
+            typeof parentValue === 'function'
+        if (isComposedEvent) {
+            merged[key] = composeHandlers(
+                parentValue as (...a: unknown[]) => void,
+                childValue as (...a: unknown[]) => void
+            )
+            continue
+        }
+        if (!(key in merged)) {
             merged[key] = childProps[key]
         }
     }
