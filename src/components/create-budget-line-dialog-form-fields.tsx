@@ -52,7 +52,7 @@ type Props = {
     categoriesLoading: boolean
     measureUnits: MeasureUnitRow[]
     measureUnitsLoading: boolean
-    rubroNone: string
+    workCategoryNoneValue: string
     unitNone: string
     showSuggestions: boolean
     suggestionsLoading: boolean
@@ -71,11 +71,11 @@ type Props = {
     topSection?: ReactNode
 }
 
-function RubroSection({
+function WorkCategorySection({
     libraryBinding,
     categories,
     categoriesLoading,
-    rubroNone,
+    workCategoryNoneValue,
     value,
     onChange,
     error,
@@ -83,7 +83,7 @@ function RubroSection({
     libraryBinding: BudgetLineLibraryBinding
     categories: WorkCategoryRow[]
     categoriesLoading: boolean
-    rubroNone: string
+    workCategoryNoneValue: string
     value: string
     onChange: (value: string) => void
     error?: string
@@ -119,7 +119,7 @@ function RubroSection({
                 }
                 onChange={(e) => onChange(e.target.value)}
             >
-                <option value={rubroNone}>Sin rubro</option>
+                <option value={workCategoryNoneValue}>Sin rubro</option>
                 {categories.map((c) => (
                     <option key={c.id} value={c.id}>
                         {c.name}
@@ -234,7 +234,7 @@ export function CreateBudgetLineDialogFormFields({
     categoriesLoading,
     measureUnits,
     measureUnitsLoading,
-    rubroNone,
+    workCategoryNoneValue,
     unitNone,
     showSuggestions,
     suggestionsLoading,
@@ -340,11 +340,11 @@ export function CreateBudgetLineDialogFormFields({
             </div>
             {topSection}
 
-            <RubroSection
+            <WorkCategorySection
                 libraryBinding={libraryBinding}
                 categories={categories}
                 categoriesLoading={categoriesLoading}
-                rubroNone={rubroNone}
+                workCategoryNoneValue={workCategoryNoneValue}
                 value={values.workCategoryId}
                 onChange={(v) =>
                     form.setValue('workCategoryId', v, { shouldValidate: true })

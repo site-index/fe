@@ -29,7 +29,7 @@ import {
 import { qk } from '@/lib/query-keys'
 import type { BudgetLineRow } from '@/types/budget-line'
 
-const RUBRO_NONE = '__none__'
+const WORK_CATEGORY_NONE = '__none__'
 const UNIT_NONE = '__none__'
 
 const schema = z.object({
@@ -38,7 +38,7 @@ const schema = z.object({
         .trim()
         .min(1, 'La descripción es obligatoria')
         .max(2000, 'Máximo 2000 caracteres'),
-    workCategoryId: z.union([z.literal(RUBRO_NONE), z.string().uuid()]),
+    workCategoryId: z.union([z.literal(WORK_CATEGORY_NONE), z.string().uuid()]),
     measureUnitId: z.union([z.literal(UNIT_NONE), z.string().uuid()]),
     quantityStr: optionalNonNegStr,
     unitPriceStr: optionalNonNegStr,
@@ -60,7 +60,7 @@ interface EditBudgetLineDialogProps {
 function formDefaultsFromLine(line: BudgetLineRow): FormValues {
     return {
         description: line.description,
-        workCategoryId: line.workCategoryId ?? RUBRO_NONE,
+        workCategoryId: line.workCategoryId ?? WORK_CATEGORY_NONE,
         measureUnitId: line.measureUnit?.id ?? UNIT_NONE,
         quantityStr: String(line.quantity),
         unitPriceStr: String(line.unitPriceStored ?? line.unitPrice ?? 0),
@@ -84,7 +84,7 @@ function patchInputFromValues(values: FormValues): PatchBudgetLineInput {
         itemYieldId: normalizedValues.itemYieldId,
         workCategoryId:
             normalizedValues.itemYieldId == null
-                ? normalizedValues.workCategoryId === RUBRO_NONE
+                ? normalizedValues.workCategoryId === WORK_CATEGORY_NONE
                     ? null
                     : normalizedValues.workCategoryId
                 : undefined,
@@ -129,7 +129,7 @@ export default function EditBudgetLineDialog({
         resolver: zodResolver(schema),
         defaultValues: {
             description: '',
-            workCategoryId: RUBRO_NONE,
+            workCategoryId: WORK_CATEGORY_NONE,
             measureUnitId: UNIT_NONE,
             quantityStr: '',
             unitPriceStr: '',
@@ -258,7 +258,7 @@ export default function EditBudgetLineDialog({
                 categoriesLoading={categoriesLoading}
                 measureUnits={measureUnits}
                 measureUnitsLoading={measureUnitsLoading}
-                rubroNone={RUBRO_NONE}
+                workCategoryNoneValue={WORK_CATEGORY_NONE}
                 unitNone={UNIT_NONE}
                 showSuggestions={false}
                 suggestionsLoading={false}

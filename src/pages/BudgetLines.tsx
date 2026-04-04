@@ -23,7 +23,7 @@ export type { BudgetLineRow } from '@/types/budget-line'
 type BudgetSection = {
     key: string
     workCategoryId: string | null
-    rubroNumber: number | null
+    categoryNumber: number | null
     name: string
     lines: BudgetLineRow[]
 }
@@ -52,7 +52,7 @@ function buildSections(
         .map((category) => ({
             key: category.id,
             workCategoryId: category.id,
-            rubroNumber: category.sortOrder > 0 ? category.sortOrder : null,
+            categoryNumber: category.sortOrder > 0 ? category.sortOrder : null,
             name: category.name,
             lines: grouped.get(category.id) ?? [],
         }))
@@ -61,7 +61,7 @@ function buildSections(
         sections.push({
             key: '__uncategorized__',
             workCategoryId: null,
-            rubroNumber: null,
+            categoryNumber: null,
             name: 'Sin rubro',
             lines: uncategorizedLines,
         })
@@ -75,16 +75,16 @@ function buildSections(
 
 function BudgetLineRow({
     line,
-    rubroNumber,
+    categoryNumber,
     onOpen,
 }: {
     line: BudgetLineRow
-    rubroNumber: number | null
+    categoryNumber: number | null
     onOpen: (l: BudgetLineRow) => void
 }) {
     const code =
-        rubroNumber != null
-            ? `${rubroNumber}.${line.itemNumber}`
+        categoryNumber != null
+            ? `${categoryNumber}.${line.itemNumber}`
             : `—.${line.itemNumber}`
 
     return (
@@ -449,8 +449,8 @@ function BudgetLinesBody({
                                             <div key={line.id}>
                                                 <BudgetLineRow
                                                     line={line}
-                                                    rubroNumber={
-                                                        section.rubroNumber
+                                                    categoryNumber={
+                                                        section.categoryNumber
                                                     }
                                                     onOpen={setPricingLine}
                                                 />

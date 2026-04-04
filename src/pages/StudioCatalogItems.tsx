@@ -27,16 +27,15 @@ export default function StudioCatalogItems() {
         enabled: isQueryReady,
     })
 
-    const byRubro = rows.reduce<Record<string, StudioCatalogItemDefaultRow[]>>(
-        (acc, row) => {
-            const k = row.workCategoryName
-            if (!acc[k]) acc[k] = []
-            acc[k].push(row)
-            return acc
-        },
-        {}
-    )
-    const rubroKeys = Object.keys(byRubro).sort()
+    const rowsByWorkCategory = rows.reduce<
+        Record<string, StudioCatalogItemDefaultRow[]>
+    >((acc, row) => {
+        const k = row.workCategoryName
+        if (!acc[k]) acc[k] = []
+        acc[k].push(row)
+        return acc
+    }, {})
+    const workCategoryKeys = Object.keys(rowsByWorkCategory).sort()
 
     return (
         <PageDataWrapper
@@ -73,38 +72,40 @@ export default function StudioCatalogItems() {
                 </div>
 
                 <div className="space-y-8">
-                    {rubroKeys.map((rubro) => (
-                        <section key={rubro}>
+                    {workCategoryKeys.map((workCategoryName) => (
+                        <section key={workCategoryName}>
                             <h2 className="text-sm font-semibold text-muted-foreground mb-3 border-b border-border pb-1">
-                                {rubro}
+                                {workCategoryName}
                             </h2>
                             <ul className="space-y-2">
-                                {byRubro[rubro].map((r) => (
-                                    <li
-                                        key={r.catalogItemId}
-                                        className="rounded-lg border border-border bg-card px-4 py-3 text-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
-                                    >
-                                        <div>
-                                            <p className="font-medium">
-                                                {r.name}
+                                {rowsByWorkCategory[workCategoryName].map(
+                                    (r) => (
+                                        <li
+                                            key={r.catalogItemId}
+                                            className="rounded-lg border border-border bg-card px-4 py-3 text-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
+                                        >
+                                            <div>
+                                                <p className="font-medium">
+                                                    {r.name}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground font-mono">
+                                                    {r.measureUnit?.name ??
+                                                        r.measureUnit?.code ??
+                                                        '—'}{' '}
+                                                    · {r.lines.length}{' '}
+                                                    {r.lines.length === 1
+                                                        ? 'línea'
+                                                        : 'líneas'}
+                                                </p>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground">
+                                                {r.studioDefaultUpdatedAt
+                                                    ? `Actualizado ${new Date(r.studioDefaultUpdatedAt).toLocaleString('es-AR')}`
+                                                    : 'Sin definir aún (vacío en nuevas obras)'}
                                             </p>
-                                            <p className="text-xs text-muted-foreground font-mono">
-                                                {r.measureUnit?.name ??
-                                                    r.measureUnit?.code ??
-                                                    '—'}{' '}
-                                                · {r.lines.length}{' '}
-                                                {r.lines.length === 1
-                                                    ? 'línea'
-                                                    : 'líneas'}
-                                            </p>
-                                        </div>
-                                        <p className="text-xs text-muted-foreground">
-                                            {r.studioDefaultUpdatedAt
-                                                ? `Actualizado ${new Date(r.studioDefaultUpdatedAt).toLocaleString('es-AR')}`
-                                                : 'Sin definir aún (vacío en nuevas obras)'}
-                                        </p>
-                                    </li>
-                                ))}
+                                        </li>
+                                    )
+                                )}
                             </ul>
                         </section>
                     ))}

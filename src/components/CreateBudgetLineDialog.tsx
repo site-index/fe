@@ -42,7 +42,7 @@ import {
 } from '@/lib/form-utils'
 import { qk } from '@/lib/query-keys'
 
-const RUBRO_NONE = '__none__'
+const WORK_CATEGORY_NONE = '__none__'
 const UNIT_NONE = '__none__'
 const SUGGESTION_LISTBOX_ID = 'create-budget-line-suggestion-listbox'
 
@@ -70,7 +70,7 @@ const schema = z.object({
         .trim()
         .min(1, 'La descripción es obligatoria')
         .max(2000, 'Máximo 2000 caracteres'),
-    workCategoryId: z.union([z.literal(RUBRO_NONE), z.string().uuid()]),
+    workCategoryId: z.union([z.literal(WORK_CATEGORY_NONE), z.string().uuid()]),
     measureUnitId: z.union([z.literal(UNIT_NONE), z.string().uuid()]),
     quantityStr: optionalNonNegStr,
     unitPriceStr: optionalNonNegStr,
@@ -109,7 +109,7 @@ function appendOptionalBudgetNumericFields(
 function buildBudgetLineCreateBody(
     values: FormValues,
     libraryBinding: LibraryBinding,
-    rubroNone: string
+    workCategoryNoneValue: string
 ): Record<string, unknown> {
     const body: Record<string, unknown> = {
         description: values.description,
@@ -120,7 +120,7 @@ function buildBudgetLineCreateBody(
         if (libraryBinding?.kind === 'yield') {
             body.itemYieldId = libraryBinding.yieldId
         }
-        if (values.workCategoryId !== rubroNone) {
+        if (values.workCategoryId !== workCategoryNoneValue) {
             body.workCategoryId = values.workCategoryId
         }
     }
@@ -147,7 +147,7 @@ export default function CreateBudgetLineDialog({
 
     const defaultForm: FormValues = {
         description: '',
-        workCategoryId: defaultWorkCategoryId ?? RUBRO_NONE,
+        workCategoryId: defaultWorkCategoryId ?? WORK_CATEGORY_NONE,
         measureUnitId: UNIT_NONE,
         quantityStr: '',
         unitPriceStr: '',
@@ -235,7 +235,9 @@ export default function CreateBudgetLineDialog({
             fuse,
             suggestionRows,
             values.description,
-            values.workCategoryId === RUBRO_NONE ? null : values.workCategoryId
+            values.workCategoryId === WORK_CATEGORY_NONE
+                ? null
+                : values.workCategoryId
         )
         return rows.filter((row) =>
             row.kind === 'catalog'
@@ -300,7 +302,7 @@ export default function CreateBudgetLineDialog({
 
         if (row.kind === 'yield') {
             form.setValue('description', row.name, { shouldValidate: true })
-            form.setValue('workCategoryId', RUBRO_NONE, {
+            form.setValue('workCategoryId', WORK_CATEGORY_NONE, {
                 shouldValidate: true,
             })
             form.setValue('measureUnitId', measureUnitId, {
@@ -337,9 +339,13 @@ export default function CreateBudgetLineDialog({
     const clearLibraryBinding = () => {
         setLibraryBinding(null)
         form.setValue('measureUnitId', UNIT_NONE, { shouldValidate: true })
-        form.setValue('workCategoryId', defaultWorkCategoryId ?? RUBRO_NONE, {
-            shouldValidate: true,
-        })
+        form.setValue(
+            'workCategoryId',
+            defaultWorkCategoryId ?? WORK_CATEGORY_NONE,
+            {
+                shouldValidate: true,
+            }
+        )
     }
 
     const onDescriptionKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -388,7 +394,7 @@ export default function CreateBudgetLineDialog({
             const baseBody = buildBudgetLineCreateBody(
                 normalizedSubmitted,
                 libraryBinding,
-                RUBRO_NONE
+                WORK_CATEGORY_NONE
             )
             appendOptionalBudgetNumericFields(
                 baseBody,
@@ -423,7 +429,7 @@ export default function CreateBudgetLineDialog({
     const resetDialog = () => {
         form.reset({
             ...defaultForm,
-            workCategoryId: defaultWorkCategoryId ?? RUBRO_NONE,
+            workCategoryId: defaultWorkCategoryId ?? WORK_CATEGORY_NONE,
         })
         setLibraryBinding(null)
         setSuggestionsOpen(false)
@@ -483,7 +489,7 @@ export default function CreateBudgetLineDialog({
                     categoriesLoading={categoriesLoading}
                     measureUnits={measureUnits}
                     measureUnitsLoading={measureUnitsLoading}
-                    rubroNone={RUBRO_NONE}
+                    workCategoryNoneValue={WORK_CATEGORY_NONE}
                     unitNone={UNIT_NONE}
                     showSuggestions={showSuggestions}
                     suggestionsLoading={suggestionsLoading}
