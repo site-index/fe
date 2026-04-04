@@ -134,20 +134,13 @@ function BudgetLineRow({
 
 function BudgetLineMobileRow({
     line,
-    rubroNumber,
     showBreakdown,
     onOpen,
 }: {
     line: BudgetLineRow
-    rubroNumber: number | null
     showBreakdown: boolean
     onOpen: (l: BudgetLineRow) => void
 }) {
-    const code =
-        rubroNumber != null
-            ? `${rubroNumber}.${line.itemNumber}`
-            : `—.${line.itemNumber}`
-
     return (
         <div className="border-b border-border/50 px-3 py-2 md:hidden">
             <button
@@ -157,9 +150,6 @@ function BudgetLineMobileRow({
             >
                 <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 space-y-1">
-                        <p className="font-mono text-[11px] text-muted-foreground">
-                            {code}
-                        </p>
                         <p
                             className={`line-clamp-2 text-sm ${line.flaky ? 'data-flaky' : ''}`}
                         >
@@ -419,17 +409,11 @@ function BudgetLinesBody({
                                                 }`}
                                             />
                                             <span className="truncate text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                                {section.rubroNumber != null
-                                                    ? `Rubro ${section.rubroNumber}`
-                                                    : 'Rubro'}{' '}
-                                                · {section.name}
+                                                {section.name}
                                             </span>
                                         </button>
                                         <span className="hidden min-w-0 flex-1 truncate text-xs font-semibold uppercase tracking-wide text-muted-foreground md:inline">
-                                            {section.rubroNumber != null
-                                                ? `Rubro ${section.rubroNumber}`
-                                                : 'Rubro'}{' '}
-                                            · {section.name}
+                                            {section.name}
                                         </span>
                                         <div className="flex items-center gap-2">
                                             <span className="font-mono text-xs font-semibold">
@@ -473,9 +457,6 @@ function BudgetLinesBody({
                                                 {isCollapsed ? null : (
                                                     <BudgetLineMobileRow
                                                         line={line}
-                                                        rubroNumber={
-                                                            section.rubroNumber
-                                                        }
                                                         showBreakdown
                                                         onOpen={setPricingLine}
                                                     />
