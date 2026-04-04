@@ -74,7 +74,7 @@ interface CreateItemYieldDialogProps {
 }
 
 function defaultMeasureUnitId(units: MeasureUnitRow[]): string {
-    const cubic = units.find((u) => u.code === 'cubic_meter')
+    const cubic = units.find((u) => u.code === 'metro_cubico')
     return cubic?.id ?? units[0]?.id ?? ''
 }
 

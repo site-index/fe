@@ -5,5 +5,5 @@ export type WorkCategoryRow = {
     name: string
 }
 
-/** English catalog code for “Otros” — matches migration + seed (`other`). */
-export const OTHER_WORK_CATEGORY_CODE = 'other' as const
+/** Catalog code for “Otros” — matches migration + seed (`otros`). */
+export const OTHER_WORK_CATEGORY_CODE = 'otros' as const
