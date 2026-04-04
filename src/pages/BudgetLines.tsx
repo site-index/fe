@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { ChevronRight, ChevronsDown, ChevronsUp, Plus } from 'lucide-react'
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 import { getProjectBudgetLines } from '@/api/budget-lines.api'
 import { getWorkCategories } from '@/api/catalog.api'
 import CreateBudgetLineDialog from '@/components/CreateBudgetLineDialog'
-import EditBudgetLineDialog from '@/components/EditBudgetLineDialog'
 import PageDataWrapper from '@/components/PageDataWrapper'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
@@ -280,7 +280,7 @@ function BudgetLinesBody({
     rows,
     categories,
 }: ReturnType<typeof useBudgetLinesVm>) {
-    const [pricingLine, setPricingLine] = useState<BudgetLineRow | null>(null)
+    const navigate = useNavigate()
     const [collapsedSections, setCollapsedSections] = useState<
         Record<string, boolean>
     >({})
@@ -301,15 +301,6 @@ function BudgetLinesBody({
             isPending={isPending}
             error={error}
         >
-            <EditBudgetLineDialog
-                line={pricingLine}
-                open={pricingLine != null}
-                onOpenChange={(o) => {
-                    if (!o) setPricingLine(null)
-                }}
-                onLineUpdated={(l) => setPricingLine(l)}
-            />
-
             <div className="space-y-4 print:space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-2 print:mb-2">
                     <h1 className="text-xl font-black tracking-tight">
@@ -459,13 +450,23 @@ function BudgetLinesBody({
                                                     categoryNumber={
                                                         section.categoryNumber
                                                     }
-                                                    onOpen={setPricingLine}
+                                                    onOpen={(selectedLine) =>
+                                                        navigate(
+                                                            `/budget-lines/${selectedLine.id}/yield`
+                                                        )
+                                                    }
                                                 />
                                                 {isCollapsed ? null : (
                                                     <BudgetLineMobileRow
                                                         line={line}
                                                         showBreakdown
-                                                        onOpen={setPricingLine}
+                                                        onOpen={(
+                                                            selectedLine
+                                                        ) =>
+                                                            navigate(
+                                                                `/budget-lines/${selectedLine.id}/yield`
+                                                            )
+                                                        }
                                                     />
                                                 )}
                                             </div>

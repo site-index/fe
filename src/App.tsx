@@ -15,8 +15,10 @@ import { ScopeProvider } from '@/contexts/ScopeContext'
 
 // const Dashboard = lazy(() => import('@/pages/Dashboard'))
 const BudgetLines = lazy(() => import('@/pages/BudgetLines'))
+const BudgetLineYieldEditor = lazy(
+    () => import('@/pages/BudgetLineYieldEditor')
+)
 // const ResourceDemand = lazy(() => import('@/pages/ResourceDemand'))
-const ItemYields = lazy(() => import('@/pages/ItemYields'))
 // const StudioCatalogItems = lazy(() => import('@/pages/StudioCatalogItems'))
 // const Certification = lazy(() => import('@/pages/Certification'))
 // const Assumptions = lazy(() => import('@/pages/Assumptions'))
@@ -81,14 +83,14 @@ const App = () => (
                                             path="/budget-lines"
                                             element={<BudgetLines />}
                                         />
+                                        <Route
+                                            path="/budget-lines/:budgetLineId/yield"
+                                            element={<BudgetLineYieldEditor />}
+                                        />
                                         {/* <Route
                                             path="/resource-demand"
                                             element={<ResourceDemand />}
                                         /> */}
-                                        <Route
-                                            path="/item-yields"
-                                            element={<ItemYields />}
-                                        />
                                         {/* <Route
                                             path="/studio-catalog-items"
                                             element={<StudioCatalogItems />}

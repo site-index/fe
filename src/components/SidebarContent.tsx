@@ -1,7 +1,6 @@
 import {
     Calculator,
     ChevronDown,
-    FlaskConical,
     // LayoutDashboard,
     LogOut,
     Settings,
@@ -27,7 +26,6 @@ const navItems = [
     //     label: 'Demanda de recursos',
     //     icon: PackageSearch,
     // },
-    { to: '/item-yields', label: 'Rendimientos', icon: FlaskConical },
     // {
     //     to: '/studio-catalog-items',
     //     label: 'Biblioteca del estudio',
