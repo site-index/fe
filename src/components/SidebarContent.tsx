@@ -4,7 +4,7 @@ import {
     ChevronDown,
     ClipboardCheck,
     FlaskConical,
-    LayoutDashboard,
+    // LayoutDashboard,
     Library,
     LogOut,
     PackageSearch,
@@ -23,21 +23,21 @@ import SiteLogo from './SiteLogo'
 import ThemeToggle from './ThemeToggle'
 
 const navItems = [
-    { to: '/', label: 'Tablero', icon: LayoutDashboard },
+    // { to: '/', label: 'Tablero', icon: LayoutDashboard },
     { to: '/budget-lines', label: 'Cómputo & Presupuesto', icon: Calculator },
-    {
-        to: '/resource-demand',
-        label: 'Demanda de recursos',
-        icon: PackageSearch,
-    },
+    // {
+    //     to: '/resource-demand',
+    //     label: 'Demanda de recursos',
+    //     icon: PackageSearch,
+    // },
     { to: '/item-yields', label: 'Rendimientos', icon: FlaskConical },
-    {
-        to: '/studio-catalog-items',
-        label: 'Biblioteca del estudio',
-        icon: Library,
-    },
-    { to: '/certifications', label: 'Certificación', icon: ClipboardCheck },
-    { to: '/assumptions', label: 'Supuestos', icon: AlertTriangle },
+    // {
+    //     to: '/studio-catalog-items',
+    //     label: 'Biblioteca del estudio',
+    //     icon: Library,
+    // },
+    // { to: '/certifications', label: 'Certificación', icon: ClipboardCheck },
+    // { to: '/assumptions', label: 'Supuestos', icon: AlertTriangle },
 ]
 
 interface SidebarContentProps {

@@ -12,13 +12,13 @@ import { Toaster as Sonner } from '@/components/ui/sonner'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ProjectProvider } from '@/contexts/ProjectContext'
 
-const Dashboard = lazy(() => import('@/pages/Dashboard'))
+// const Dashboard = lazy(() => import('@/pages/Dashboard'))
 const BudgetLines = lazy(() => import('@/pages/BudgetLines'))
-const ResourceDemand = lazy(() => import('@/pages/ResourceDemand'))
+// const ResourceDemand = lazy(() => import('@/pages/ResourceDemand'))
 const ItemYields = lazy(() => import('@/pages/ItemYields'))
-const StudioCatalogItems = lazy(() => import('@/pages/StudioCatalogItems'))
-const Certification = lazy(() => import('@/pages/Certification'))
-const Assumptions = lazy(() => import('@/pages/Assumptions'))
+// const StudioCatalogItems = lazy(() => import('@/pages/StudioCatalogItems'))
+// const Certification = lazy(() => import('@/pages/Certification'))
+// const Assumptions = lazy(() => import('@/pages/Assumptions'))
 const SettingsPage = lazy(() => import('@/pages/Settings'))
 const Login = lazy(() => import('@/pages/Login'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
@@ -66,23 +66,27 @@ const App = () => (
                                             </ProjectProvider>
                                         }
                                     >
-                                        <Route
+                                        {/* <Route
                                             path="/"
                                             element={<Dashboard />}
+                                        /> */}
+                                        <Route
+                                            path="/"
+                                            element={<BudgetLines />}
                                         />
                                         <Route
                                             path="/budget-lines"
                                             element={<BudgetLines />}
                                         />
-                                        <Route
+                                        {/* <Route
                                             path="/resource-demand"
                                             element={<ResourceDemand />}
-                                        />
+                                        /> */}
                                         <Route
                                             path="/item-yields"
                                             element={<ItemYields />}
                                         />
-                                        <Route
+                                        {/* <Route
                                             path="/studio-catalog-items"
                                             element={<StudioCatalogItems />}
                                         />
@@ -93,7 +97,7 @@ const App = () => (
                                         <Route
                                             path="/assumptions"
                                             element={<Assumptions />}
-                                        />
+                                        /> */}
                                         <Route
                                             path="/settings"
                                             element={<SettingsPage />}
