@@ -20,7 +20,10 @@ import { getMeasureUnits, getWorkCategories } from '@/api/catalog.api'
 import {
     type CreateItemYieldInput,
     createProjectItemYield,
+    type ItemYieldLineInput,
 } from '@/api/item-yields.api'
+import { getResources, type ResourceRow } from '@/api/resources.api'
+import ItemYieldLinesEditor from '@/components/ItemYieldLinesEditor'
 import { Button } from '@/components/ui/button'
 import {
     Form,
@@ -120,10 +123,12 @@ function useCreateItemYieldSubmit(
     studioSlug: string,
     projectId: string,
     measureUnits: MeasureUnitRow[],
+    lines: ItemYieldLineInput[],
     form: UseFormReturn<FormValues>,
     queryClient: ReturnType<typeof useQueryClient>,
     onCreated: ((id: string) => void) | undefined,
-    setOpen: (v: boolean) => void
+    setOpen: (v: boolean) => void,
+    setLines: (next: ItemYieldLineInput[]) => void
 ) {
     return useCallback(
         async (values: FormValues) => {
@@ -133,6 +138,10 @@ function useCreateItemYieldSubmit(
                     name: values.name,
                     measureUnitId: values.measureUnitId,
                     basisOutputQty: values.basisOutputQty,
+                    components: {
+                        linkedItems: [],
+                        lines,
+                    },
                 }
                 if (values.description.trim() !== '') {
                     body.description = values.description.trim()
@@ -155,6 +164,7 @@ function useCreateItemYieldSubmit(
                     basisOutputQty: 1,
                 })
                 setOpen(false)
+                setLines([])
                 onCreated?.(created.id)
             } catch (err) {
                 toast.error('Error al crear el rendimiento', {
@@ -165,11 +175,13 @@ function useCreateItemYieldSubmit(
         [
             accessToken,
             form,
+            lines,
             measureUnits,
             onCreated,
             projectId,
             queryClient,
             setOpen,
+            setLines,
             studioSlug,
         ]
     )
@@ -199,6 +211,9 @@ function CreateItemYieldFormFields({
     categoriesError,
     measureUnits,
     measureUnitsLoading,
+    resources,
+    lines,
+    setLines,
     canSubmit,
 }: {
     form: UseFormReturn<FormValues>
@@ -208,6 +223,9 @@ function CreateItemYieldFormFields({
     categoriesError: boolean
     measureUnits: MeasureUnitRow[]
     measureUnitsLoading: boolean
+    resources: ResourceRow[]
+    lines: ItemYieldLineInput[]
+    setLines: (next: ItemYieldLineInput[]) => void
     canSubmit: boolean
 }) {
     const workCategoryPlaceholder = categoriesLoading
@@ -348,6 +366,13 @@ function CreateItemYieldFormFields({
                             </FormItem>
                         )}
                     />
+                    <ItemYieldLinesEditor
+                        lines={lines}
+                        resources={resources}
+                        measureUnits={measureUnits}
+                        disabled={form.formState.isSubmitting}
+                        onChange={setLines}
+                    />
                 </div>
                 <div className="flex shrink-0 justify-end border-t px-0 pt-4 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
                     <Button type="submit" disabled={!canSubmit}>
@@ -364,6 +389,7 @@ export default function CreateItemYieldDialog({
     onCreated,
 }: CreateItemYieldDialogProps) {
     const [open, setOpen] = useState(false)
+    const [lines, setLines] = useState<ItemYieldLineInput[]>([])
     const { accessToken, studioSlug } = useAuth()
     const { activeProject } = useProject()
     const queryClient = useQueryClient()
@@ -406,6 +432,15 @@ export default function CreateItemYieldDialog({
                 }),
             enabled: catalogQueriesEnabled,
         })
+    const { data: resources = [] } = useQuery({
+        queryKey: qk.resources,
+        queryFn: () =>
+            getResources({
+                token: accessToken,
+                studioSlug,
+            }),
+        enabled: catalogQueriesEnabled,
+    })
 
     useItemYieldDialogDefaults(
         open,
@@ -421,10 +456,12 @@ export default function CreateItemYieldDialog({
         studioSlug,
         activeProject.id,
         measureUnits,
+        lines,
         form,
         queryClient,
         onCreated,
-        setOpen
+        setOpen,
+        setLines
     )
 
     const resetValues = useCallback(() => {
@@ -435,6 +472,7 @@ export default function CreateItemYieldDialog({
             measureUnitId: defaultMeasureUnitId(measureUnits),
             basisOutputQty: 1,
         })
+        setLines([])
     }, [form, measureUnits])
 
     const handleOpenChange = useCallback(
@@ -511,8 +549,8 @@ export default function CreateItemYieldDialog({
                             </Button>
                         </div>
                         <p className="shrink-0 border-b px-4 py-3 text-sm text-muted-foreground">
-                            Elegí el rubro y la unidad del ítem. Podés agregar
-                            líneas de materiales después (p. ej. vía API).
+                            Elegí rubro y unidad del ítem, y cargá las líneas de
+                            recursos que usa este rendimiento.
                         </p>
                         <div className="flex min-h-0 flex-1 flex-col px-4 pb-3">
                             <CreateItemYieldFormFields
@@ -523,6 +561,9 @@ export default function CreateItemYieldDialog({
                                 categoriesError={categoriesError}
                                 measureUnits={measureUnits}
                                 measureUnitsLoading={measureUnitsLoading}
+                                resources={resources}
+                                lines={lines}
+                                setLines={setLines}
                                 canSubmit={canSubmit}
                             />
                         </div>

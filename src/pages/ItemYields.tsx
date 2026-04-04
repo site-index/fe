@@ -4,6 +4,7 @@ import {
     ChevronRight,
     ExternalLink,
     FlaskConical,
+    Pencil,
     Plus,
 } from 'lucide-react'
 import { useState } from 'react'
@@ -11,6 +12,7 @@ import { Link } from 'react-router-dom'
 
 import { getProjectItemYields } from '@/api/item-yields.api'
 import CreateItemYieldDialog from '@/components/CreateItemYieldDialog'
+import EditItemYieldDialog from '@/components/EditItemYieldDialog'
 import PageDataWrapper from '@/components/PageDataWrapper'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
@@ -108,12 +110,31 @@ function ConverterWidget({ itemYield }: { itemYield: ItemYield }) {
     )
 }
 
-function ItemYieldDetail({ d, onBack }: { d: ItemYield; onBack: () => void }) {
+function ItemYieldDetail({
+    d,
+    onBack,
+    onEdit,
+}: {
+    d: ItemYield
+    onBack: () => void
+    onEdit: () => void
+}) {
     return (
         <div className="space-y-6">
-            <Button variant="ghost" size="sm" onClick={onBack}>
-                <ArrowLeft className="h-4 w-4" /> Volver a rendimientos
-            </Button>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+                <Button variant="ghost" size="sm" onClick={onBack}>
+                    <ArrowLeft className="h-4 w-4" /> Volver a rendimientos
+                </Button>
+                <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={onEdit}
+                >
+                    <Pencil className="h-4 w-4" />
+                    Editar
+                </Button>
+            </div>
 
             <div>
                 <p className="text-xs text-muted-foreground mb-1">
@@ -342,6 +363,7 @@ function ItemYieldsGrid({
 
 export default function ItemYields() {
     const [selectedId, setSelectedId] = useState<string | null>(null)
+    const [editOpen, setEditOpen] = useState(false)
     const { activeProject, projectsLoading } = useProject()
     const { accessToken, studioSlug, isQueryReady } = useAuth()
     const empty = activeProject.id === '__empty__'
@@ -364,7 +386,21 @@ export default function ItemYields() {
 
     if (selected) {
         return (
-            <ItemYieldDetail d={selected} onBack={() => setSelectedId(null)} />
+            <>
+                <ItemYieldDetail
+                    d={selected}
+                    onBack={() => {
+                        setEditOpen(false)
+                        setSelectedId(null)
+                    }}
+                    onEdit={() => setEditOpen(true)}
+                />
+                <EditItemYieldDialog
+                    itemYield={selected}
+                    open={editOpen}
+                    onOpenChange={setEditOpen}
+                />
+            </>
         )
     }
 
@@ -397,7 +433,10 @@ export default function ItemYields() {
 
                 <ItemYieldsGrid
                     itemYields={itemYields}
-                    onSelect={setSelectedId}
+                    onSelect={(id) => {
+                        setEditOpen(false)
+                        setSelectedId(id)
+                    }}
                 />
             </div>
         </PageDataWrapper>

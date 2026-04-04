@@ -2,6 +2,7 @@ export const qk = {
     projects: ['projects'] as const,
     workCategories: ['work-categories'] as const,
     measureUnits: ['measure-units'] as const,
+    resources: ['resources'] as const,
     studioCatalogItems: ['studio-catalog-items'] as const,
     itemYields: (projectId: string) => ['item-yields', projectId] as const,
     budgetLines: (projectId: string) => ['budget-lines', projectId] as const,
