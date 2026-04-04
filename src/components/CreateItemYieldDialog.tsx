@@ -10,16 +10,19 @@ import {
     type ReactNode,
     useCallback,
     useEffect,
+    useMemo,
     useState,
 } from 'react'
 import { useForm, type UseFormReturn } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
+import { getProjectBudgetLines } from '@/api/budget-lines.api'
 import { getStudioCatalogItems } from '@/api/catalog.api'
 import {
     type CreateItemYieldInput,
     createProjectItemYield,
+    getProjectItemYields,
     type ItemYieldLineInput,
 } from '@/api/item-yields.api'
 import {
@@ -48,6 +51,10 @@ import {
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
 import { getApiErrorMessage } from '@/lib/api'
+import {
+    filterCatalogItemsLoadedInProject,
+    loadedCatalogItemIdsFromProjectBudget,
+} from '@/lib/project-loaded-catalog-items'
 import { qk } from '@/lib/query-keys'
 
 const schema = z.object({
@@ -174,7 +181,7 @@ function CreateItemYieldFormFields({
     const itemPlaceholder = catalogItemsLoading
         ? 'Cargando ítems…'
         : catalogItems.length === 0
-          ? 'No hay ítems disponibles'
+          ? 'No hay ítems cargados en el proyecto'
           : 'Elegí un ítem'
     return (
         <Form {...form}>
@@ -219,8 +226,8 @@ function CreateItemYieldFormFields({
                                 {!catalogItemsLoading &&
                                 catalogItems.length === 0 ? (
                                     <p className="text-xs text-muted-foreground">
-                                        No hay ítems disponibles para crear este
-                                        rendimiento.
+                                        No hay ítems cargados en las líneas de
+                                        este proyecto para crear un rendimiento.
                                     </p>
                                 ) : null}
                                 <FormMessage />
@@ -265,6 +272,8 @@ export default function CreateItemYieldDialog({
 
     const catalogQueriesEnabled =
         open && Boolean(accessToken && studioSlug.trim())
+    const projectScopedQueriesEnabled =
+        catalogQueriesEnabled && activeProject.id !== '__empty__'
 
     const { data: catalogItems = [], isPending: catalogItemsLoading } =
         useQuery({
@@ -276,6 +285,24 @@ export default function CreateItemYieldDialog({
                 }),
             enabled: catalogQueriesEnabled,
         })
+    const { data: budgetLines = [] } = useQuery({
+        queryKey: qk.budgetLines(activeProject.id),
+        queryFn: () =>
+            getProjectBudgetLines(activeProject.id, {
+                token: accessToken,
+                studioSlug,
+            }),
+        enabled: projectScopedQueriesEnabled,
+    })
+    const { data: itemYields = [] } = useQuery({
+        queryKey: qk.itemYields(activeProject.id),
+        queryFn: () =>
+            getProjectItemYields(activeProject.id, {
+                token: accessToken,
+                studioSlug,
+            }),
+        enabled: projectScopedQueriesEnabled,
+    })
     const { data: resources = [] } = useQuery({
         queryKey: qk.resources,
         queryFn: () =>
@@ -297,8 +324,29 @@ export default function CreateItemYieldDialog({
     const pricesByResourceId = new Map(
         resourcePrices.map((row) => [row.resourceId, row.unitPrice] as const)
     )
+    const loadedCatalogItemIds = useMemo(
+        () =>
+            loadedCatalogItemIdsFromProjectBudget({
+                budgetLines,
+                itemYields,
+            }),
+        [budgetLines, itemYields]
+    )
+    const projectCatalogItems = useMemo(
+        () =>
+            filterCatalogItemsLoadedInProject(
+                catalogItems,
+                loadedCatalogItemIds
+            ),
+        [catalogItems, loadedCatalogItemIds]
+    )
 
-    useItemYieldDialogDefaults(open, catalogItemsLoading, catalogItems, form)
+    useItemYieldDialogDefaults(
+        open,
+        catalogItemsLoading,
+        projectCatalogItems,
+        form
+    )
 
     const onSubmit = useCreateItemYieldSubmit(
         accessToken,
@@ -331,7 +379,7 @@ export default function CreateItemYieldDialog({
 
     const canSubmit = itemYieldFormCanSubmit(
         catalogItemsLoading,
-        catalogItems.length,
+        projectCatalogItems.length,
         form.formState.isSubmitting
     )
     const onSetResourcePrice = useCallback(
@@ -419,7 +467,7 @@ export default function CreateItemYieldDialog({
                             <CreateItemYieldFormFields
                                 form={form}
                                 onSubmit={onSubmit}
-                                catalogItems={catalogItems}
+                                catalogItems={projectCatalogItems}
                                 catalogItemsLoading={catalogItemsLoading}
                                 resources={resources}
                                 pricesByResourceId={pricesByResourceId}
