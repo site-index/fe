@@ -91,36 +91,14 @@ function ProjectSelector({
     projectMenuOpen,
     setProjectMenuOpen,
     setActiveProject,
-    isProjectScope,
 }: {
     activeProject: { id: string; name: string }
     projects: Array<{ id: string; name: string }>
     projectMenuOpen: boolean
     setProjectMenuOpen: (open: boolean) => void
     setActiveProject: (project: { id: string; name: string }) => void
-    isProjectScope: boolean
 }) {
     const isSingleProject = projects.length <= 1
-
-    if (!isProjectScope) {
-        return (
-            <div className="mx-3 mb-4 relative">
-                <button
-                    className="w-full cursor-default rounded-md border border-sidebar-border bg-sidebar-accent px-3 py-2 text-left transition-colors"
-                    type="button"
-                >
-                    <p className="text-xs text-sidebar-muted">
-                        Proyecto (modo estudio)
-                    </p>
-                    <div className="flex items-center justify-between">
-                        <p className="truncate text-sm font-semibold text-sidebar-foreground/60">
-                            {activeProject.name}
-                        </p>
-                    </div>
-                </button>
-            </div>
-        )
-    }
 
     if (isSingleProject) {
         return (
@@ -186,6 +164,26 @@ function ProjectSelector({
     )
 }
 
+function StudioSelector({ studioSlug }: { studioSlug: string }) {
+    const displayName = studioSlug.trim() || 'Sin estudio'
+    return (
+        <div className="mx-3 mb-4 relative">
+            <button
+                className="w-full cursor-default rounded-md border border-sidebar-border bg-sidebar-accent px-3 py-2 text-left transition-colors"
+                type="button"
+            >
+                <p className="text-xs text-sidebar-muted">Estudio activo</p>
+                <div className="flex items-center justify-between">
+                    <p className="truncate text-sm font-semibold text-sidebar-foreground">
+                        {displayName}
+                    </p>
+                    <ChevronDown className="h-3.5 w-3.5 shrink-0 text-sidebar-muted/50" />
+                </div>
+            </button>
+        </div>
+    )
+}
+
 function SidebarUserAvatar({ sessionEmail }: { sessionEmail: string | null }) {
     const initial = sessionEmail?.trim().charAt(0).toUpperCase() ?? ''
     return (
@@ -201,7 +199,7 @@ function SidebarUserAvatar({ sessionEmail }: { sessionEmail: string | null }) {
 
 export default function SidebarContent({ onNavigate }: SidebarContentProps) {
     const location = useLocation()
-    const { logout, sessionEmail } = useAuth()
+    const { logout, sessionEmail, studioSlug } = useAuth()
     const { activeProject, setActiveProject, projects } = useProject()
     const { mode, setMode, isProjectScope } = useScope()
     const [projectMenuOpen, setProjectMenuOpen] = useState(false)
@@ -225,14 +223,17 @@ export default function SidebarContent({ onNavigate }: SidebarContentProps) {
                 }}
             />
 
-            <ProjectSelector
-                activeProject={activeProject}
-                projects={projects}
-                projectMenuOpen={projectMenuOpen}
-                setProjectMenuOpen={setProjectMenuOpen}
-                setActiveProject={setActiveProject}
-                isProjectScope={isProjectScope}
-            />
+            {isProjectScope ? (
+                <ProjectSelector
+                    activeProject={activeProject}
+                    projects={projects}
+                    projectMenuOpen={projectMenuOpen}
+                    setProjectMenuOpen={setProjectMenuOpen}
+                    setActiveProject={setActiveProject}
+                />
+            ) : (
+                <StudioSelector studioSlug={studioSlug} />
+            )}
 
             <div className="mx-3 mb-2">
                 <CreateProjectDialog />
