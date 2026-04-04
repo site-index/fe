@@ -13,7 +13,7 @@
         "build:dev": "vite build --mode development",
         "lint": "eslint . --cache --cache-location node_modules/.cache/eslint",
         "format": "prettier --write .",
-        "format:check": "prettier --check .",
+        "format:check": "prettier --check . --cache --cache-location node_modules/.cache/prettier",
         "preview": "vite preview",
         "test": "vitest run",
         "test:watch": "vitest",
