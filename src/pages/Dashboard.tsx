@@ -7,6 +7,7 @@ import MetricCard from '@/components/MetricCard'
 import PageDataWrapper from '@/components/PageDataWrapper'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
+import { useScope } from '@/contexts/ScopeContext'
 import { apiFetch } from '@/lib/api'
 import { qk } from '@/lib/query-keys'
 import type { DashboardData } from '@/types/dashboard'
@@ -16,6 +17,7 @@ export default function Dashboard() {
     const { accessToken, studioSlug, isQueryReady } = useAuth()
 
     const emptyProject = activeProject.id === '__empty__'
+    const { isProjectScope } = useScope()
 
     const { data, isPending, error } = useQuery({
         queryKey: qk.dashboard(activeProject.id),
@@ -27,13 +29,16 @@ export default function Dashboard() {
                     studioSlug,
                 }
             ),
-        enabled: isQueryReady && !emptyProject && !projectsLoading,
+        enabled:
+            isQueryReady && isProjectScope && !emptyProject && !projectsLoading,
     })
 
-    if (!data) {
+    if (!data || !isProjectScope) {
         return (
             <PageDataWrapper
                 title="Tablero"
+                blockedByScope={!isProjectScope}
+                blockedMessage="Esta vista es por proyecto. Cambiá a modo Proyecto para continuar."
                 projectsLoading={projectsLoading}
                 emptyProject={emptyProject}
                 emptyMessage="No hay proyectos en este estudio."

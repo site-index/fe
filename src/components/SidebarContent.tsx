@@ -12,6 +12,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
+import { useScope } from '@/contexts/ScopeContext'
 import { cn } from '@/lib/utils'
 
 import CreateProjectDialog from './CreateProjectDialog'
@@ -40,6 +41,151 @@ interface SidebarContentProps {
     onNavigate?: () => void
 }
 
+function ScopeModeSelector({
+    mode,
+    onSelectProject,
+    onSelectStudio,
+}: {
+    mode: 'project' | 'studio'
+    onSelectProject: () => void
+    onSelectStudio: () => void
+}) {
+    return (
+        <div className="mx-3 mb-3 space-y-2">
+            <p className="px-1 text-[11px] font-semibold uppercase tracking-wide text-sidebar-muted">
+                Contexto
+            </p>
+            <div className="grid grid-cols-2 rounded-md border border-sidebar-border bg-sidebar-accent p-1">
+                <button
+                    type="button"
+                    onClick={onSelectProject}
+                    className={cn(
+                        'rounded px-2 py-1.5 text-xs font-semibold transition-colors',
+                        mode === 'project'
+                            ? 'bg-sidebar text-sidebar-foreground'
+                            : 'text-sidebar-foreground/70 hover:text-sidebar-foreground'
+                    )}
+                >
+                    Proyecto
+                </button>
+                <button
+                    type="button"
+                    onClick={onSelectStudio}
+                    className={cn(
+                        'rounded px-2 py-1.5 text-xs font-semibold transition-colors',
+                        mode === 'studio'
+                            ? 'bg-sidebar text-sidebar-foreground'
+                            : 'text-sidebar-foreground/70 hover:text-sidebar-foreground'
+                    )}
+                >
+                    Estudio
+                </button>
+            </div>
+        </div>
+    )
+}
+
+function ProjectSelector({
+    activeProject,
+    projects,
+    projectMenuOpen,
+    setProjectMenuOpen,
+    setActiveProject,
+    isProjectScope,
+}: {
+    activeProject: { id: string; name: string }
+    projects: Array<{ id: string; name: string }>
+    projectMenuOpen: boolean
+    setProjectMenuOpen: (open: boolean) => void
+    setActiveProject: (project: { id: string; name: string }) => void
+    isProjectScope: boolean
+}) {
+    const isSingleProject = projects.length <= 1
+
+    if (!isProjectScope) {
+        return (
+            <div className="mx-3 mb-4 relative">
+                <button
+                    className="w-full cursor-default rounded-md border border-sidebar-border bg-sidebar-accent px-3 py-2 text-left transition-colors"
+                    type="button"
+                >
+                    <p className="text-xs text-sidebar-muted">
+                        Proyecto (modo estudio)
+                    </p>
+                    <div className="flex items-center justify-between">
+                        <p className="truncate text-sm font-semibold text-sidebar-foreground/60">
+                            {activeProject.name}
+                        </p>
+                    </div>
+                </button>
+            </div>
+        )
+    }
+
+    if (isSingleProject) {
+        return (
+            <div className="mx-3 mb-4 relative">
+                <button
+                    className="w-full cursor-default rounded-md border border-sidebar-border bg-sidebar-accent px-3 py-2 text-left transition-colors"
+                    type="button"
+                >
+                    <p className="text-xs text-sidebar-muted">
+                        Proyecto activo
+                    </p>
+                    <div className="flex items-center justify-between">
+                        <p className="truncate text-sm font-semibold text-sidebar-foreground">
+                            {activeProject.name}
+                        </p>
+                    </div>
+                </button>
+            </div>
+        )
+    }
+
+    return (
+        <div className="mx-3 mb-4 relative">
+            <button
+                onClick={() => setProjectMenuOpen(!projectMenuOpen)}
+                className="w-full rounded-md border border-sidebar-border bg-sidebar-accent px-3 py-2 text-left transition-colors hover:border-sidebar-primary/40 cursor-pointer"
+            >
+                <p className="text-xs text-sidebar-muted">Proyecto activo</p>
+                <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold truncate text-sidebar-foreground">
+                        {activeProject.name}
+                    </p>
+                    <ChevronDown
+                        className={cn(
+                            'h-3.5 w-3.5 text-sidebar-muted shrink-0 transition-transform',
+                            projectMenuOpen && 'rotate-180'
+                        )}
+                    />
+                </div>
+            </button>
+            {projectMenuOpen && (
+                <div className="absolute left-0 right-0 top-full mt-1 rounded-md border border-sidebar-border bg-sidebar shadow-lg z-10">
+                    {projects.map((p) => (
+                        <button
+                            key={p.id}
+                            onClick={() => {
+                                setActiveProject(p)
+                                setProjectMenuOpen(false)
+                            }}
+                            className={cn(
+                                'w-full px-3 py-2.5 text-left text-sm transition-colors',
+                                p.id === activeProject.id
+                                    ? 'bg-sidebar-accent text-sidebar-primary font-semibold'
+                                    : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                            )}
+                        >
+                            {p.name}
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    )
+}
+
 function SidebarUserAvatar({ sessionEmail }: { sessionEmail: string | null }) {
     const initial = sessionEmail?.trim().charAt(0).toUpperCase() ?? ''
     return (
@@ -57,6 +203,7 @@ export default function SidebarContent({ onNavigate }: SidebarContentProps) {
     const location = useLocation()
     const { logout, sessionEmail } = useAuth()
     const { activeProject, setActiveProject, projects } = useProject()
+    const { mode, setMode, isProjectScope } = useScope()
     const [projectMenuOpen, setProjectMenuOpen] = useState(false)
 
     return (
@@ -66,59 +213,26 @@ export default function SidebarContent({ onNavigate }: SidebarContentProps) {
                 <SiteLogo invertOnDark className="h-24 sm:h-40 w-auto" />
             </div>
 
-            {/* Project selector */}
-            <div className="mx-3 mb-4 relative">
-                <button
-                    onClick={() =>
-                        projects.length > 1 &&
-                        setProjectMenuOpen(!projectMenuOpen)
-                    }
-                    className={cn(
-                        'w-full rounded-md border border-sidebar-border bg-sidebar-accent px-3 py-2 text-left transition-colors',
-                        projects.length > 1 &&
-                            'hover:border-sidebar-primary/40 cursor-pointer',
-                        projects.length <= 1 && 'cursor-default'
-                    )}
-                >
-                    <p className="text-xs text-sidebar-muted">
-                        Proyecto activo
-                    </p>
-                    <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-sidebar-foreground truncate">
-                            {activeProject.name}
-                        </p>
-                        {projects.length > 1 && (
-                            <ChevronDown
-                                className={cn(
-                                    'h-3.5 w-3.5 text-sidebar-muted shrink-0 transition-transform',
-                                    projectMenuOpen && 'rotate-180'
-                                )}
-                            />
-                        )}
-                    </div>
-                </button>
-                {projectMenuOpen && projects.length > 1 && (
-                    <div className="absolute left-0 right-0 top-full mt-1 rounded-md border border-sidebar-border bg-sidebar shadow-lg z-10">
-                        {projects.map((p) => (
-                            <button
-                                key={p.id}
-                                onClick={() => {
-                                    setActiveProject(p)
-                                    setProjectMenuOpen(false)
-                                }}
-                                className={cn(
-                                    'w-full px-3 py-2.5 text-left text-sm transition-colors',
-                                    p.id === activeProject.id
-                                        ? 'bg-sidebar-accent text-sidebar-primary font-semibold'
-                                        : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
-                                )}
-                            >
-                                {p.name}
-                            </button>
-                        ))}
-                    </div>
-                )}
-            </div>
+            <ScopeModeSelector
+                mode={mode}
+                onSelectProject={() => {
+                    setMode('project')
+                    setProjectMenuOpen(false)
+                }}
+                onSelectStudio={() => {
+                    setMode('studio')
+                    setProjectMenuOpen(false)
+                }}
+            />
+
+            <ProjectSelector
+                activeProject={activeProject}
+                projects={projects}
+                projectMenuOpen={projectMenuOpen}
+                setProjectMenuOpen={setProjectMenuOpen}
+                setActiveProject={setActiveProject}
+                isProjectScope={isProjectScope}
+            />
 
             <div className="mx-3 mb-2">
                 <CreateProjectDialog />

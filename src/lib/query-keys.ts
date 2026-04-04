@@ -5,16 +5,20 @@ export const qk = {
     resources: ['resources'] as const,
     resourcePrices: ['resource-prices'] as const,
     studioCatalogItems: ['studio-catalog-items'] as const,
-    itemYields: (projectId: string) => ['item-yields', projectId] as const,
-    budgetLines: (projectId: string) => ['budget-lines', projectId] as const,
+    itemYields: (projectId: string) =>
+        ['project', projectId, 'item-yields'] as const,
+    budgetLines: (projectId: string) =>
+        ['project', projectId, 'budget-lines'] as const,
     resourceDemand: (projectId: string) =>
-        ['resource-demand', projectId] as const,
-    dashboard: (projectId: string) => ['dashboard', projectId] as const,
-    assumptions: (projectId: string) => ['assumptions', projectId] as const,
+        ['project', projectId, 'resource-demand'] as const,
+    dashboard: (projectId: string) =>
+        ['project', projectId, 'dashboard'] as const,
+    assumptions: (projectId: string) =>
+        ['project', projectId, 'assumptions'] as const,
     projectDetail: (projectId: string) =>
-        ['project-detail', projectId] as const,
+        ['project', projectId, 'project-detail'] as const,
     certifications: (projectId: string) =>
-        ['certifications', projectId] as const,
+        ['project', projectId, 'certifications'] as const,
     certificationsSummary: (projectId: string) =>
-        ['certifications-summary', projectId] as const,
+        ['project', projectId, 'certifications-summary'] as const,
 }

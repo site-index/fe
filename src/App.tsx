@@ -11,6 +11,7 @@ import { PwaUpdateBanner } from '@/components/PwaUpdateBanner'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ProjectProvider } from '@/contexts/ProjectContext'
+import { ScopeProvider } from '@/contexts/ScopeContext'
 
 // const Dashboard = lazy(() => import('@/pages/Dashboard'))
 const BudgetLines = lazy(() => import('@/pages/BudgetLines'))
@@ -61,9 +62,11 @@ const App = () => (
                                 <Route element={<ProtectedRoute />}>
                                     <Route
                                         element={
-                                            <ProjectProvider>
-                                                <AppLayout />
-                                            </ProjectProvider>
+                                            <ScopeProvider>
+                                                <ProjectProvider>
+                                                    <AppLayout />
+                                                </ProjectProvider>
+                                            </ScopeProvider>
                                         }
                                     >
                                         {/* <Route

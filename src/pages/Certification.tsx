@@ -4,6 +4,7 @@ import { CheckCircle2, Clock } from 'lucide-react'
 import PageDataWrapper from '@/components/PageDataWrapper'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
+import { useScope } from '@/contexts/ScopeContext'
 import { apiFetch } from '@/lib/api'
 import { qk } from '@/lib/query-keys'
 
@@ -58,7 +59,9 @@ function useCertificationVm() {
     const { activeProject, projectsLoading } = useProject()
     const { accessToken, studioSlug, isQueryReady } = useAuth()
     const empty = activeProject.id === '__empty__'
-    const queryEnabled = isQueryReady && !empty && !projectsLoading
+    const { isProjectScope } = useScope()
+    const queryEnabled =
+        isQueryReady && isProjectScope && !empty && !projectsLoading
 
     const qRows = useQuery({
         queryKey: qk.certifications(activeProject.id),
@@ -82,6 +85,7 @@ function useCertificationVm() {
 
     return {
         projectsLoading,
+        isProjectScope,
         empty,
         isPending: qRows.isPending || qSummary.isPending,
         error: (qRows.error ?? qSummary.error) as Error | null,
@@ -256,6 +260,8 @@ export default function Certification() {
     return (
         <PageDataWrapper
             title="Certificación"
+            blockedByScope={!vm.isProjectScope}
+            blockedMessage="Esta vista es por proyecto. Cambiá a modo Proyecto para continuar."
             projectsLoading={vm.projectsLoading}
             emptyProject={vm.empty}
             emptyMessage="Elegí un proyecto para ver certificaciones."

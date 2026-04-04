@@ -17,6 +17,7 @@ import PageDataWrapper from '@/components/PageDataWrapper'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
+import { useScope } from '@/contexts/ScopeContext'
 import { qk } from '@/lib/query-keys'
 import type { ItemYield, ItemYieldLine } from '@/types/item-yield'
 
@@ -289,6 +290,7 @@ export default function ItemYields() {
     const [editOpen, setEditOpen] = useState(false)
     const { activeProject, projectsLoading } = useProject()
     const { accessToken, studioSlug, isQueryReady } = useAuth()
+    const { isProjectScope } = useScope()
     const empty = activeProject.id === '__empty__'
 
     const {
@@ -302,7 +304,7 @@ export default function ItemYields() {
                 token: accessToken,
                 studioSlug,
             }),
-        enabled: isQueryReady && !empty && !projectsLoading,
+        enabled: isQueryReady && isProjectScope && !empty && !projectsLoading,
     })
 
     const selected = itemYields.find((d) => d.id === selectedId)
@@ -333,6 +335,8 @@ export default function ItemYields() {
             projectsLoading={projectsLoading}
             emptyProject={empty}
             emptyMessage="Elegí un proyecto para ver los rendimientos por ítem."
+            blockedByScope={!isProjectScope}
+            blockedMessage="Esta vista es por proyecto. Cambiá a modo Proyecto para continuar."
             isPending={isPending}
             error={error}
         >

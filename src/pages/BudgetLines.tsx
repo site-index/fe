@@ -10,6 +10,7 @@ import PageDataWrapper from '@/components/PageDataWrapper'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
+import { useScope } from '@/contexts/ScopeContext'
 import { qk } from '@/lib/query-keys'
 import type { BudgetLineRow } from '@/types/budget-line'
 import type { WorkCategoryRow } from '@/types/work-category'
@@ -230,8 +231,10 @@ function BudgetLineMobileRow({
 function useBudgetLinesVm() {
     const { activeProject, projectsLoading } = useProject()
     const { accessToken, studioSlug, isQueryReady } = useAuth()
+    const { isProjectScope } = useScope()
     const empty = activeProject.id === '__empty__'
-    const queryEnabled = isQueryReady && !empty && !projectsLoading
+    const queryEnabled =
+        isQueryReady && isProjectScope && !empty && !projectsLoading
 
     const { data, isPending, error } = useQuery({
         queryKey: qk.budgetLines(activeProject.id),
@@ -255,6 +258,7 @@ function useBudgetLinesVm() {
 
     return {
         projectsLoading,
+        isProjectScope,
         empty,
         isPending: isPending || categoriesPending,
         error: error as Error | null,
@@ -269,6 +273,7 @@ function useBudgetLinesVm() {
 
 function BudgetLinesBody({
     projectsLoading,
+    isProjectScope,
     empty,
     isPending,
     error,
@@ -291,6 +296,8 @@ function BudgetLinesBody({
             projectsLoading={projectsLoading}
             emptyProject={empty}
             emptyMessage="Elegí o creá un proyecto para ver el presupuesto."
+            blockedByScope={!isProjectScope}
+            blockedMessage="Esta vista es por proyecto. Cambiá a modo Proyecto para continuar."
             isPending={isPending}
             error={error}
         >

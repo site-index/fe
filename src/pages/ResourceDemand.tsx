@@ -5,12 +5,14 @@ import { getProjectResourceDemand } from '@/api/resources.api'
 import PageDataWrapper from '@/components/PageDataWrapper'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
+import { useScope } from '@/contexts/ScopeContext'
 import { qk } from '@/lib/query-keys'
 
 export default function ResourceDemand() {
     const { activeProject, projectsLoading } = useProject()
     const { accessToken, studioSlug, isQueryReady } = useAuth()
     const empty = activeProject.id === '__empty__'
+    const { isProjectScope } = useScope()
 
     const {
         data = [],
@@ -23,12 +25,14 @@ export default function ResourceDemand() {
                 token: accessToken,
                 studioSlug,
             }),
-        enabled: isQueryReady && !empty && !projectsLoading,
+        enabled: isQueryReady && isProjectScope && !empty && !projectsLoading,
     })
 
     return (
         <PageDataWrapper
             title="Demanda de recursos"
+            blockedByScope={!isProjectScope}
+            blockedMessage="Esta vista es por proyecto. Cambiá a modo Proyecto para continuar."
             projectsLoading={projectsLoading}
             emptyProject={empty}
             emptyMessage="Elegí un proyecto para ver la demanda de recursos."

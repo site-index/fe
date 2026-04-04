@@ -12,6 +12,7 @@ import PageDataWrapper from '@/components/PageDataWrapper'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
+import { useScope } from '@/contexts/ScopeContext'
 import { apiFetch } from '@/lib/api'
 import { qk } from '@/lib/query-keys'
 
@@ -41,6 +42,7 @@ export default function Assumptions() {
     const { activeProject, projectsLoading } = useProject()
     const { accessToken, studioSlug, isQueryReady } = useAuth()
     const empty = activeProject.id === '__empty__'
+    const { isProjectScope } = useScope()
     const [resolvingId, setResolvingId] = useState<string | null>(null)
 
     const { data, isPending, error } = useQuery({
@@ -50,7 +52,7 @@ export default function Assumptions() {
                 `/v1/projects/${activeProject.id}/assumptions`,
                 { token: accessToken, studioSlug }
             ),
-        enabled: isQueryReady && !empty && !projectsLoading,
+        enabled: isQueryReady && isProjectScope && !empty && !projectsLoading,
     })
 
     const resolveMutation = useMutation({
@@ -85,6 +87,8 @@ export default function Assumptions() {
     return (
         <PageDataWrapper
             title="Supuestos"
+            blockedByScope={!isProjectScope}
+            blockedMessage="Esta vista es por proyecto. Cambiá a modo Proyecto para continuar."
             projectsLoading={projectsLoading}
             emptyProject={empty}
             emptyMessage="Elegí un proyecto para ver supuestos abiertos."
