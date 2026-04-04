@@ -3,4 +3,5 @@ export type MeasureUnitRow = {
     code: string
     sortOrder: number
     name: string
+    compatibilityGroup: string
 }
