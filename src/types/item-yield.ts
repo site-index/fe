@@ -13,6 +13,8 @@ export type ItemYieldLine = {
         name: string
     } | null
     purchaseMeasureUnitId?: string | null
+    purchaseLabel?: string | null
+    purchaseMappingStatus?: 'MAPPED' | 'UNMAPPED'
     baseQuantity: number
     yieldPerPurchase: number
     wastePercent: number

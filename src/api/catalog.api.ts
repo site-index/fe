@@ -22,6 +22,8 @@ export type StudioCatalogItemDefaultRow = {
         baseMeasureUnit: { id: string; code: string; name: string }
         purchaseMeasureUnit: { id: string; code: string; name: string } | null
         purchaseMeasureUnitId?: string | null
+        purchaseLabel?: string | null
+        purchaseMappingStatus?: 'MAPPED' | 'UNMAPPED'
         baseQuantity: number
         yieldPerPurchase: number
         wastePercent: number
@@ -31,6 +33,28 @@ export type StudioCatalogItemDefaultRow = {
         stepDriverSourceKey: string | null
     }>
     studioDefaultUpdatedAt: string | null
+}
+
+export type PatchStudioCatalogItemInput = {
+    measureUnitMode: 'INHERIT' | 'OVERRIDE'
+    measureUnitId?: string
+    basisOutputQty?: number
+    components: {
+        linkedItems: string[]
+        lines: Array<{
+            resourceId: string
+            purchaseMeasureUnitId?: string | null
+            purchaseLabel?: string | null
+            purchaseMappingStatus?: 'MAPPED' | 'UNMAPPED'
+            baseQuantity: number
+            yieldPerPurchase: number
+            wastePercent: number
+            scalingMode: 'VARIABLE' | 'FIXED' | 'STEP'
+            stepSize: number | null
+            stepDriverKey: string | null
+            stepDriverSourceKey: string | null
+        }>
+    }
 }
 
 export function getWorkCategories(ctx: ApiContext): Promise<WorkCategoryRow[]> {
@@ -54,4 +78,20 @@ export function getStudioCatalogItems(
         token: ctx.token,
         studioSlug: ctx.studioSlug,
     })
+}
+
+export function patchStudioCatalogItem(
+    catalogItemId: string,
+    input: PatchStudioCatalogItemInput,
+    ctx: ApiContext
+): Promise<StudioCatalogItemDefaultRow> {
+    return apiFetch<StudioCatalogItemDefaultRow>(
+        `/v1/studio-catalog-items/${catalogItemId}`,
+        {
+            method: 'PATCH',
+            body: input,
+            token: ctx.token,
+            studioSlug: ctx.studioSlug,
+        }
+    )
 }
