@@ -13,6 +13,7 @@ export type StudioCatalogItemDefaultRow = {
     sortOrder: number
     measureUnitMode: 'INHERIT' | 'OVERRIDE'
     measureUnit: { id: string; code: string; name: string } | null
+    basisOutputQty: number
     linkedItems: string[]
     lines: Array<{
         resourceId: string
@@ -21,9 +22,13 @@ export type StudioCatalogItemDefaultRow = {
         baseMeasureUnit: { id: string; code: string; name: string }
         purchaseMeasureUnit: { id: string; code: string; name: string } | null
         purchaseMeasureUnitId?: string | null
-        quantityPerUnit: number
+        baseQuantity: number
         yieldPerPurchase: number
         wastePercent: number
+        scalingMode: 'VARIABLE' | 'FIXED' | 'STEP'
+        stepSize: number | null
+        stepDriverKey: string | null
+        stepDriverSourceKey: string | null
     }>
     studioDefaultUpdatedAt: string | null
 }

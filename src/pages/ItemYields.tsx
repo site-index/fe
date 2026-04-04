@@ -22,10 +22,16 @@ function itemUnitLabel(y: ItemYield): string {
     return y.measureUnit?.name ?? '—'
 }
 
-function calcPurchase(comp: ItemYieldLine, outputQty: number) {
-    const net = comp.quantityPerUnit * outputQty
+function calcPurchase(
+    comp: ItemYieldLine,
+    outputQty: number,
+    basisOutputQty: number
+) {
+    const safeBasis = basisOutputQty > 0 ? basisOutputQty : 1
+    const net = (comp.baseQuantity / safeBasis) * outputQty
     const withWaste = net * (1 + comp.wastePercent / 100)
-    const purchaseUnits = Math.ceil(withWaste / comp.yieldPerPurchase)
+    const divisor = comp.yieldPerPurchase > 0 ? comp.yieldPerPurchase : 1
+    const purchaseUnits = Math.ceil(withWaste / divisor)
     return { net, withWaste, purchaseUnits }
 }
 
@@ -65,7 +71,8 @@ function ConverterWidget({ itemYield }: { itemYield: ItemYield }) {
                     {itemYield.components.map((comp) => {
                         const { net, withWaste, purchaseUnits } = calcPurchase(
                             comp,
-                            quantity
+                            quantity,
+                            itemYield.basisOutputQty ?? 1
                         )
                         return (
                             <tr
@@ -111,6 +118,9 @@ function ItemYieldDetail({ d, onBack }: { d: ItemYield; onBack: () => void }) {
                     <span className="inline-block rounded bg-muted px-2 py-0.5 text-xs font-mono">
                         Unidad de ítem: {itemUnitLabel(d)}
                     </span>
+                    <span className="inline-block rounded bg-muted px-2 py-0.5 text-xs font-mono">
+                        Base: {d.basisOutputQty ?? 1}
+                    </span>
                     {d.catalogItemId ? (
                         <span className="inline-block rounded border border-border bg-card px-2 py-0.5 text-xs text-muted-foreground">
                             Catálogo
@@ -120,6 +130,11 @@ function ItemYieldDetail({ d, onBack }: { d: ItemYield; onBack: () => void }) {
                             Personalizado
                         </span>
                     )}
+                    {d.catalogItemApprovalStatus === 'PENDING_APPROVAL' ? (
+                        <span className="inline-block rounded border border-amber-400/40 bg-amber-500/10 px-2 py-0.5 text-xs text-amber-700">
+                            Pendiente de aprobación
+                        </span>
+                    ) : null}
                 </div>
                 {d.catalogItemId ? (
                     <p className="text-xs text-muted-foreground mt-2 max-w-xl">
@@ -139,7 +154,7 @@ function ItemYieldDetail({ d, onBack }: { d: ItemYield; onBack: () => void }) {
                                     Material
                                 </th>
                                 <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
-                                    Cant. / {itemUnitLabel(d)}
+                                    Cant. base
                                 </th>
                                 <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
                                     Unidad
@@ -165,7 +180,7 @@ function ItemYieldDetail({ d, onBack }: { d: ItemYield; onBack: () => void }) {
                                         {comp.resourceName}
                                     </td>
                                     <td className="px-4 py-3 text-right font-mono">
-                                        {comp.quantityPerUnit}
+                                        {comp.baseQuantity}
                                     </td>
                                     <td className="px-4 py-3 text-right font-mono text-xs">
                                         {comp.baseMeasureUnit.name}
@@ -247,6 +262,12 @@ function ItemYieldsGrid({
                                         Pers.
                                     </span>
                                 )}
+                                {d.catalogItemApprovalStatus ===
+                                'PENDING_APPROVAL' ? (
+                                    <span className="rounded border border-amber-400/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-amber-700">
+                                        Pend.
+                                    </span>
+                                ) : null}
                                 <span className="rounded bg-muted px-2 py-0.5 text-xs font-mono">
                                     {itemUnitLabel(d)}
                                 </span>

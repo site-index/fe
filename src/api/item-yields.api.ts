@@ -8,12 +8,14 @@ export type CreateItemYieldInput = {
     name: string
     description?: string
     measureUnitId: string
+    basisOutputQty?: number
 }
 
 function createItemYieldRequestBody(input: CreateItemYieldInput) {
     return {
         workCategoryId: input.workCategoryId,
         name: input.name,
+        basisOutputQty: input.basisOutputQty ?? 1,
         measureUnitMode: 'OVERRIDE' as const,
         measureUnitId: input.measureUnitId,
         ...(input.description ? { description: input.description } : {}),

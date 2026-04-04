@@ -63,6 +63,7 @@ const schema = z.object({
         .string()
         .uuid('Elegí una unidad de medida válida')
         .min(1, 'Elegí una unidad de medida'),
+    basisOutputQty: z.number().positive('La base debe ser mayor que 0'),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -125,6 +126,7 @@ function useCreateItemYieldSubmit(
                     workCategoryId: values.workCategoryId,
                     name: values.name,
                     measureUnitId: values.measureUnitId,
+                    basisOutputQty: values.basisOutputQty,
                 }
                 if (values.description.trim() !== '') {
                     body.description = values.description.trim()
@@ -144,6 +146,7 @@ function useCreateItemYieldSubmit(
                     name: '',
                     description: '',
                     measureUnitId: defaultMeasureUnitId(measureUnits),
+                    basisOutputQty: 1,
                 })
                 setOpen(false)
                 onCreated?.(created.id)
@@ -268,6 +271,29 @@ function CreateItemYieldFormFields({
                     />
                     <FormField
                         control={form.control}
+                        name="basisOutputQty"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Cantidad base</FormLabel>
+                                <FormControl>
+                                    <Input
+                                        type="number"
+                                        step="0.0001"
+                                        min="0.0001"
+                                        value={field.value}
+                                        onChange={(event) => {
+                                            field.onChange(
+                                                Number(event.target.value)
+                                            )
+                                        }}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
                         name="measureUnitId"
                         render={({ field }) => (
                             <FormItem>
@@ -321,6 +347,7 @@ export default function CreateItemYieldDialog({
             name: '',
             description: '',
             measureUnitId: '',
+            basisOutputQty: 1,
         },
     })
 
@@ -374,6 +401,7 @@ export default function CreateItemYieldDialog({
             name: '',
             description: '',
             measureUnitId: defaultMeasureUnitId(measureUnits),
+            basisOutputQty: 1,
         })
     }, [form, measureUnits])
 

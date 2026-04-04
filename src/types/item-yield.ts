@@ -13,9 +13,13 @@ export type ItemYieldLine = {
         name: string
     } | null
     purchaseMeasureUnitId?: string | null
-    quantityPerUnit: number
+    baseQuantity: number
     yieldPerPurchase: number
     wastePercent: number
+    scalingMode: 'VARIABLE' | 'FIXED' | 'STEP'
+    stepSize: number | null
+    stepDriverKey: string | null
+    stepDriverSourceKey: string | null
 }
 
 export type ItemYieldMeasureUnit = {
@@ -30,12 +34,14 @@ export type ItemYield = {
     workCategoryName: string
     name: string
     description: string
+    basisOutputQty: number
     measureUnitMode: 'INHERIT' | 'OVERRIDE'
     measureUnit: ItemYieldMeasureUnit | null
     components: ItemYieldLine[]
     linkedItems: string[]
     /** Present when this row is a snapshot of a global catalog item. */
     catalogItemId: string | null
+    catalogItemApprovalStatus: 'ACTIVE' | 'PENDING_APPROVAL' | null
 }
 
 export type ItemYieldOption = Pick<
