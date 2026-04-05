@@ -20,7 +20,7 @@ export default function Dashboard() {
     const { isProjectScope } = useScope()
 
     const { data, isPending, error } = useQuery({
-        queryKey: qk.dashboard(activeProject.id),
+        queryKey: qk.dashboard(studioSlug, activeProject.id),
         queryFn: () =>
             apiFetch<DashboardData>(
                 `/v1/projects/${activeProject.id}/dashboard`,

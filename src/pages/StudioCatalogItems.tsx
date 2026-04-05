@@ -46,7 +46,7 @@ export default function StudioCatalogItems() {
         isPending,
         error,
     } = useQuery<StudioCatalogItemDefaultRow[], Error>({
-        queryKey: qk.studioCatalogItems,
+        queryKey: qk.studioCatalogItems(studioSlug),
         queryFn: () =>
             getStudioCatalogItems({
                 token: accessToken,
@@ -56,7 +56,7 @@ export default function StudioCatalogItems() {
     })
 
     const { data: measureUnits = [] } = useQuery({
-        queryKey: qk.measureUnits,
+        queryKey: qk.measureUnits(studioSlug),
         queryFn: () =>
             getMeasureUnits({
                 token: accessToken,
@@ -103,7 +103,7 @@ export default function StudioCatalogItems() {
         },
         onSuccess: async () => {
             await queryClient.invalidateQueries({
-                queryKey: qk.studioCatalogItems,
+                queryKey: qk.studioCatalogItems(studioSlug),
             })
             toast.success('Mapeos guardados')
             setEditing(null)

@@ -64,7 +64,7 @@ function useCertificationVm() {
         isQueryReady && isProjectScope && !empty && !projectsLoading
 
     const qRows = useQuery({
-        queryKey: qk.certifications(activeProject.id),
+        queryKey: qk.certifications(studioSlug, activeProject.id),
         queryFn: () =>
             apiFetch<CertRow[]>(
                 `/v1/projects/${activeProject.id}/certifications`,
@@ -74,7 +74,7 @@ function useCertificationVm() {
     })
 
     const qSummary = useQuery({
-        queryKey: qk.certificationsSummary(activeProject.id),
+        queryKey: qk.certificationsSummary(studioSlug, activeProject.id),
         queryFn: () =>
             apiFetch<CertSummary>(
                 `/v1/projects/${activeProject.id}/certifications/summary`,

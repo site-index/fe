@@ -93,7 +93,7 @@ export function useBudgetLineDescriptionSuggestions(
     const queryEnabled = dialogOpen && projectId !== '__empty__'
 
     const { data: itemYields = [], isPending: yieldsLoading } = useQuery({
-        queryKey: qk.itemYields(projectId),
+        queryKey: qk.itemYields(studioSlug, projectId),
         queryFn: async () => {
             const rows = await getProjectItemYields(projectId, {
                 token: accessToken,
@@ -105,7 +105,7 @@ export function useBudgetLineDescriptionSuggestions(
     })
 
     const { data: catalogDefaults = [], isPending: catalogLoading } = useQuery({
-        queryKey: qk.studioCatalogItems,
+        queryKey: qk.studioCatalogItems(studioSlug),
         queryFn: async () => {
             const rows = await getStudioCatalogItems({
                 token: accessToken,

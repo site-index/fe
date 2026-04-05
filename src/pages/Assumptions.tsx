@@ -46,7 +46,7 @@ export default function Assumptions() {
     const [resolvingId, setResolvingId] = useState<string | null>(null)
 
     const { data, isPending, error } = useQuery({
-        queryKey: qk.assumptions(activeProject.id),
+        queryKey: qk.assumptions(studioSlug, activeProject.id),
         queryFn: () =>
             apiFetch<AssumptionRow[]>(
                 `/v1/projects/${activeProject.id}/assumptions`,
@@ -74,10 +74,10 @@ export default function Assumptions() {
         },
         onSuccess: () => {
             void queryClient.invalidateQueries({
-                queryKey: qk.assumptions(activeProject.id),
+                queryKey: qk.assumptions(studioSlug, activeProject.id),
             })
             void queryClient.invalidateQueries({
-                queryKey: qk.dashboard(activeProject.id),
+                queryKey: qk.dashboard(studioSlug, activeProject.id),
             })
         },
     })

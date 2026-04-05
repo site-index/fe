@@ -19,7 +19,7 @@ export default function ResourceDemand() {
         isPending,
         error,
     } = useQuery({
-        queryKey: qk.resourceDemand(activeProject.id),
+        queryKey: qk.resourceDemand(studioSlug, activeProject.id),
         queryFn: () =>
             getProjectResourceDemand(activeProject.id, {
                 token: accessToken,

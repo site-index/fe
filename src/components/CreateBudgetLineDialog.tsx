@@ -405,10 +405,10 @@ function useCreateBudgetLineSubmit(args: {
                 { token: args.accessToken, studioSlug: args.studioSlug }
             )
             await args.queryClient.invalidateQueries({
-                queryKey: qk.budgetLines(args.activeProjectId),
+                queryKey: qk.budgetLines(args.studioSlug, args.activeProjectId),
             })
             await args.queryClient.invalidateQueries({
-                queryKey: qk.dashboard(args.activeProjectId),
+                queryKey: qk.dashboard(args.studioSlug, args.activeProjectId),
             })
             toast.success('Línea de presupuesto creada', {
                 description: created.description,
@@ -554,7 +554,7 @@ export default function CreateBudgetLineDialog({
     const isBreakdownActive = isBreakdownActiveFromStrings(values)
 
     const { data: categories = [], isPending: categoriesLoading } = useQuery({
-        queryKey: qk.workCategories,
+        queryKey: qk.workCategories(studioSlug),
         queryFn: () =>
             getWorkCategories({
                 token: accessToken,
@@ -565,7 +565,7 @@ export default function CreateBudgetLineDialog({
 
     const { data: measureUnits = [], isPending: measureUnitsLoading } =
         useQuery({
-            queryKey: qk.measureUnits,
+            queryKey: qk.measureUnits(studioSlug),
             queryFn: () =>
                 getMeasureUnits({
                     token: accessToken,
@@ -575,7 +575,7 @@ export default function CreateBudgetLineDialog({
         })
 
     const { data: existingBudgetLines = [] } = useQuery({
-        queryKey: qk.budgetLines(activeProject.id),
+        queryKey: qk.budgetLines(studioSlug, activeProject.id),
         queryFn: () =>
             getProjectBudgetLines(activeProject.id, {
                 token: accessToken,

@@ -9,6 +9,7 @@ import {
     type MutableRefObject,
     type ReactNode,
     type RefObject,
+    useCallback,
     useContext,
     useEffect,
     useRef,
@@ -97,9 +98,10 @@ const PopoverContent = forwardRef<HTMLDivElement, PopoverContentProps>(
             className,
             align = 'center',
             sideOffset = 4,
-            onOpenAutoFocus: _onOpenAutoFocus,
+            onOpenAutoFocus,
             container,
             children,
+            tabIndex,
             ...props
         },
         ref
@@ -142,9 +144,10 @@ const PopoverContent = forwardRef<HTMLDivElement, PopoverContentProps>(
             return () => document.removeEventListener('keydown', handler)
         }, [open, onOpenChange])
 
-        // Position relative to anchor
-        useEffect(() => {
-            if (!open || !anchorRef.current) return
+        const updatePosition = useCallback(() => {
+            if (!open || !anchorRef.current) {
+                return
+            }
             const rect = anchorRef.current.getBoundingClientRect()
             const next: CSSProperties = {
                 position: 'fixed',
@@ -166,8 +169,44 @@ const PopoverContent = forwardRef<HTMLDivElement, PopoverContentProps>(
                     next.transform = 'translateX(-50%)'
                     break
             }
-            queueMicrotask(() => setStyle(next))
-        }, [open, align, sideOffset, anchorRef])
+            setStyle(next)
+        }, [align, anchorRef, open, sideOffset])
+
+        // Position relative to anchor and keep it synced on viewport/scroll changes.
+        useEffect(() => {
+            if (!open) return
+            let rafId: number | null = null
+            const scheduleReposition = () => {
+                if (rafId != null) {
+                    cancelAnimationFrame(rafId)
+                }
+                rafId = requestAnimationFrame(() => {
+                    rafId = null
+                    updatePosition()
+                })
+            }
+            scheduleReposition()
+            window.addEventListener('resize', scheduleReposition)
+            window.addEventListener('scroll', scheduleReposition, true)
+            return () => {
+                if (rafId != null) {
+                    cancelAnimationFrame(rafId)
+                }
+                window.removeEventListener('resize', scheduleReposition)
+                window.removeEventListener('scroll', scheduleReposition, true)
+            }
+        }, [open, updatePosition])
+
+        useEffect(() => {
+            if (!open) return
+            const autoFocusEvent = new Event('openAutoFocus', {
+                cancelable: true,
+            })
+            onOpenAutoFocus?.(autoFocusEvent)
+            if (!autoFocusEvent.defaultPrevented) {
+                innerRef.current?.focus()
+            }
+        }, [onOpenAutoFocus, open])
 
         if (!open) return null
 
@@ -189,6 +228,7 @@ const PopoverContent = forwardRef<HTMLDivElement, PopoverContentProps>(
                 )}
                 style={style}
                 data-state={open ? 'open' : 'closed'}
+                tabIndex={tabIndex ?? -1}
                 {...props}
             >
                 {children}

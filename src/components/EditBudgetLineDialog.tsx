@@ -168,7 +168,7 @@ export default function EditBudgetLineDialog({
 
     const queryEnabled = open && activeProject.id !== '__empty__'
     const { data: categories = [], isPending: categoriesLoading } = useQuery({
-        queryKey: qk.workCategories,
+        queryKey: qk.workCategories(studioSlug),
         queryFn: () =>
             getWorkCategories({
                 token: accessToken,
@@ -178,7 +178,7 @@ export default function EditBudgetLineDialog({
     })
     const { data: measureUnits = [], isPending: measureUnitsLoading } =
         useQuery({
-            queryKey: qk.measureUnits,
+            queryKey: qk.measureUnits(studioSlug),
             queryFn: () =>
                 getMeasureUnits({
                     token: accessToken,
@@ -187,7 +187,7 @@ export default function EditBudgetLineDialog({
             enabled: queryEnabled,
         })
     const { data: itemYields = [] } = useQuery({
-        queryKey: qk.itemYields(activeProject.id),
+        queryKey: qk.itemYields(studioSlug, activeProject.id),
         queryFn: () =>
             getProjectItemYieldOptions(activeProject.id, {
                 token: accessToken,
@@ -217,10 +217,10 @@ export default function EditBudgetLineDialog({
                 }
             )
             await queryClient.invalidateQueries({
-                queryKey: qk.budgetLines(activeProject.id),
+                queryKey: qk.budgetLines(studioSlug, activeProject.id),
             })
             await queryClient.invalidateQueries({
-                queryKey: qk.dashboard(activeProject.id),
+                queryKey: qk.dashboard(studioSlug, activeProject.id),
             })
             onLineUpdated?.(updated)
             toast.success('Ítem actualizado', {

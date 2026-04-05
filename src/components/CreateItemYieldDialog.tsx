@@ -116,7 +116,7 @@ function useCreateItemYieldSubmit(
                     studioSlug,
                 })
                 await queryClient.invalidateQueries({
-                    queryKey: qk.itemYields(projectId),
+                    queryKey: qk.itemYields(studioSlug, projectId),
                 })
                 toast.success('Rendimiento creado', {
                     description: created.name,
@@ -277,7 +277,7 @@ export default function CreateItemYieldDialog({
 
     const { data: catalogItems = [], isPending: catalogItemsLoading } =
         useQuery({
-            queryKey: qk.studioCatalogItems,
+            queryKey: qk.studioCatalogItems(studioSlug),
             queryFn: () =>
                 getStudioCatalogItems({
                     token: accessToken,
@@ -286,7 +286,7 @@ export default function CreateItemYieldDialog({
             enabled: catalogQueriesEnabled,
         })
     const { data: budgetLines = [] } = useQuery({
-        queryKey: qk.budgetLines(activeProject.id),
+        queryKey: qk.budgetLines(studioSlug, activeProject.id),
         queryFn: () =>
             getProjectBudgetLines(activeProject.id, {
                 token: accessToken,
@@ -295,7 +295,7 @@ export default function CreateItemYieldDialog({
         enabled: projectScopedQueriesEnabled,
     })
     const { data: itemYields = [] } = useQuery({
-        queryKey: qk.itemYields(activeProject.id),
+        queryKey: qk.itemYields(studioSlug, activeProject.id),
         queryFn: () =>
             getProjectItemYields(activeProject.id, {
                 token: accessToken,
@@ -304,7 +304,7 @@ export default function CreateItemYieldDialog({
         enabled: projectScopedQueriesEnabled,
     })
     const { data: resources = [] } = useQuery({
-        queryKey: qk.resources,
+        queryKey: qk.resources(studioSlug),
         queryFn: () =>
             getResources({
                 token: accessToken,
@@ -313,7 +313,7 @@ export default function CreateItemYieldDialog({
         enabled: catalogQueriesEnabled,
     })
     const { data: resourcePrices = [] } = useQuery({
-        queryKey: qk.resourcePrices,
+        queryKey: qk.resourcePrices(studioSlug),
         queryFn: () =>
             getResourcePrices({
                 token: accessToken,
@@ -399,7 +399,9 @@ export default function CreateItemYieldDialog({
                     studioSlug,
                 }
             )
-            await queryClient.invalidateQueries({ queryKey: qk.resourcePrices })
+            await queryClient.invalidateQueries({
+                queryKey: qk.resourcePrices(studioSlug),
+            })
         },
         [accessToken, queryClient, resources, studioSlug]
     )

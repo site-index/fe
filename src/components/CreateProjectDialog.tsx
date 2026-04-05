@@ -69,7 +69,9 @@ export default function CreateProjectDialog({
                 token: accessToken,
                 studioSlug,
             })
-            await queryClient.invalidateQueries({ queryKey: qk.projects })
+            await queryClient.invalidateQueries({
+                queryKey: qk.projects(studioSlug),
+            })
             setActiveProject(created)
             toast.success('Proyecto creado', { description: created.name })
             form.reset()

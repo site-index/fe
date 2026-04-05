@@ -298,7 +298,7 @@ export default function ItemYields() {
         isPending,
         error,
     } = useQuery({
-        queryKey: qk.itemYields(activeProject.id),
+        queryKey: qk.itemYields(studioSlug, activeProject.id),
         queryFn: () =>
             getProjectItemYields(activeProject.id, {
                 token: accessToken,

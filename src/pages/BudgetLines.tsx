@@ -310,7 +310,7 @@ function useBudgetLinesVm() {
         isQueryReady && isProjectScope && !empty && !projectsLoading
 
     const { data, isPending, error } = useQuery({
-        queryKey: qk.budgetLines(activeProject.id),
+        queryKey: qk.budgetLines(studioSlug, activeProject.id),
         queryFn: () =>
             getProjectBudgetLines(activeProject.id, {
                 token: accessToken,
@@ -320,7 +320,7 @@ function useBudgetLinesVm() {
     })
 
     const { data: categories = [], isPending: categoriesPending } = useQuery({
-        queryKey: qk.workCategories,
+        queryKey: qk.workCategories(studioSlug),
         queryFn: () =>
             getWorkCategories({
                 token: accessToken,

@@ -35,7 +35,7 @@ export function ProjectSpendCard({
     const inputRef = useRef<HTMLInputElement>(null)
 
     const { data: projectDetail, error: projectError } = useQuery({
-        queryKey: qk.projectDetail(projectId),
+        queryKey: qk.projectDetail(studioSlug, projectId),
         queryFn: () =>
             apiFetch<ProjectDetail>(`/v1/projects/${projectId}`, {
                 token: accessToken,
@@ -59,13 +59,13 @@ export function ProjectSpendCard({
             }),
         onSuccess: () => {
             void queryClient.invalidateQueries({
-                queryKey: qk.projectDetail(projectId),
+                queryKey: qk.projectDetail(studioSlug, projectId),
             })
             void queryClient.invalidateQueries({
-                queryKey: qk.dashboard(projectId),
+                queryKey: qk.dashboard(studioSlug, projectId),
             })
             void queryClient.invalidateQueries({
-                queryKey: qk.assumptions(projectId),
+                queryKey: qk.assumptions(studioSlug, projectId),
             })
         },
     })

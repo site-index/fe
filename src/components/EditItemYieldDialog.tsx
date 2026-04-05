@@ -114,12 +114,12 @@ function EditItemYieldDialogContent({
 
     const queriesEnabled = areQueriesEnabled(open, accessToken, studioSlug)
     const { data: resources = [] } = useQuery({
-        queryKey: qk.resources,
+        queryKey: qk.resources(studioSlug),
         queryFn: () => getResources({ token: accessToken, studioSlug }),
         enabled: queriesEnabled,
     })
     const { data: resourcePrices = [] } = useQuery({
-        queryKey: qk.resourcePrices,
+        queryKey: qk.resourcePrices(studioSlug),
         queryFn: () => getResourcePrices({ token: accessToken, studioSlug }),
         enabled: queriesEnabled,
     })
@@ -145,7 +145,9 @@ function EditItemYieldDialogContent({
                 },
                 { token: accessToken, studioSlug }
             )
-            await queryClient.invalidateQueries({ queryKey: qk.resourcePrices })
+            await queryClient.invalidateQueries({
+                queryKey: qk.resourcePrices(studioSlug),
+            })
         },
         [accessToken, queryClient, resources, studioSlug]
     )
@@ -168,7 +170,7 @@ function EditItemYieldDialogContent({
                 { token: accessToken, studioSlug }
             )
             await queryClient.invalidateQueries({
-                queryKey: qk.itemYields(activeProject.id),
+                queryKey: qk.itemYields(studioSlug, activeProject.id),
             })
             toast.success('Rendimiento actualizado', {
                 description: updated.name,

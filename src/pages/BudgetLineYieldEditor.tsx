@@ -123,7 +123,7 @@ function useYieldEditorData() {
         isPending,
         error,
     } = useQuery({
-        queryKey: qk.budgetLines(activeProject.id),
+        queryKey: qk.budgetLines(studioSlug, activeProject.id),
         queryFn: () =>
             getProjectBudgetLines(activeProject.id, {
                 token: accessToken,
@@ -132,7 +132,7 @@ function useYieldEditorData() {
         enabled: queryEnabled,
     })
     const { data: itemYields = [] } = useQuery({
-        queryKey: qk.itemYields(activeProject.id),
+        queryKey: qk.itemYields(studioSlug, activeProject.id),
         queryFn: () =>
             getProjectItemYields(activeProject.id, {
                 token: accessToken,
@@ -141,7 +141,7 @@ function useYieldEditorData() {
         enabled: queryEnabled,
     })
     const { data: resources = [] } = useQuery({
-        queryKey: qk.resources,
+        queryKey: qk.resources(studioSlug),
         queryFn: () =>
             getResources({
                 token: accessToken,
@@ -150,7 +150,7 @@ function useYieldEditorData() {
         enabled: queryEnabled,
     })
     const { data: resourcePrices = [] } = useQuery({
-        queryKey: qk.resourcePrices,
+        queryKey: qk.resourcePrices(studioSlug),
         queryFn: () =>
             getResourcePrices({
                 token: accessToken,
@@ -241,7 +241,9 @@ function YieldEditorLoaded(args: {
                 studioSlug: args.studioSlug,
             }
         )
-        await queryClient.invalidateQueries({ queryKey: qk.resourcePrices })
+        await queryClient.invalidateQueries({
+            queryKey: qk.resourcePrices(args.studioSlug),
+        })
     }
 
     const onSave = async () => {
@@ -267,13 +269,22 @@ function YieldEditorLoaded(args: {
             )
             await Promise.all([
                 queryClient.invalidateQueries({
-                    queryKey: qk.itemYields(args.activeProjectId),
+                    queryKey: qk.itemYields(
+                        args.studioSlug,
+                        args.activeProjectId
+                    ),
                 }),
                 queryClient.invalidateQueries({
-                    queryKey: qk.budgetLines(args.activeProjectId),
+                    queryKey: qk.budgetLines(
+                        args.studioSlug,
+                        args.activeProjectId
+                    ),
                 }),
                 queryClient.invalidateQueries({
-                    queryKey: qk.dashboard(args.activeProjectId),
+                    queryKey: qk.dashboard(
+                        args.studioSlug,
+                        args.activeProjectId
+                    ),
                 }),
             ])
             toast.success('Rendimiento actualizado', {

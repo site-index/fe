@@ -38,7 +38,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         isPending: projectsLoading,
         error: projectsError,
     } = useQuery({
-        queryKey: qk.projects,
+        queryKey: qk.projects(studioSlug),
         queryFn: () =>
             apiFetch<Array<{ id: string; name: string }>>('/v1/projects', {
                 token: accessToken,
