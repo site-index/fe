@@ -192,7 +192,7 @@ function ItemYieldLineMobileCard({
                         size="sm"
                         disabled={disabled}
                         onClick={() => onRemoveLine(index)}
-                        className="h-7 gap-1 px-2 text-xs"
+                        className="h-7 gap-1 px-2 text-xs active:scale-[0.98]"
                     >
                         <Trash2 className="h-3.5 w-3.5" />
                         Eliminar
