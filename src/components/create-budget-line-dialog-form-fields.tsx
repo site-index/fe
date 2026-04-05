@@ -71,6 +71,25 @@ type Props = {
     topSection?: ReactNode
 }
 
+type DescriptionSectionProps = {
+    form: UseFormReturn<BudgetLineCreateFormValues>
+    libraryBinding: BudgetLineLibraryBinding
+    showSuggestions: boolean
+    suggestionListboxId: string
+    activeDescendant?: string
+    filteredSuggestionRows: SuggestionRow[]
+    activeSuggestionIndex: number
+    setActiveSuggestionIndex: (n: number) => void
+    onDescriptionKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void
+    onDescriptionFocus: () => void
+    onDescriptionBlur: () => void
+    onDescriptionInput: () => void
+    onClearLibraryBinding: () => void
+    handleSuggestionPick: (row: SuggestionRow) => void
+    suggestionsLoading: boolean
+    showCatalogSuggestionHint: boolean
+}
+
 function FieldError({ message }: { message?: string }) {
     if (!message) {
         return null
@@ -253,7 +272,203 @@ function MeasureUnitSection({
     )
 }
 
-// eslint-disable-next-line complexity
+function DescriptionSection({
+    form,
+    libraryBinding,
+    showSuggestions,
+    suggestionListboxId,
+    activeDescendant,
+    filteredSuggestionRows,
+    activeSuggestionIndex,
+    setActiveSuggestionIndex,
+    onDescriptionKeyDown,
+    onDescriptionFocus,
+    onDescriptionBlur,
+    onDescriptionInput,
+    onClearLibraryBinding,
+    handleSuggestionPick,
+    suggestionsLoading,
+    showCatalogSuggestionHint,
+}: DescriptionSectionProps) {
+    const descField = form.register('description')
+    return (
+        <div className="space-y-2">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <label
+                    htmlFor="create-budget-line-description"
+                    className="text-sm font-medium"
+                >
+                    Descripción
+                </label>
+                {libraryBinding ? (
+                    <Button
+                        type="button"
+                        variant="link"
+                        className="h-auto p-0 text-xs text-muted-foreground sm:text-sm"
+                        onClick={onClearLibraryBinding}
+                    >
+                        Escribir como línea libre
+                    </Button>
+                ) : null}
+            </div>
+            <div className="relative">
+                <Input
+                    id="create-budget-line-description"
+                    autoComplete="off"
+                    placeholder="Ej. Hormigón H21 — losa"
+                    readOnly={libraryBinding != null}
+                    aria-autocomplete="list"
+                    aria-expanded={showSuggestions}
+                    aria-controls={
+                        showSuggestions ? suggestionListboxId : undefined
+                    }
+                    aria-activedescendant={activeDescendant}
+                    {...descField}
+                    onBlur={(event) => {
+                        descField.onBlur(event)
+                        onDescriptionBlur()
+                    }}
+                    onFocus={() => {
+                        onDescriptionFocus()
+                    }}
+                    onKeyDown={onDescriptionKeyDown}
+                    onChange={(event) => {
+                        descField.onChange(event)
+                        form.setValue('description', event.target.value, {
+                            shouldValidate: true,
+                        })
+                        onDescriptionInput()
+                    }}
+                />
+                {showSuggestions ? (
+                    <div className="absolute top-[calc(100%+4px)] z-50 w-full overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md">
+                        <CreateBudgetLineSuggestionPanel
+                            listboxId={suggestionListboxId}
+                            rows={filteredSuggestionRows}
+                            activeIndex={activeSuggestionIndex}
+                            onActiveIndexChange={setActiveSuggestionIndex}
+                            onPick={handleSuggestionPick}
+                        />
+                    </div>
+                ) : null}
+            </div>
+            {form.formState.errors.description ? (
+                <FieldError
+                    message={form.formState.errors.description.message}
+                />
+            ) : null}
+            {suggestionsLoading && showSuggestions ? (
+                <p className="text-xs text-muted-foreground">
+                    Cargando sugerencias…
+                </p>
+            ) : null}
+            {showCatalogSuggestionHint ? (
+                <p className="text-xs text-muted-foreground">
+                    Si no existe un catalog item con ese nombre, se propone uno
+                    nuevo en estado pendiente de aprobación.
+                </p>
+            ) : null}
+        </div>
+    )
+}
+
+function PricingAndBreakdownSection(args: {
+    form: UseFormReturn<BudgetLineCreateFormValues>
+    isBreakdownActive: boolean
+}) {
+    return (
+        <>
+            <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                    <label
+                        htmlFor="create-budget-line-quantity"
+                        className="text-sm font-medium"
+                    >
+                        Cantidad
+                    </label>
+                    <Input
+                        id="create-budget-line-quantity"
+                        inputMode="decimal"
+                        placeholder="—"
+                        {...args.form.register('quantityStr')}
+                    />
+                    <FieldError
+                        message={
+                            args.form.formState.errors.quantityStr?.message
+                        }
+                    />
+                </div>
+                <div className="space-y-2">
+                    <label
+                        htmlFor="create-budget-line-unit-price"
+                        className="text-sm font-medium"
+                    >
+                        P. unitario (ARS / unidad)
+                    </label>
+                    <Input
+                        id="create-budget-line-unit-price"
+                        inputMode="decimal"
+                        placeholder="—"
+                        disabled={args.isBreakdownActive}
+                        {...args.form.register('unitPriceStr')}
+                    />
+                    {args.isBreakdownActive ? (
+                        <p className="text-xs text-muted-foreground">
+                            Se calcula automáticamente como MAT + MO + EQ.
+                        </p>
+                    ) : null}
+                    <FieldError
+                        message={
+                            args.form.formState.errors.unitPriceStr?.message
+                        }
+                    />
+                </div>
+            </div>
+
+            <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="categoryAmounts" className="border-b-0">
+                    <AccordionTrigger className="py-2 text-sm">
+                        Desglose por categoría (opcional, por unidad)
+                    </AccordionTrigger>
+                    <AccordionContent className="space-y-3 pt-1">
+                        <p className="text-xs text-muted-foreground">
+                            Importes en ARS por cada unidad de medida de la
+                            línea (no el total de la obra).
+                        </p>
+                        <AmountInputField
+                            id="create-budget-line-amount-material"
+                            label="Materiales (ARS / unidad)"
+                            register={args.form.register('amountMaterialStr')}
+                            error={
+                                args.form.formState.errors.amountMaterialStr
+                                    ?.message
+                            }
+                        />
+                        <AmountInputField
+                            id="create-budget-line-amount-labor"
+                            label="Mano de obra (ARS / unidad)"
+                            register={args.form.register('amountLaborStr')}
+                            error={
+                                args.form.formState.errors.amountLaborStr
+                                    ?.message
+                            }
+                        />
+                        <AmountInputField
+                            id="create-budget-line-amount-equipment"
+                            label="Equipo (ARS / unidad)"
+                            register={args.form.register('amountEquipmentStr')}
+                            error={
+                                args.form.formState.errors.amountEquipmentStr
+                                    ?.message
+                            }
+                        />
+                    </AccordionContent>
+                </AccordionItem>
+            </Accordion>
+        </>
+    )
+}
+
 export function CreateBudgetLineDialogFormFields({
     form,
     values,
@@ -286,86 +501,26 @@ export function CreateBudgetLineDialogFormFields({
             ? `${suggestionListboxId}-option-${budgetLineSuggestionRowKey(activeRow)}`
             : undefined
 
-    const descField = form.register('description')
     return (
         <div className="flex-1 space-y-4 overflow-y-auto px-4 py-3">
-            <div className="space-y-2">
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                    <label
-                        htmlFor="create-budget-line-description"
-                        className="text-sm font-medium"
-                    >
-                        Descripción
-                    </label>
-                    {libraryBinding ? (
-                        <Button
-                            type="button"
-                            variant="link"
-                            className="h-auto p-0 text-xs text-muted-foreground sm:text-sm"
-                            onClick={onClearLibraryBinding}
-                        >
-                            Escribir como línea libre
-                        </Button>
-                    ) : null}
-                </div>
-                <div className="relative">
-                    <Input
-                        id="create-budget-line-description"
-                        autoComplete="off"
-                        placeholder="Ej. Hormigón H21 — losa"
-                        readOnly={libraryBinding != null}
-                        aria-autocomplete="list"
-                        aria-expanded={showSuggestions}
-                        aria-controls={
-                            showSuggestions ? suggestionListboxId : undefined
-                        }
-                        aria-activedescendant={activeDescendant}
-                        {...descField}
-                        onBlur={(event) => {
-                            descField.onBlur(event)
-                            onDescriptionBlur()
-                        }}
-                        onFocus={() => {
-                            onDescriptionFocus()
-                        }}
-                        onKeyDown={onDescriptionKeyDown}
-                        onChange={(event) => {
-                            descField.onChange(event)
-                            form.setValue('description', event.target.value, {
-                                shouldValidate: true,
-                            })
-                            onDescriptionInput()
-                        }}
-                    />
-                    {showSuggestions ? (
-                        <div className="absolute top-[calc(100%+4px)] z-50 w-full overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md">
-                            <CreateBudgetLineSuggestionPanel
-                                listboxId={suggestionListboxId}
-                                rows={filteredSuggestionRows}
-                                activeIndex={activeSuggestionIndex}
-                                onActiveIndexChange={setActiveSuggestionIndex}
-                                onPick={handleSuggestionPick}
-                            />
-                        </div>
-                    ) : null}
-                </div>
-                {form.formState.errors.description ? (
-                    <FieldError
-                        message={form.formState.errors.description.message}
-                    />
-                ) : null}
-                {suggestionsLoading && showSuggestions ? (
-                    <p className="text-xs text-muted-foreground">
-                        Cargando sugerencias…
-                    </p>
-                ) : null}
-                {showCatalogSuggestionHint ? (
-                    <p className="text-xs text-muted-foreground">
-                        Si no existe un catalog item con ese nombre, se propone
-                        uno nuevo en estado pendiente de aprobación.
-                    </p>
-                ) : null}
-            </div>
+            <DescriptionSection
+                form={form}
+                libraryBinding={libraryBinding}
+                showSuggestions={showSuggestions}
+                suggestionListboxId={suggestionListboxId}
+                activeDescendant={activeDescendant}
+                filteredSuggestionRows={filteredSuggestionRows}
+                activeSuggestionIndex={activeSuggestionIndex}
+                setActiveSuggestionIndex={setActiveSuggestionIndex}
+                onDescriptionKeyDown={onDescriptionKeyDown}
+                onDescriptionFocus={onDescriptionFocus}
+                onDescriptionBlur={onDescriptionBlur}
+                onDescriptionInput={onDescriptionInput}
+                onClearLibraryBinding={onClearLibraryBinding}
+                handleSuggestionPick={handleSuggestionPick}
+                suggestionsLoading={suggestionsLoading}
+                showCatalogSuggestionHint={showCatalogSuggestionHint}
+            />
             {topSection}
 
             <WorkCategorySection
@@ -390,88 +545,10 @@ export function CreateBudgetLineDialogFormFields({
                 }
                 error={form.formState.errors.measureUnitId?.message}
             />
-
-            <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                    <label
-                        htmlFor="create-budget-line-quantity"
-                        className="text-sm font-medium"
-                    >
-                        Cantidad
-                    </label>
-                    <Input
-                        id="create-budget-line-quantity"
-                        inputMode="decimal"
-                        placeholder="—"
-                        {...form.register('quantityStr')}
-                    />
-                    <FieldError
-                        message={form.formState.errors.quantityStr?.message}
-                    />
-                </div>
-                <div className="space-y-2">
-                    <label
-                        htmlFor="create-budget-line-unit-price"
-                        className="text-sm font-medium"
-                    >
-                        P. unitario (ARS / unidad)
-                    </label>
-                    <Input
-                        id="create-budget-line-unit-price"
-                        inputMode="decimal"
-                        placeholder="—"
-                        disabled={isBreakdownActive}
-                        {...form.register('unitPriceStr')}
-                    />
-                    {isBreakdownActive ? (
-                        <p className="text-xs text-muted-foreground">
-                            Se calcula automáticamente como MAT + MO + EQ.
-                        </p>
-                    ) : null}
-                    <FieldError
-                        message={form.formState.errors.unitPriceStr?.message}
-                    />
-                </div>
-            </div>
-
-            <Accordion type="single" collapsible className="w-full">
-                <AccordionItem value="categoryAmounts" className="border-b-0">
-                    <AccordionTrigger className="py-2 text-sm">
-                        Desglose por categoría (opcional, por unidad)
-                    </AccordionTrigger>
-                    <AccordionContent className="space-y-3 pt-1">
-                        <p className="text-xs text-muted-foreground">
-                            Importes en ARS por cada unidad de medida de la
-                            línea (no el total de la obra).
-                        </p>
-                        <AmountInputField
-                            id="create-budget-line-amount-material"
-                            label="Materiales (ARS / unidad)"
-                            register={form.register('amountMaterialStr')}
-                            error={
-                                form.formState.errors.amountMaterialStr?.message
-                            }
-                        />
-                        <AmountInputField
-                            id="create-budget-line-amount-labor"
-                            label="Mano de obra (ARS / unidad)"
-                            register={form.register('amountLaborStr')}
-                            error={
-                                form.formState.errors.amountLaborStr?.message
-                            }
-                        />
-                        <AmountInputField
-                            id="create-budget-line-amount-equipment"
-                            label="Equipo (ARS / unidad)"
-                            register={form.register('amountEquipmentStr')}
-                            error={
-                                form.formState.errors.amountEquipmentStr
-                                    ?.message
-                            }
-                        />
-                    </AccordionContent>
-                </AccordionItem>
-            </Accordion>
+            <PricingAndBreakdownSection
+                form={form}
+                isBreakdownActive={isBreakdownActive}
+            />
         </div>
     )
 }

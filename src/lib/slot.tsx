@@ -4,6 +4,7 @@ import {
     forwardRef,
     type HTMLAttributes,
     isValidElement,
+    type ReactElement,
     type ReactNode,
     type Ref,
 } from 'react'
@@ -30,6 +31,10 @@ function composeHandlers(
     }
 }
 
+function getElementRef<T>(element: ReactElement): Ref<T> | undefined {
+    return (element as unknown as { ref?: Ref<T> }).ref
+}
+
 /**
  * Renders the single child element, merging the Slot's props (className,
  * event handlers, ref, etc.) onto it.  Enables the `asChild` pattern.
@@ -41,8 +46,7 @@ const Slot = forwardRef<
     const child = Children.only(children)
     if (!isValidElement(child)) return null
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const childProps = child.props as Record<string, any>
+    const childProps = child.props as Record<string, unknown>
 
     const merged: Record<string, unknown> = { ...props }
 
@@ -72,8 +76,7 @@ const Slot = forwardRef<
     }
 
     // Merge refs
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    merged.ref = mergeRefs(ref, (child as any).ref)
+    merged.ref = mergeRefs(ref, getElementRef<HTMLElement>(child))
 
     return cloneElement(child, merged)
 })
