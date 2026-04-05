@@ -15,7 +15,6 @@ import {
     refreshAccessToken,
     registerAccessTokenPersistence,
     registerSessionInvalidatedHandler,
-    syncApiAccessToken,
 } from '@/lib/api'
 import { isAccessTokenExpired, parseAccessTokenEmail } from '@/lib/jwt-display'
 
@@ -45,15 +44,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [accessToken, setAccessToken] = useState<string | null>(() =>
         localStorage.getItem(LS_TOKEN)
     )
-    const [studioSlug, setStudioSlugState] = useState(() => {
-        const fromLs = localStorage.getItem(LS_SLUG)
-        if (fromLs) return fromLs
-        return import.meta.env.VITE_STUDIO_SLUG?.trim() ?? ''
-    })
-
-    useEffect(() => {
-        syncApiAccessToken(accessToken)
-    }, [accessToken])
+    const [studioSlug, setStudioSlugState] = useState(
+        () => localStorage.getItem(LS_SLUG) ?? ''
+    )
 
     useEffect(() => {
         return registerAccessTokenPersistence((token) => {
@@ -77,7 +70,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem(LS_TOKEN)
         localStorage.removeItem(LS_SLUG)
         setStudioSlugState('')
-        syncApiAccessToken(null)
         queryClient.clear()
     }, [queryClient])
 

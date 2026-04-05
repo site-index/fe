@@ -25,9 +25,6 @@ export type ApiFetchOptions = {
 
 type ApiFetchInternalOptions = ApiFetchOptions & { _retry?: boolean }
 
-/** In-memory access token fallback when callers omit `token` (synced from AuthContext). */
-let apiAccessTokenRef: string | null = null
-
 let persistAccessTokenHandler: ((token: string) => void) | null = null
 
 let sessionInvalidatedHandler: (() => void) | null = null
@@ -43,11 +40,6 @@ export function registerSessionInvalidatedHandler(
     return () => {
         sessionInvalidatedHandler = null
     }
-}
-
-/** Called from AuthContext when the stored access token changes. */
-export function syncApiAccessToken(token: string | null): void {
-    apiAccessTokenRef = token
 }
 
 /** Refresh flow persists the new access token via this handler (e.g. React state + localStorage). */
@@ -77,7 +69,6 @@ async function tryRefreshAccessToken(): Promise<string | null> {
             }
             const data = (await res.json()) as { accessToken: string }
             persistAccessTokenHandler?.(data.accessToken)
-            apiAccessTokenRef = data.accessToken
             return data.accessToken
         } finally {
             refreshInFlight = null
@@ -151,8 +142,7 @@ export async function apiFetch<T>(
 ): Promise<T> {
     const { _retry, ...rest } = options
     const url = buildUrl(path)
-    const token = rest.token ?? apiAccessTokenRef
-    const res = await apiFetchOnce(url, rest, token)
+    const res = await apiFetchOnce(url, rest, rest.token)
 
     if (res.status === 401 && !_retry) {
         const newToken = await tryRefreshAccessToken()
