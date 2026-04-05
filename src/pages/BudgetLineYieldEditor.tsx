@@ -69,7 +69,7 @@ function deriveAmounts(args: {
 
 function BackButton({ onBack }: { onBack: () => void }) {
     return (
-        <Button type="button" variant="ghost" size="sm" onClick={onBack}>
+        <Button type="button" variant="ghost" size="sm" onClick={onBack} className="active:scale-[0.98]">
             <ArrowLeft className="h-4 w-4" />
             Volver
         </Button>
