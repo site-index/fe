@@ -180,7 +180,7 @@ function ItemYieldLineMobileCard({
     ).toFixed(PRICE_DISPLAY_DECIMALS)
 
     return (
-        <div className="rounded-md border border-border/60 bg-muted/20 px-2.5 py-2">
+        <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-3 transition-colors active:bg-muted/40">
             <div className="space-y-2">
                 <div className="flex items-start justify-between gap-2">
                     <p className="text-xs font-semibold text-muted-foreground">
