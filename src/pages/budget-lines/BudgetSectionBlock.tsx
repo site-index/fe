@@ -26,10 +26,10 @@ export default function BudgetSectionBlock({
     const sectionSubtotal = subtotalFromLines(section.lines)
     return (
         <div>
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 bg-muted/50 px-3 py-1.5 print:px-2 print:py-1">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 bg-muted/50 px-3 py-2.5 print:px-2 print:py-1">
                 <button
                     type="button"
-                    className="flex min-w-0 flex-1 items-center gap-1.5 text-left md:hidden"
+                    className="flex min-w-0 flex-1 items-center gap-1.5 text-left active:bg-muted/70 rounded-md md:hidden"
                     onClick={onToggle}
                     aria-expanded={!isCollapsed}
                     aria-label={`Alternar rubro ${section.name}`}

@@ -14,11 +14,11 @@ export default function BudgetLineMobileRow({
     onOpen,
 }: BudgetLineMobileRowProps) {
     return (
-        <div className="border-b border-border/50 px-3 py-2 md:hidden">
+        <div className="border-b border-border/50 px-3 py-3 md:hidden">
             <button
                 type="button"
                 onClick={() => onOpen(line)}
-                className="w-full space-y-2 rounded-md p-1 text-left transition-colors hover:bg-muted/40"
+                className="w-full space-y-2 rounded-md p-2 text-left transition-colors hover:bg-muted/40 active:bg-muted/60"
             >
                 <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 space-y-1">

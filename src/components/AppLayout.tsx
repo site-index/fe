@@ -14,7 +14,7 @@ export default function AppLayout() {
     const [sidebarOpen, setSidebarOpen] = useState(false)
 
     return (
-        <div className="flex min-h-screen">
+        <div className="flex min-h-screen overscroll-none">
             {/* Desktop sidebar */}
             <AppSidebar />
 
@@ -34,7 +34,7 @@ export default function AppLayout() {
                     </header>
                 )}
 
-                <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
+                <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto overscroll-none">
                     <Outlet />
                 </main>
             </div>

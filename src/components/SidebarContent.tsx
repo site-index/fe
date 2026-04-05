@@ -204,7 +204,7 @@ export default function SidebarContent({ onNavigate }: SidebarContentProps) {
     return (
         <div className="flex h-full flex-col">
             <div className="flex items-center px-5 py-5">
-                <SiteLogo invertOnDark className="h-24 sm:h-40 w-auto" />
+                <SiteLogo invertOnDark className="h-16 sm:h-24 w-auto" />
             </div>
 
             <ScopeModeSelector
@@ -248,7 +248,7 @@ export default function SidebarContent({ onNavigate }: SidebarContentProps) {
                             to={item.to}
                             onClick={onNavigate}
                             className={cn(
-                                'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors',
+                                'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors active:scale-[0.98]',
                                 active
                                     ? 'bg-sidebar-accent text-sidebar-primary'
                                     : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
