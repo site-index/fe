@@ -18,6 +18,7 @@ const DEFAULT_LINE_QUANTITY = 1
 const PRICE_DISPLAY_DECIMALS = 2
 const EMPTY_LINES_LENGTH = 0
 const FIRST_ITEM_INDEX = 0
+const DISPLAY_INDEX_OFFSET = 1
 
 function parseNum(value: string, fallback = DEFAULT_NUMERIC_FALLBACK): number {
     const parsed = Number(value)
@@ -159,6 +160,138 @@ function ItemYieldLineRow({
     )
 }
 
+function ItemYieldLineMobileCard({
+    index,
+    line,
+    disabled,
+    availableResources,
+    selectedResource,
+    pricesByResourceId,
+    onSetResourcePrice,
+    onPatchLine,
+    onRemoveLine,
+}: LineRowProps) {
+    const resourceOptions = [
+        ...availableResources,
+        ...(selectedResource ? [selectedResource] : []),
+    ]
+    const currentPrice = (
+        pricesByResourceId.get(line.resourceId) ?? DEFAULT_NUMERIC_FALLBACK
+    ).toFixed(PRICE_DISPLAY_DECIMALS)
+
+    return (
+        <div className="rounded-md border border-border/60 bg-muted/20 px-2.5 py-2">
+            <div className="space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                    <p className="text-xs font-semibold text-muted-foreground">
+                        Línea {index + DISPLAY_INDEX_OFFSET}
+                    </p>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={disabled}
+                        onClick={() => onRemoveLine(index)}
+                        className="h-7 gap-1 px-2 text-xs"
+                    >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Eliminar
+                    </Button>
+                </div>
+
+                <Select
+                    value={line.resourceId}
+                    disabled={disabled}
+                    onValueChange={(value) =>
+                        onPatchLine(index, {
+                            resourceId: value,
+                            quantity: DEFAULT_LINE_QUANTITY,
+                        })
+                    }
+                >
+                    <SelectTrigger>
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {resourceOptions.map((resource) => (
+                            <SelectItem key={resource.id} value={resource.id}>
+                                {resource.name}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="space-y-1">
+                        <p className="text-muted-foreground">
+                            Unidad comercial
+                        </p>
+                        <p className="font-mono">
+                            {selectedResource?.commercialMeasureUnit.name ??
+                                '—'}
+                        </p>
+                    </div>
+                    <div className="space-y-1">
+                        <p className="text-muted-foreground">Cantidad</p>
+                        <Input
+                            type="number"
+                            min="0"
+                            step="0.0001"
+                            disabled={disabled}
+                            value={line.quantity}
+                            onChange={(event) =>
+                                onPatchLine(index, {
+                                    quantity: parseNum(event.target.value),
+                                })
+                            }
+                            className="h-8 text-sm"
+                        />
+                    </div>
+                </div>
+
+                <details className="rounded-md border border-border/60 bg-background px-2 py-1.5">
+                    <summary className="cursor-pointer text-xs text-muted-foreground">
+                        Ver detalle de la línea
+                    </summary>
+                    <div className="mt-2 space-y-2">
+                        <p className="text-[11px] text-muted-foreground">
+                            Unidad base:{' '}
+                            {selectedResource?.baseMeasureUnit.name ?? '—'}
+                        </p>
+                        <div className="space-y-1">
+                            <p className="text-xs text-muted-foreground">
+                                Precio
+                            </p>
+                            <Input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                disabled={disabled || !selectedResource}
+                                key={`mobile-price-${line.resourceId}`}
+                                defaultValue={currentPrice}
+                                onBlur={async (event) => {
+                                    if (!selectedResource) {
+                                        return
+                                    }
+                                    const unitPrice = parseNum(
+                                        event.target.value,
+                                        DEFAULT_NUMERIC_FALLBACK
+                                    )
+                                    await onSetResourcePrice(
+                                        selectedResource.id,
+                                        unitPrice
+                                    )
+                                }}
+                                className="h-8 text-sm"
+                            />
+                        </div>
+                    </div>
+                </details>
+            </div>
+        </div>
+    )
+}
+
 export default function ItemYieldLinesEditor({
     lines,
     resources,
@@ -197,8 +330,8 @@ export default function ItemYieldLinesEditor({
     }
 
     return (
-        <div className="space-y-3 rounded-lg border border-border bg-card p-3">
-            <div className="flex items-center justify-between">
+        <div className="space-y-2.5 rounded-lg border border-border bg-card p-2.5 sm:space-y-3 sm:p-3">
+            <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-semibold">Líneas del rendimiento</p>
                 <Button
                     type="button"
@@ -209,7 +342,7 @@ export default function ItemYieldLinesEditor({
                         availableResources.length === EMPTY_LINES_LENGTH
                     }
                     onClick={addLine}
-                    className="gap-2"
+                    className="h-8 gap-1.5 px-2 text-xs sm:gap-2 sm:px-3 sm:text-sm"
                 >
                     <Plus className="h-4 w-4" />
                     Agregar línea
@@ -221,42 +354,68 @@ export default function ItemYieldLinesEditor({
                     de recursos.
                 </p>
             ) : (
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                        <thead>
-                            <tr className="border-b text-xs text-muted-foreground">
-                                <th className="px-2 py-2 text-left">Recurso</th>
-                                <th className="px-2 py-2 text-left">
-                                    Unidad comercial
-                                </th>
-                                <th className="px-2 py-2 text-left">Precio</th>
-                                <th className="px-2 py-2 text-left">
-                                    Cantidad
-                                </th>
-                                <th className="px-2 py-2 text-right">Acción</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {lines.map((line, index) => (
-                                <ItemYieldLineRow
-                                    key={`line-${index}`}
-                                    index={index}
-                                    line={line}
-                                    disabled={disabled}
-                                    availableResources={availableResources}
-                                    selectedResource={
-                                        resourceById.get(line.resourceId) ??
-                                        null
-                                    }
-                                    pricesByResourceId={pricesByResourceId}
-                                    onSetResourcePrice={onSetResourcePrice}
-                                    onPatchLine={patchLine}
-                                    onRemoveLine={removeLine}
-                                />
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                <>
+                    <div className="space-y-2 md:hidden">
+                        {lines.map((line, index) => (
+                            <ItemYieldLineMobileCard
+                                key={`mobile-line-${index}`}
+                                index={index}
+                                line={line}
+                                disabled={disabled}
+                                availableResources={availableResources}
+                                selectedResource={
+                                    resourceById.get(line.resourceId) ?? null
+                                }
+                                pricesByResourceId={pricesByResourceId}
+                                onSetResourcePrice={onSetResourcePrice}
+                                onPatchLine={patchLine}
+                                onRemoveLine={removeLine}
+                            />
+                        ))}
+                    </div>
+                    <div className="hidden overflow-x-auto md:block">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="border-b text-xs text-muted-foreground">
+                                    <th className="px-2 py-2 text-left">
+                                        Recurso
+                                    </th>
+                                    <th className="px-2 py-2 text-left">
+                                        Unidad comercial
+                                    </th>
+                                    <th className="px-2 py-2 text-left">
+                                        Precio
+                                    </th>
+                                    <th className="px-2 py-2 text-left">
+                                        Cantidad
+                                    </th>
+                                    <th className="px-2 py-2 text-right">
+                                        Acción
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {lines.map((line, index) => (
+                                    <ItemYieldLineRow
+                                        key={`line-${index}`}
+                                        index={index}
+                                        line={line}
+                                        disabled={disabled}
+                                        availableResources={availableResources}
+                                        selectedResource={
+                                            resourceById.get(line.resourceId) ??
+                                            null
+                                        }
+                                        pricesByResourceId={pricesByResourceId}
+                                        onSetResourcePrice={onSetResourcePrice}
+                                        onPatchLine={patchLine}
+                                        onRemoveLine={removeLine}
+                                    />
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </>
             )}
         </div>
     )

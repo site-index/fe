@@ -314,28 +314,36 @@ function YieldEditorLoaded(args: {
     }
 
     return (
-        <div className="space-y-4">
-            <div className="flex items-center justify-between gap-2">
+        <div className="space-y-3 sm:space-y-4">
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-card p-2 sm:border-none sm:bg-transparent sm:p-0">
                 <BackButton onBack={args.onBack} />
-                <Button type="button" onClick={onSave} disabled={saving}>
+                <Button
+                    type="button"
+                    size="sm"
+                    onClick={onSave}
+                    disabled={saving}
+                    className="min-w-24"
+                >
                     {saving ? 'Guardando…' : 'Guardar'}
                 </Button>
             </div>
 
-            <div className="rounded-lg border border-border bg-card p-4">
+            <div className="space-y-1.5 rounded-lg border border-border bg-card p-3 sm:p-4">
                 <p className="text-xs text-muted-foreground">Línea</p>
-                <h1 className="text-lg font-bold">
+                <h1 className="line-clamp-2 text-base font-bold sm:text-lg">
                     {args.budgetLine.description}
                 </h1>
-                <p className="mt-1 text-xs text-muted-foreground">
-                    Editá cantidades de recursos con el botón +. PU y MME se
-                    calculan automáticamente.
+                <p className="text-xs text-muted-foreground">
+                    Editá recursos con el botón +. PU y MME se calculan
+                    automáticamente.
                 </p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-2 rounded-lg border border-border bg-card p-3">
-                    <p className="text-xs text-muted-foreground">Cantidad</p>
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                <div className="space-y-1.5 rounded-lg border border-border bg-card p-2.5 sm:p-3">
+                    <p className="text-[11px] text-muted-foreground">
+                        Cantidad
+                    </p>
                     <Input
                         type="number"
                         min="0"
@@ -346,29 +354,34 @@ function YieldEditorLoaded(args: {
                                 parseNum(event.target.value, ZERO_VALUE)
                             )
                         }
+                        className="h-9"
                     />
                 </div>
-                <div className="space-y-2 rounded-lg border border-border bg-card p-3">
-                    <p className="text-xs text-muted-foreground">
+                <div className="space-y-1.5 rounded-lg border border-border bg-card p-2.5 sm:p-3">
+                    <p className="text-[11px] text-muted-foreground">
                         PU (solo lectura)
                     </p>
-                    <Input value={unitPrice.toFixed(DECIMAL_SCALE)} disabled />
+                    <Input
+                        value={unitPrice.toFixed(DECIMAL_SCALE)}
+                        disabled
+                        className="h-9"
+                    />
                 </div>
-                <div className="space-y-2 rounded-lg border border-border bg-card p-3">
-                    <p className="text-xs text-muted-foreground">
-                        MME por unidad (solo lectura)
+                <div className="space-y-1.5 rounded-lg border border-border bg-card p-2.5 sm:p-3">
+                    <p className="text-[11px] text-muted-foreground">
+                        MME por unidad
                     </p>
-                    <p className="font-mono text-sm">
+                    <p className="font-mono text-xs sm:text-sm">
                         MAT {perUnit.material.toFixed(DECIMAL_SCALE)} · MO{' '}
                         {perUnit.labor.toFixed(DECIMAL_SCALE)} · EQ{' '}
                         {perUnit.equipment.toFixed(DECIMAL_SCALE)}
                     </p>
                 </div>
-                <div className="space-y-2 rounded-lg border border-border bg-card p-3">
-                    <p className="text-xs text-muted-foreground">
+                <div className="space-y-1.5 rounded-lg border border-border bg-card p-2.5 sm:p-3">
+                    <p className="text-[11px] text-muted-foreground">
                         Total estimado
                     </p>
-                    <p className="font-mono text-sm font-semibold">
+                    <p className="font-mono text-sm font-semibold sm:text-base">
                         {total.toFixed(DECIMAL_SCALE)}
                     </p>
                 </div>
