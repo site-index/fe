@@ -315,14 +315,14 @@ function YieldEditorLoaded(args: {
 
     return (
         <div className="space-y-3 sm:space-y-4">
-            <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-card p-2 sm:border-none sm:bg-transparent sm:p-0">
+            <div className="sticky top-0 z-10 flex items-center justify-between gap-2 rounded-lg border border-border bg-background/80 p-2 backdrop-blur-sm sm:border-none sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
                 <BackButton onBack={args.onBack} />
                 <Button
                     type="button"
                     size="sm"
                     onClick={onSave}
                     disabled={saving}
-                    className="min-w-24"
+                    className="min-w-24 active:scale-[0.98]"
                 >
                     {saving ? 'Guardando…' : 'Guardar'}
                 </Button>
