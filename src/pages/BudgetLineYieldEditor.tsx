@@ -69,7 +69,13 @@ function deriveAmounts(args: {
 
 function BackButton({ onBack }: { onBack: () => void }) {
     return (
-        <Button type="button" variant="ghost" size="sm" onClick={onBack} className="active:scale-[0.98]">
+        <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onBack}
+            className="active:scale-[0.98]"
+        >
             <ArrowLeft className="h-4 w-4" />
             Volver
         </Button>
@@ -372,11 +378,15 @@ function YieldEditorLoaded(args: {
                         MME por unidad
                     </p>
                     <div className="flex flex-col gap-0.5 font-mono text-xs sm:flex-row sm:gap-1.5 sm:text-sm">
-                        <span>MAT {perUnit.material.toFixed(DECIMAL_SCALE)}</span>
+                        <span>
+                            MAT {perUnit.material.toFixed(DECIMAL_SCALE)}
+                        </span>
                         <span className="hidden sm:inline">·</span>
                         <span>MO {perUnit.labor.toFixed(DECIMAL_SCALE)}</span>
                         <span className="hidden sm:inline">·</span>
-                        <span>EQ {perUnit.equipment.toFixed(DECIMAL_SCALE)}</span>
+                        <span>
+                            EQ {perUnit.equipment.toFixed(DECIMAL_SCALE)}
+                        </span>
                     </div>
                 </div>
                 <div className="space-y-1.5 rounded-lg border border-border bg-card p-2.5 sm:p-3">
