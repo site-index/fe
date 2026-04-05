@@ -1,12 +1,5 @@
-import {
-    Calculator,
-    ChevronDown,
-    // LayoutDashboard,
-    LogOut,
-    Settings,
-    User,
-} from 'lucide-react'
-import { useState } from 'react'
+import { Calculator, ChevronDown, LogOut, Settings, User } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 
 import { useAuth } from '@/contexts/AuthContext'
@@ -18,24 +11,8 @@ import CreateProjectDialog from './CreateProjectDialog'
 import SiteLogo from './SiteLogo'
 import ThemeToggle from './ThemeToggle'
 
-const MIN_MULTI_PROJECT_COUNT = 1
-const FIRST_CHARACTER_INDEX = 0
-
 const navItems = [
-    // { to: '/', label: 'Tablero', icon: LayoutDashboard },
     { to: '/budget-lines', label: 'Cómputo & Presupuesto', icon: Calculator },
-    // {
-    //     to: '/resource-demand',
-    //     label: 'Demanda de recursos',
-    //     icon: PackageSearch,
-    // },
-    // {
-    //     to: '/studio-catalog-items',
-    //     label: 'Biblioteca del estudio',
-    //     icon: Library,
-    // },
-    // { to: '/certifications', label: 'Certificación', icon: ClipboardCheck },
-    // { to: '/assumptions', label: 'Supuestos', icon: AlertTriangle },
 ]
 
 interface SidebarContentProps {
@@ -99,7 +76,26 @@ function ProjectSelector({
     setProjectMenuOpen: (open: boolean) => void
     setActiveProject: (project: { id: string; name: string }) => void
 }) {
-    const isSingleProject = projects.length <= MIN_MULTI_PROJECT_COUNT
+    const containerRef = useRef<HTMLDivElement>(null)
+    const isSingleProject = projects.length <= 1
+
+    useEffect(() => {
+        if (!projectMenuOpen) return
+        function handleOutsideInteraction(event: Event) {
+            if (
+                containerRef.current &&
+                !containerRef.current.contains(event.target as Node)
+            ) {
+                setProjectMenuOpen(false)
+            }
+        }
+        document.addEventListener('mousedown', handleOutsideInteraction)
+        document.addEventListener('touchstart', handleOutsideInteraction)
+        return () => {
+            document.removeEventListener('mousedown', handleOutsideInteraction)
+            document.removeEventListener('touchstart', handleOutsideInteraction)
+        }
+    }, [projectMenuOpen, setProjectMenuOpen])
 
     if (isSingleProject) {
         return (
@@ -122,7 +118,7 @@ function ProjectSelector({
     }
 
     return (
-        <div className="mx-3 mb-4 relative">
+        <div className="mx-3 mb-4 relative" ref={containerRef}>
             <button
                 onClick={() => setProjectMenuOpen(!projectMenuOpen)}
                 className="w-full rounded-md border border-sidebar-border bg-sidebar-accent px-3 py-2 text-left transition-colors hover:border-sidebar-primary/40 cursor-pointer"
@@ -186,8 +182,7 @@ function StudioSelector({ studioSlug }: { studioSlug: string }) {
 }
 
 function SidebarUserAvatar({ sessionEmail }: { sessionEmail: string | null }) {
-    const initial =
-        sessionEmail?.trim().charAt(FIRST_CHARACTER_INDEX).toUpperCase() ?? ''
+    const initial = sessionEmail?.trim().charAt(0).toUpperCase() ?? ''
     return (
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-xs font-semibold text-sidebar-foreground">
             {initial ? (
@@ -208,7 +203,6 @@ export default function SidebarContent({ onNavigate }: SidebarContentProps) {
 
     return (
         <div className="flex h-full flex-col">
-            {/* Brand */}
             <div className="flex items-center px-5 py-5">
                 <SiteLogo invertOnDark className="h-24 sm:h-40 w-auto" />
             </div>
@@ -241,7 +235,6 @@ export default function SidebarContent({ onNavigate }: SidebarContentProps) {
                 <CreateProjectDialog />
             </div>
 
-            {/* Nav */}
             <nav className="flex-1 space-y-1 px-3">
                 {navItems.map((item) => {
                     const active =
@@ -268,9 +261,7 @@ export default function SidebarContent({ onNavigate }: SidebarContentProps) {
                 })}
             </nav>
 
-            {/* Footer */}
             <div className="border-t border-sidebar-border p-3 space-y-2">
-                {/* Settings row */}
                 <NavLink
                     to="/settings"
                     onClick={onNavigate}
@@ -288,7 +279,6 @@ export default function SidebarContent({ onNavigate }: SidebarContentProps) {
                     </span>
                 </NavLink>
 
-                {/* User row */}
                 <div className="flex items-center gap-3 rounded-md px-3 py-2">
                     <SidebarUserAvatar sessionEmail={sessionEmail} />
                     <span className="flex-1 truncate text-sm text-sidebar-foreground/70">

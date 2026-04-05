@@ -13,15 +13,10 @@ import { AuthProvider } from '@/contexts/AuthContext'
 import { ProjectProvider } from '@/contexts/ProjectContext'
 import { ScopeProvider } from '@/contexts/ScopeContext'
 
-// const Dashboard = lazy(() => import('@/pages/Dashboard'))
-const BudgetLines = lazy(() => import('@/pages/BudgetLines'))
+const BudgetLines = lazy(() => import('@/pages/budget-lines'))
 const BudgetLineYieldEditor = lazy(
     () => import('@/pages/BudgetLineYieldEditor')
 )
-// const ResourceDemand = lazy(() => import('@/pages/ResourceDemand'))
-// const StudioCatalogItems = lazy(() => import('@/pages/StudioCatalogItems'))
-// const Certification = lazy(() => import('@/pages/Certification'))
-// const Assumptions = lazy(() => import('@/pages/Assumptions'))
 const SettingsPage = lazy(() => import('@/pages/Settings'))
 const Login = lazy(() => import('@/pages/Login'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
@@ -78,10 +73,6 @@ const App = () => (
                                             </ScopeProvider>
                                         }
                                     >
-                                        {/* <Route
-                                            path="/"
-                                            element={<Dashboard />}
-                                        /> */}
                                         <Route
                                             path="/"
                                             element={<BudgetLines />}
@@ -94,22 +85,6 @@ const App = () => (
                                             path="/budget-lines/:budgetLineId/yield"
                                             element={<BudgetLineYieldEditor />}
                                         />
-                                        {/* <Route
-                                            path="/resource-demand"
-                                            element={<ResourceDemand />}
-                                        /> */}
-                                        {/* <Route
-                                            path="/studio-catalog-items"
-                                            element={<StudioCatalogItems />}
-                                        />
-                                        <Route
-                                            path="/certifications"
-                                            element={<Certification />}
-                                        />
-                                        <Route
-                                            path="/assumptions"
-                                            element={<Assumptions />}
-                                        /> */}
                                         <Route
                                             path="/settings"
                                             element={<SettingsPage />}

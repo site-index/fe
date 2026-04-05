@@ -1,15 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus } from 'lucide-react'
 import {
-    cloneElement,
-    type Dispatch,
-    isValidElement,
     type KeyboardEvent,
-    type MouseEvent,
-    type ReactElement,
     type ReactNode,
-    type SetStateAction,
     useEffect,
     useMemo,
     useState,
@@ -25,54 +18,42 @@ import {
 } from '@/api/budget-lines.api'
 import { getMeasureUnits, getWorkCategories } from '@/api/catalog.api'
 import BudgetLineDialogShell from '@/components/BudgetLineDialogShell'
+import {
+    appendOptionalBudgetNumericFields,
+    buildBudgetLineCreateBody,
+    DESCRIPTION_MAX_LENGTH,
+    ensureManualWorkCategoryForSubmit,
+    filterUnusedSuggestions,
+    handleDescriptionSuggestionKey,
+    type LibraryBinding,
+    MIN_DESCRIPTION_LENGTH,
+    NO_ACTIVE_SUGGESTION_INDEX,
+    onDescriptionInputChange,
+    openSuggestionsWhenFreeLine,
+    renderCreateBudgetLineTrigger,
+    resetDialogForm,
+    shouldShowSuggestionPanel,
+    SUGGESTION_CLOSE_DELAY_MS,
+    SUGGESTION_LISTBOX_ID,
+    toLibraryBindingFromSuggestion,
+    UNIT_NONE,
+    WORK_CATEGORY_NONE,
+    workCategoryFromSuggestion,
+} from '@/components/create-budget-line-dialog.helpers'
 import type { BudgetLineCreateFormValues } from '@/components/create-budget-line-dialog-form-fields'
 import { CreateBudgetLineDialogFormFields } from '@/components/create-budget-line-dialog-form-fields'
-import { Button } from '@/components/ui/button'
-import {
-    type SuggestionRow,
-    useBudgetLineDescriptionSuggestions,
-} from '@/components/use-budget-line-description-suggestions'
+import type { SuggestionRow } from '@/components/use-budget-line-description-suggestions'
+import { useBudgetLineDescriptionSuggestions } from '@/components/use-budget-line-description-suggestions'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
 import { getApiErrorMessage } from '@/lib/api'
-import { filterBudgetLineSuggestionRows } from '@/lib/budget-line-suggestion-filter'
 import {
     breakdownSumFromStrings,
     isBreakdownActiveFromStrings,
     optionalNonNegStr,
-    toNum,
 } from '@/lib/form-utils'
 import { qk } from '@/lib/query-keys'
 import type { WorkCategoryRow } from '@/types/work-category'
-
-const WORK_CATEGORY_NONE = '__none__'
-const UNIT_NONE = '__none__'
-const SUGGESTION_LISTBOX_ID = 'create-budget-line-suggestion-listbox'
-const DESCRIPTION_MAX_LENGTH = 2000
-const SUGGESTION_CLOSE_DELAY_MS = 200
-const MIN_DESCRIPTION_LENGTH = 1
-const EMPTY_COLLECTION_LENGTH = 0
-const FIRST_ITEM_INDEX = 0
-const NO_ACTIVE_SUGGESTION_INDEX = -1
-const SUGGESTION_INDEX_STEP = 1
-
-type LibraryBinding =
-    | null
-    | {
-          kind: 'yield'
-          yieldId: string
-          workCategoryName: string
-          measureUnitId: string | null
-          measureUnitName: string | null
-      }
-    | {
-          kind: 'catalog'
-          catalogItemId: string
-          workCategoryId: string
-          workCategoryName: string
-          measureUnitId: string | null
-          measureUnitName: string | null
-      }
 
 const schema = z.object({
     description: z
@@ -93,279 +74,6 @@ const schema = z.object({
 })
 
 type FormValues = z.infer<typeof schema>
-
-function appendOptionalBudgetNumericFields(
-    body: Record<string, unknown>,
-    values: FormValues,
-    unitNone: string
-): void {
-    if (values.measureUnitId !== unitNone) {
-        body.measureUnitId = values.measureUnitId
-    }
-    if (values.quantityStr.trim() !== '') {
-        body.quantity = toNum(values.quantityStr)
-    }
-    if (values.unitPriceStr.trim() !== '') {
-        body.unitPrice = toNum(values.unitPriceStr)
-    }
-    if (values.amountMaterialStr.trim() !== '') {
-        body.amountMaterial = toNum(values.amountMaterialStr)
-    }
-    if (values.amountLaborStr.trim() !== '') {
-        body.amountLabor = toNum(values.amountLaborStr)
-    }
-    if (values.amountEquipmentStr.trim() !== '') {
-        body.amountEquipment = toNum(values.amountEquipmentStr)
-    }
-}
-
-function buildBudgetLineCreateBody(
-    values: FormValues,
-    libraryBinding: LibraryBinding,
-    workCategoryNoneValue: string
-): Record<string, unknown> {
-    const body: Record<string, unknown> = {
-        description: values.description,
-    }
-    if (libraryBinding?.kind === 'catalog') {
-        body.catalogItemId = libraryBinding.catalogItemId
-    } else {
-        if (libraryBinding?.kind === 'yield') {
-            body.itemYieldId = libraryBinding.yieldId
-        }
-        if (values.workCategoryId !== workCategoryNoneValue) {
-            body.workCategoryId = values.workCategoryId
-        }
-    }
-    return body
-}
-
-function ensureManualWorkCategoryForSubmit(args: {
-    submitted: FormValues
-    libraryBinding: LibraryBinding
-    categories: WorkCategoryRow[]
-    workCategoryNoneValue: string
-    setWorkCategory: (value: string) => void
-}): FormValues | null {
-    if (args.libraryBinding != null) {
-        return args.submitted
-    }
-    if (args.submitted.workCategoryId !== args.workCategoryNoneValue) {
-        return args.submitted
-    }
-    const fallback = args.categories[FIRST_ITEM_INDEX]?.id
-    if (!fallback) {
-        return null
-    }
-    args.setWorkCategory(fallback)
-    return {
-        ...args.submitted,
-        workCategoryId: fallback,
-    }
-}
-
-function toLibraryBindingFromSuggestion(row: SuggestionRow): LibraryBinding {
-    if (row.kind === 'yield') {
-        return {
-            kind: 'yield',
-            yieldId: row.yieldId,
-            workCategoryName: row.workCategoryName,
-            measureUnitId: row.measureUnitId,
-            measureUnitName: row.measureUnitName,
-        }
-    }
-    return {
-        kind: 'catalog',
-        catalogItemId: row.catalogItemId,
-        workCategoryId: row.workCategoryId,
-        workCategoryName: row.workCategoryName,
-        measureUnitId: row.measureUnitId,
-        measureUnitName: row.measureUnitName,
-    }
-}
-
-function handleDescriptionEscapeKey(args: {
-    event: KeyboardEvent<HTMLInputElement>
-    showSuggestions: boolean
-    rows: SuggestionRow[]
-    setSuggestionsOpen: (open: boolean) => void
-    setActiveSuggestionIndex: Dispatch<SetStateAction<number>>
-}): boolean {
-    if (args.event.key !== 'Escape') {
-        return false
-    }
-    if (!args.showSuggestions && args.rows.length === EMPTY_COLLECTION_LENGTH) {
-        args.setSuggestionsOpen(false)
-        return true
-    }
-    args.event.preventDefault()
-    args.setSuggestionsOpen(false)
-    args.setActiveSuggestionIndex(NO_ACTIVE_SUGGESTION_INDEX)
-    return true
-}
-
-function handleDescriptionSuggestionKey(args: {
-    event: KeyboardEvent<HTMLInputElement>
-    showSuggestions: boolean
-    rows: SuggestionRow[]
-    activeSuggestionIndex: number
-    setSuggestionsOpen: (open: boolean) => void
-    setActiveSuggestionIndex: Dispatch<SetStateAction<number>>
-    onPick: (row: SuggestionRow) => void
-}): void {
-    if (handleDescriptionEscapeKey(args)) {
-        return
-    }
-    if (!args.showSuggestions || args.rows.length === EMPTY_COLLECTION_LENGTH) {
-        return
-    }
-    if (args.event.key === 'ArrowDown') {
-        args.event.preventDefault()
-        args.setActiveSuggestionIndex((i) => {
-            if (i < EMPTY_COLLECTION_LENGTH) return FIRST_ITEM_INDEX
-            return i < args.rows.length - SUGGESTION_INDEX_STEP
-                ? i + SUGGESTION_INDEX_STEP
-                : i
-        })
-        return
-    }
-    if (args.event.key === 'ArrowUp') {
-        args.event.preventDefault()
-        args.setActiveSuggestionIndex((i) =>
-            i > EMPTY_COLLECTION_LENGTH
-                ? i - SUGGESTION_INDEX_STEP
-                : NO_ACTIVE_SUGGESTION_INDEX
-        )
-        return
-    }
-    if (
-        args.event.key !== 'Enter' ||
-        args.activeSuggestionIndex < EMPTY_COLLECTION_LENGTH
-    ) {
-        return
-    }
-    const activeRow = args.rows[args.activeSuggestionIndex]
-    if (!activeRow) {
-        return
-    }
-    args.event.preventDefault()
-    args.onPick(activeRow)
-}
-
-function filterUnusedSuggestions(args: {
-    fuse: ReturnType<typeof useBudgetLineDescriptionSuggestions>['fuse']
-    suggestionRows: SuggestionRow[]
-    description: string
-    workCategoryId: string
-    usedCatalogItemIds: Set<string>
-    usedItemYieldIds: Set<string>
-}): SuggestionRow[] {
-    const rows = filterBudgetLineSuggestionRows(
-        args.fuse,
-        args.suggestionRows,
-        args.description,
-        args.workCategoryId === WORK_CATEGORY_NONE ? null : args.workCategoryId
-    )
-    return rows.filter((row) =>
-        row.kind === 'catalog'
-            ? !args.usedCatalogItemIds.has(row.catalogItemId)
-            : !args.usedItemYieldIds.has(row.yieldId)
-    )
-}
-
-function shouldShowSuggestionPanel(args: {
-    open: boolean
-    libraryBinding: LibraryBinding
-    suggestionsOpen: boolean
-    queryEnabled: boolean
-    suggestionsLoading: boolean
-    hasCorpus: boolean
-}): boolean {
-    return (
-        args.open &&
-        !args.libraryBinding &&
-        args.suggestionsOpen &&
-        args.queryEnabled &&
-        !args.suggestionsLoading &&
-        args.hasCorpus
-    )
-}
-
-function openSuggestionsWhenFreeLine(args: {
-    libraryBinding: LibraryBinding
-    setSuggestionsOpen: (open: boolean) => void
-}): void {
-    if (args.libraryBinding != null) {
-        return
-    }
-    args.setSuggestionsOpen(true)
-}
-
-function onDescriptionInputChange(args: {
-    libraryBinding: LibraryBinding
-    setSuggestionsOpen: (open: boolean) => void
-    setActiveSuggestionIndex: (index: number) => void
-}): void {
-    args.setActiveSuggestionIndex(NO_ACTIVE_SUGGESTION_INDEX)
-    if (args.libraryBinding != null) {
-        return
-    }
-    args.setSuggestionsOpen(true)
-}
-
-function workCategoryFromSuggestion(row: SuggestionRow): string {
-    return row.kind === 'yield' ? WORK_CATEGORY_NONE : row.workCategoryId
-}
-
-function resetDialogForm(args: {
-    form: UseFormReturn<FormValues>
-    defaultForm: FormValues
-    defaultWorkCategoryId: string | null
-    setLibraryBinding: (value: LibraryBinding) => void
-    setSuggestionsOpen: (open: boolean) => void
-    setActiveSuggestionIndex: (index: number) => void
-}): void {
-    args.form.reset({
-        ...args.defaultForm,
-        workCategoryId: args.defaultWorkCategoryId ?? WORK_CATEGORY_NONE,
-    })
-    args.setLibraryBinding(null)
-    args.setSuggestionsOpen(false)
-    args.setActiveSuggestionIndex(NO_ACTIVE_SUGGESTION_INDEX)
-}
-
-function renderCreateBudgetLineTrigger(args: {
-    trigger: ReactNode
-    onOpen: () => void
-}): ReactNode {
-    if (!args.trigger) {
-        return (
-            <Button
-                type="button"
-                size="sm"
-                className="gap-2"
-                onClick={args.onOpen}
-            >
-                <Plus className="h-4 w-4" />
-                Nueva línea
-            </Button>
-        )
-    }
-    if (!isValidElement(args.trigger)) {
-        return null
-    }
-    const triggerElement = args.trigger as ReactElement<{
-        onClick?: (event: MouseEvent<HTMLElement>) => void
-    }>
-    return cloneElement(triggerElement, {
-        onClick: (event: MouseEvent<HTMLElement>) => {
-            triggerElement.props.onClick?.(event)
-            if (!event.defaultPrevented) {
-                args.onOpen()
-            }
-        },
-    })
-}
 
 function useCreateBudgetLineSubmit(args: {
     libraryBinding: LibraryBinding
@@ -467,7 +175,7 @@ function useDefaultWorkCategorySync(args: {
         if (current !== WORK_CATEGORY_NONE) {
             return
         }
-        const fallback = args.categories[FIRST_ITEM_INDEX]?.id
+        const fallback = args.categories[0]?.id
         if (!fallback) {
             return
         }

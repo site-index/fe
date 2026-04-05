@@ -54,7 +54,10 @@ export default tseslint.config(
         rules: {
             complexity: ['error', 10],
             ...reactHooks.configs.recommended.rules,
-            '@typescript-eslint/no-magic-numbers': 'error',
+            '@typescript-eslint/no-magic-numbers': [
+                'error',
+                { ignore: [0, 1, -1] },
+            ],
             'react-refresh/only-export-components': [
                 'warn',
                 { allowConstantExport: true },

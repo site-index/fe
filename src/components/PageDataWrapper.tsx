@@ -73,5 +73,10 @@ export default function PageDataWrapper({
         )
     }
 
-    return <>{children}</>
+    return (
+        <div className="space-y-4">
+            <h1 className="text-xl font-black tracking-tight">{title}</h1>
+            {children}
+        </div>
+    )
 }
