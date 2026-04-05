@@ -349,10 +349,12 @@ export default function ItemYieldLinesEditor({
                 </Button>
             </div>
             {lines.length === EMPTY_LINES_LENGTH ? (
-                <p className="text-xs text-muted-foreground">
-                    Sin líneas todavía. Agregá al menos una para definir consumo
-                    de recursos.
-                </p>
+                <div className="rounded-md border border-dashed border-border/60 px-4 py-6 text-center">
+                    <p className="text-xs text-muted-foreground">
+                        Sin líneas todavía. Agregá al menos una para definir consumo
+                        de recursos.
+                    </p>
+                </div>
             ) : (
                 <>
                     <div className="space-y-2 md:hidden">

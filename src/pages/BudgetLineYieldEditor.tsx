@@ -371,11 +371,13 @@ function YieldEditorLoaded(args: {
                     <p className="text-[11px] text-muted-foreground">
                         MME por unidad
                     </p>
-                    <p className="font-mono text-xs sm:text-sm">
-                        MAT {perUnit.material.toFixed(DECIMAL_SCALE)} · MO{' '}
-                        {perUnit.labor.toFixed(DECIMAL_SCALE)} · EQ{' '}
-                        {perUnit.equipment.toFixed(DECIMAL_SCALE)}
-                    </p>
+                    <div className="flex flex-col gap-0.5 font-mono text-xs sm:flex-row sm:gap-1.5 sm:text-sm">
+                        <span>MAT {perUnit.material.toFixed(DECIMAL_SCALE)}</span>
+                        <span className="hidden sm:inline">·</span>
+                        <span>MO {perUnit.labor.toFixed(DECIMAL_SCALE)}</span>
+                        <span className="hidden sm:inline">·</span>
+                        <span>EQ {perUnit.equipment.toFixed(DECIMAL_SCALE)}</span>
+                    </div>
                 </div>
                 <div className="space-y-1.5 rounded-lg border border-border bg-card p-2.5 sm:p-3">
                     <p className="text-[11px] text-muted-foreground">
