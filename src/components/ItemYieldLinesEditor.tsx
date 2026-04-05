@@ -13,7 +13,13 @@ import {
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 
-function parseNum(value: string, fallback = 0): number {
+const DEFAULT_NUMERIC_FALLBACK = 0
+const DEFAULT_LINE_QUANTITY = 1
+const PRICE_DISPLAY_DECIMALS = 2
+const EMPTY_LINES_LENGTH = 0
+const FIRST_ITEM_INDEX = 0
+
+function parseNum(value: string, fallback = DEFAULT_NUMERIC_FALLBACK): number {
     const parsed = Number(value)
     return Number.isFinite(parsed) ? parsed : fallback
 }
@@ -21,7 +27,7 @@ function parseNum(value: string, fallback = 0): number {
 function createEmptyLine(resourceId: string): ItemYieldLineInput {
     return {
         resourceId,
-        quantity: 1,
+        quantity: DEFAULT_LINE_QUANTITY,
     }
 }
 
@@ -69,7 +75,10 @@ function ItemYieldLineRow({
                     value={line.resourceId}
                     disabled={disabled}
                     onValueChange={(value) =>
-                        onPatchLine(index, { resourceId: value, quantity: 1 })
+                        onPatchLine(index, {
+                            resourceId: value,
+                            quantity: DEFAULT_LINE_QUANTITY,
+                        })
                     }
                 >
                     <SelectTrigger>
@@ -105,13 +114,17 @@ function ItemYieldLineRow({
                     disabled={disabled || !selectedResource}
                     key={`price-${line.resourceId}`}
                     defaultValue={(
-                        pricesByResourceId.get(line.resourceId) ?? 0
-                    ).toFixed(2)}
+                        pricesByResourceId.get(line.resourceId) ??
+                        DEFAULT_NUMERIC_FALLBACK
+                    ).toFixed(PRICE_DISPLAY_DECIMALS)}
                     onBlur={async (event) => {
                         if (!selectedResource) {
                             return
                         }
-                        const unitPrice = parseNum(event.target.value, 0)
+                        const unitPrice = parseNum(
+                            event.target.value,
+                            DEFAULT_NUMERIC_FALLBACK
+                        )
                         await onSetResourcePrice(selectedResource.id, unitPrice)
                     }}
                 />
@@ -176,7 +189,7 @@ export default function ItemYieldLinesEditor({
     }
 
     const addLine = (): void => {
-        const first = availableResources[0]
+        const first = availableResources[FIRST_ITEM_INDEX]
         if (!first) {
             return
         }
@@ -191,7 +204,10 @@ export default function ItemYieldLinesEditor({
                     type="button"
                     size="sm"
                     variant="outline"
-                    disabled={disabled || availableResources.length === 0}
+                    disabled={
+                        disabled ||
+                        availableResources.length === EMPTY_LINES_LENGTH
+                    }
                     onClick={addLine}
                     className="gap-2"
                 >
@@ -199,7 +215,7 @@ export default function ItemYieldLinesEditor({
                     Agregar línea
                 </Button>
             </div>
-            {lines.length === 0 ? (
+            {lines.length === EMPTY_LINES_LENGTH ? (
                 <p className="text-xs text-muted-foreground">
                     Sin líneas todavía. Agregá al menos una para definir consumo
                     de recursos.

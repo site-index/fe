@@ -8,6 +8,8 @@ import { Label } from '@/components/ui/label'
 import { apiFetch, getApiErrorMessage } from '@/lib/api'
 import { qk } from '@/lib/query-keys'
 
+const MIN_NON_NEGATIVE_VALUE = 0
+
 type ProjectDetail = {
     id: string
     name: string
@@ -117,7 +119,9 @@ export function ProjectSpendCard({
                         const raw = inputRef.current?.value ?? '0'
                         const n = Number.parseFloat(raw)
                         saveSpendMutation.mutate(
-                            Number.isFinite(n) && n >= 0 ? n : 0
+                            Number.isFinite(n) && n >= MIN_NON_NEGATIVE_VALUE
+                                ? n
+                                : MIN_NON_NEGATIVE_VALUE
                         )
                     }}
                 >

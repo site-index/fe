@@ -20,6 +20,8 @@ type CertSummary = {
     pct: number
     lastCertLabel: string | null
 }
+const ZERO_PERCENT = 0
+const EMPTY_ROWS_LENGTH = 0
 
 function ProgressBar({ pct }: { pct: number }) {
     return (
@@ -121,10 +123,12 @@ function CertificationBody({
                     <CheckCircle2 className="h-5 w-5 text-positive" />
                     <p className="font-bold">
                         Avance total:{' '}
-                        <span className="font-mono">{summary?.pct ?? 0}%</span>
+                        <span className="font-mono">
+                            {summary?.pct ?? ZERO_PERCENT}%
+                        </span>
                     </p>
                 </div>
-                <ProgressBar pct={summary?.pct ?? 0} />
+                <ProgressBar pct={summary?.pct ?? ZERO_PERCENT} />
                 <p className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
                     <Clock className="h-3 w-3" /> Última certificación:{' '}
                     {formatDate(summary?.lastCertLabel ?? null)}
@@ -133,7 +137,7 @@ function CertificationBody({
 
             {/* Mobile cards */}
             <div className="space-y-3 md:hidden">
-                {rows.length === 0 ? (
+                {rows.length === EMPTY_ROWS_LENGTH ? (
                     <p className="text-sm text-muted-foreground">
                         No hay ítems de Cómputo & Presupuesto con cantidad
                         planificada.
@@ -201,7 +205,7 @@ function CertificationBody({
                             </tr>
                         </thead>
                         <tbody>
-                            {rows.length === 0 ? (
+                            {rows.length === EMPTY_ROWS_LENGTH ? (
                                 <tr>
                                     <td
                                         colSpan={5}

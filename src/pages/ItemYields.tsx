@@ -21,12 +21,17 @@ import { useScope } from '@/contexts/ScopeContext'
 import { qk } from '@/lib/query-keys'
 import type { ItemYield, ItemYieldLine } from '@/types/item-yield'
 
+const DEFAULT_CONVERTER_QUANTITY = 10
+const ZERO_VALUE = 0
+const SINGLE_ITEM_COUNT = 1
+const CONSUMPTION_DECIMALS = 2
+
 function calcConsumption(comp: ItemYieldLine, outputQty: number) {
-    return Math.max(0, comp.quantity) * Math.max(0, outputQty)
+    return Math.max(ZERO_VALUE, comp.quantity) * Math.max(ZERO_VALUE, outputQty)
 }
 
 function ConverterWidget({ itemYield }: { itemYield: ItemYield }) {
-    const [quantity, setQuantity] = useState(10)
+    const [quantity, setQuantity] = useState(DEFAULT_CONVERTER_QUANTITY)
 
     return (
         <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
@@ -40,8 +45,8 @@ function ConverterWidget({ itemYield }: { itemYield: ItemYield }) {
                     value={quantity}
                     onChange={(e) => setQuantity(Number(e.target.value))}
                     className="w-24 rounded-md border border-input bg-card px-3 py-1.5 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                    min={0}
-                    step={1}
+                    min={ZERO_VALUE}
+                    step={SINGLE_ITEM_COUNT}
                 />
                 <span className="text-sm font-mono text-muted-foreground">
                     unidad de ítem
@@ -68,7 +73,7 @@ function ConverterWidget({ itemYield }: { itemYield: ItemYield }) {
                                 <td className="py-1.5 text-right font-mono">
                                     {comp.baseMeasureUnit.name}
                                     {' · '}
-                                    {consumption.toFixed(2)}
+                                    {consumption.toFixed(CONSUMPTION_DECIMALS)}
                                 </td>
                                 <td className="py-1.5 text-right font-mono font-semibold">
                                     {comp.commercialMeasureUnit.name}
@@ -190,7 +195,7 @@ function ItemYieldDetail({
 
             <ConverterWidget itemYield={d} />
 
-            {d.linkedItems.length > 0 && (
+            {d.linkedItems.length > ZERO_VALUE && (
                 <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
                     <p className="text-sm font-semibold mb-2 flex items-center gap-2">
                         <ExternalLink className="h-4 w-4 text-muted-foreground" />
@@ -222,7 +227,7 @@ function ItemYieldsGrid({
 }) {
     return (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {itemYields.length === 0 ? (
+            {itemYields.length === ZERO_VALUE ? (
                 <p className="text-sm text-muted-foreground col-span-full">
                     No hay rendimientos en esta obra. Si el catálogo está
                     sembrado, abrí esta página de nuevo para generar las filas
@@ -266,13 +271,13 @@ function ItemYieldsGrid({
                         <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
                             <span>
                                 {d.components.length}{' '}
-                                {d.components.length === 1
+                                {d.components.length === SINGLE_ITEM_COUNT
                                     ? 'componente'
                                     : 'componentes'}
                             </span>
                             <span className="flex items-center gap-1">
                                 {d.linkedItems.length}{' '}
-                                {d.linkedItems.length === 1
+                                {d.linkedItems.length === SINGLE_ITEM_COUNT
                                     ? 'vínculo'
                                     : 'vínculos'}{' '}
                                 <ChevronRight className="h-3 w-3" />

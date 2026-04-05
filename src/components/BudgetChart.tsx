@@ -15,9 +15,15 @@ interface ChartRow {
     actual: number
 }
 
+const CHART_HEIGHT_PX = 280
+const MILLION = 1_000_000
+const ONE_DECIMAL_PLACE = 1
+const BAR_RADIUS_PX = 4
+const ZERO_RADIUS_PX = 0
+
 export default function BudgetChart({ data }: { data: ChartRow[] }) {
     return (
-        <ResponsiveContainer width="100%" height={280}>
+        <ResponsiveContainer width="100%" height={CHART_HEIGHT_PX}>
             <BarChart data={data} barCategoryGap="20%">
                 <CartesianGrid
                     strokeDasharray="3 3"
@@ -32,7 +38,7 @@ export default function BudgetChart({ data }: { data: ChartRow[] }) {
                     tick={{ fontSize: 11, fontFamily: 'var(--font-mono)' }}
                     stroke="hsl(var(--muted-foreground))"
                     tickFormatter={(v: number) =>
-                        `$${(v / 1000000).toFixed(1)}M`
+                        `$${(v / MILLION).toFixed(ONE_DECIMAL_PLACE)}M`
                     }
                 />
                 <Tooltip
@@ -51,13 +57,23 @@ export default function BudgetChart({ data }: { data: ChartRow[] }) {
                     dataKey="budget"
                     name="Budget"
                     fill="hsl(var(--primary))"
-                    radius={[4, 4, 0, 0]}
+                    radius={[
+                        BAR_RADIUS_PX,
+                        BAR_RADIUS_PX,
+                        ZERO_RADIUS_PX,
+                        ZERO_RADIUS_PX,
+                    ]}
                 />
                 <Bar
                     dataKey="actual"
                     name="Actual"
                     fill="hsl(var(--positive))"
-                    radius={[4, 4, 0, 0]}
+                    radius={[
+                        BAR_RADIUS_PX,
+                        BAR_RADIUS_PX,
+                        ZERO_RADIUS_PX,
+                        ZERO_RADIUS_PX,
+                    ]}
                 />
             </BarChart>
         </ResponsiveContainer>

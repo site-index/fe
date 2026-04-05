@@ -18,6 +18,9 @@ import CreateProjectDialog from './CreateProjectDialog'
 import SiteLogo from './SiteLogo'
 import ThemeToggle from './ThemeToggle'
 
+const MIN_MULTI_PROJECT_COUNT = 1
+const FIRST_CHARACTER_INDEX = 0
+
 const navItems = [
     // { to: '/', label: 'Tablero', icon: LayoutDashboard },
     { to: '/budget-lines', label: 'Cómputo & Presupuesto', icon: Calculator },
@@ -96,7 +99,7 @@ function ProjectSelector({
     setProjectMenuOpen: (open: boolean) => void
     setActiveProject: (project: { id: string; name: string }) => void
 }) {
-    const isSingleProject = projects.length <= 1
+    const isSingleProject = projects.length <= MIN_MULTI_PROJECT_COUNT
 
     if (isSingleProject) {
         return (
@@ -183,7 +186,8 @@ function StudioSelector({ studioSlug }: { studioSlug: string }) {
 }
 
 function SidebarUserAvatar({ sessionEmail }: { sessionEmail: string | null }) {
-    const initial = sessionEmail?.trim().charAt(0).toUpperCase() ?? ''
+    const initial =
+        sessionEmail?.trim().charAt(FIRST_CHARACTER_INDEX).toUpperCase() ?? ''
     return (
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-xs font-semibold text-sidebar-foreground">
             {initial ? (

@@ -7,6 +7,9 @@ import { getProjectItemYields } from '@/api/item-yields.api'
 import { qk } from '@/lib/query-keys'
 import type { ItemYield } from '@/types/item-yield'
 
+const EMPTY_ROWS_LENGTH = 0
+const MIN_MATCH_CHAR_LENGTH = 1
+
 type MeasureUnitApiShape = {
     id: string
     code: string
@@ -122,7 +125,7 @@ export function useBudgetLineDescriptionSuggestions(
     )
 
     const fuse = useMemo(() => {
-        if (suggestionRows.length === 0) {
+        if (suggestionRows.length === EMPTY_ROWS_LENGTH) {
             return null
         }
         return new Fuse(suggestionRows, {
@@ -133,7 +136,7 @@ export function useBudgetLineDescriptionSuggestions(
             ],
             threshold: 0.38,
             ignoreLocation: true,
-            minMatchCharLength: 1,
+            minMatchCharLength: MIN_MATCH_CHAR_LENGTH,
             includeScore: true,
         })
     }, [suggestionRows])
@@ -145,6 +148,6 @@ export function useBudgetLineDescriptionSuggestions(
         suggestionRows,
         suggestionsLoading,
         queryEnabled,
-        hasCorpus: suggestionRows.length > 0,
+        hasCorpus: suggestionRows.length > EMPTY_ROWS_LENGTH,
     }
 }

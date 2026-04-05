@@ -1,7 +1,16 @@
+import type { ResourceKind } from './resource-kind'
+
+export const CATALOG_ITEM_APPROVAL_STATUSES = [
+    'ACTIVE',
+    'PENDING_APPROVAL',
+] as const
+export type CatalogItemApprovalStatus =
+    (typeof CATALOG_ITEM_APPROVAL_STATUSES)[number]
+
 export type ItemYieldLine = {
     resourceId: string
     resourceName: string
-    resourceKind: 'MATERIAL' | 'LABOR' | 'EQUIPMENT'
+    resourceKind: ResourceKind
     baseMeasureUnit: {
         id: string
         code: string
@@ -24,7 +33,7 @@ export type ItemYield = {
     linkedItems: string[]
     /** Present when this row is a snapshot of a global catalog item. */
     catalogItemId: string | null
-    catalogItemApprovalStatus: 'ACTIVE' | 'PENDING_APPROVAL' | null
+    catalogItemApprovalStatus: CatalogItemApprovalStatus | null
 }
 
 export type ItemYieldOption = Pick<

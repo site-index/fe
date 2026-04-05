@@ -24,12 +24,23 @@ import {
 import { useAuth } from '@/contexts/AuthContext'
 import { getApiErrorMessage } from '@/lib/api'
 import { qk } from '@/lib/query-keys'
+import {
+    NO_MEASURE_UNIT_ID,
+    PURCHASE_STATUS_MAPPED,
+    PURCHASE_STATUS_UNMAPPED,
+    type PurchaseMappingStatus,
+} from '@/types/purchase-mapping'
 
 type EditableLine = StudioCatalogItemDefaultRow['lines'][number]
+const SINGLE_LINE_COUNT = 1
+const MIN_UNRESOLVED_COUNT = 0
+const DEFAULT_YIELD_PER_PURCHASE = 0
 
 function unresolvedCount(row: StudioCatalogItemDefaultRow): number {
     return row.lines.filter(
-        (line) => (line.purchaseMappingStatus ?? 'MAPPED') === 'UNMAPPED'
+        (line) =>
+            (line.purchaseMappingStatus ?? PURCHASE_STATUS_MAPPED) ===
+            PURCHASE_STATUS_UNMAPPED
     ).length
 }
 
@@ -84,7 +95,8 @@ export default function StudioCatalogItems() {
                             purchaseMeasureUnitId: line.purchaseMeasureUnitId,
                             purchaseLabel: line.purchaseLabel ?? null,
                             purchaseMappingStatus:
-                                line.purchaseMappingStatus ?? 'MAPPED',
+                                line.purchaseMappingStatus ??
+                                PURCHASE_STATUS_MAPPED,
                             baseQuantity: line.baseQuantity,
                             yieldPerPurchase: line.yieldPerPurchase,
                             wastePercent: line.wastePercent,
@@ -120,7 +132,8 @@ export default function StudioCatalogItems() {
         setLinesDraft(
             row.lines.map((line) => ({
                 ...line,
-                purchaseMappingStatus: line.purchaseMappingStatus ?? 'MAPPED',
+                purchaseMappingStatus:
+                    line.purchaseMappingStatus ?? PURCHASE_STATUS_MAPPED,
                 purchaseLabel: line.purchaseLabel ?? '',
             }))
         )
@@ -208,15 +221,17 @@ export default function StudioCatalogItems() {
                                                                 '—'}{' '}
                                                             · {r.lines.length}{' '}
                                                             {r.lines.length ===
-                                                            1
+                                                            SINGLE_LINE_COUNT
                                                                 ? 'línea'
                                                                 : 'líneas'}
                                                         </p>
-                                                        {unresolved > 0 ? (
+                                                        {unresolved >
+                                                        MIN_UNRESOLVED_COUNT ? (
                                                             <p className="text-xs text-amber-700 mt-1">
                                                                 {unresolved}{' '}
                                                                 línea
-                                                                {unresolved > 1
+                                                                {unresolved >
+                                                                SINGLE_LINE_COUNT
                                                                     ? 's'
                                                                     : ''}{' '}
                                                                 sin mapear para
@@ -328,13 +343,13 @@ export default function StudioCatalogItems() {
                                                 <Select
                                                     value={
                                                         line.purchaseMeasureUnitId ??
-                                                        '__none__'
+                                                        NO_MEASURE_UNIT_ID
                                                     }
                                                     onValueChange={(value) =>
                                                         updateLine(index, {
                                                             purchaseMeasureUnitId:
                                                                 value ===
-                                                                '__none__'
+                                                                NO_MEASURE_UNIT_ID
                                                                     ? null
                                                                     : value,
                                                         })
@@ -344,7 +359,11 @@ export default function StudioCatalogItems() {
                                                         <SelectValue placeholder="Sin unidad" />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        <SelectItem value="__none__">
+                                                        <SelectItem
+                                                            value={
+                                                                NO_MEASURE_UNIT_ID
+                                                            }
+                                                        >
                                                             Sin unidad
                                                         </SelectItem>
                                                         {measureUnits.map(
@@ -374,7 +393,7 @@ export default function StudioCatalogItems() {
                                                             line.yieldPerPurchase
                                                         )
                                                             ? line.yieldPerPurchase
-                                                            : 0
+                                                            : DEFAULT_YIELD_PER_PURCHASE
                                                     }
                                                     onChange={(event) =>
                                                         updateLine(index, {
@@ -391,14 +410,12 @@ export default function StudioCatalogItems() {
                                                 <Select
                                                     value={
                                                         line.purchaseMappingStatus ??
-                                                        'MAPPED'
+                                                        PURCHASE_STATUS_MAPPED
                                                     }
                                                     onValueChange={(value) =>
                                                         updateLine(index, {
                                                             purchaseMappingStatus:
-                                                                value as
-                                                                    | 'MAPPED'
-                                                                    | 'UNMAPPED',
+                                                                value as PurchaseMappingStatus,
                                                         })
                                                     }
                                                 >
@@ -406,10 +423,18 @@ export default function StudioCatalogItems() {
                                                         <SelectValue />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        <SelectItem value="MAPPED">
+                                                        <SelectItem
+                                                            value={
+                                                                PURCHASE_STATUS_MAPPED
+                                                            }
+                                                        >
                                                             Mapeado
                                                         </SelectItem>
-                                                        <SelectItem value="UNMAPPED">
+                                                        <SelectItem
+                                                            value={
+                                                                PURCHASE_STATUS_UNMAPPED
+                                                            }
+                                                        >
                                                             Sin mapear
                                                         </SelectItem>
                                                     </SelectContent>

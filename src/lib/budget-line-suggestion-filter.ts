@@ -2,6 +2,8 @@ import type Fuse from 'fuse.js'
 
 import type { SuggestionRow } from '@/components/use-budget-line-description-suggestions'
 
+const EMPTY_ROW_COUNT = 0
+
 /** Fuse-ranked suggestions for the budget-line description field (single source of truth). */
 export function filterBudgetLineSuggestionRows(
     fuse: Fuse<SuggestionRow> | null,
@@ -9,7 +11,7 @@ export function filterBudgetLineSuggestionRows(
     description: string,
     workCategoryId: string | null
 ): SuggestionRow[] {
-    if (fuse == null || suggestionRows.length === 0) {
+    if (fuse == null || suggestionRows.length === EMPTY_ROW_COUNT) {
         return []
     }
     const scopedRows =
@@ -18,7 +20,7 @@ export function filterBudgetLineSuggestionRows(
             : suggestionRows.filter(
                   (row) => row.workCategoryId === workCategoryId
               )
-    if (scopedRows.length === 0) {
+    if (scopedRows.length === EMPTY_ROW_COUNT) {
         return []
     }
     const query = description.trim()

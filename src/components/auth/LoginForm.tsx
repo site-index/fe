@@ -17,6 +17,8 @@ import { ApiError, getApiErrorMessage } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
 type StudioChoice = { slug: string; name: string }
+const HTTP_BAD_REQUEST = 400
+const MIN_STUDIO_CHOICES = 0
 
 function isMultipleStudiosBody(
     body: unknown
@@ -43,7 +45,7 @@ function loginCatchState(
     | { type: 'message'; text: string } {
     if (
         err instanceof ApiError &&
-        err.status === 400 &&
+        err.status === HTTP_BAD_REQUEST &&
         isMultipleStudiosBody(err.body)
     ) {
         return { type: 'multiple', studios: err.body.studios }
@@ -74,10 +76,14 @@ export default function LoginForm({ onSuccess, className }: Props) {
         setSubmitting(true)
         try {
             const slug =
-                studioChoices && studioChoices.length > 0
+                studioChoices && studioChoices.length > MIN_STUDIO_CHOICES
                     ? studioSlugPick
                     : undefined
-            if (studioChoices && studioChoices.length > 0 && !slug) {
+            if (
+                studioChoices &&
+                studioChoices.length > MIN_STUDIO_CHOICES &&
+                !slug
+            ) {
                 setError('Elegí un estudio.')
                 setSubmitting(false)
                 return
@@ -134,7 +140,7 @@ export default function LoginForm({ onSuccess, className }: Props) {
                     required
                 />
             </div>
-            {studioChoices && studioChoices.length > 0 && (
+            {studioChoices && studioChoices.length > MIN_STUDIO_CHOICES && (
                 <div className="space-y-1.5">
                     <Label htmlFor="login-studio">Estudio</Label>
                     <Select

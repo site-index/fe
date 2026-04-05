@@ -36,6 +36,7 @@ const impactColors = {
     medium: 'text-yellow-600 font-medium',
     low: 'text-muted-foreground',
 }
+const EMPTY_ROW_COUNT = 0
 
 export default function Assumptions() {
     const queryClient = useQueryClient()
@@ -122,7 +123,7 @@ export default function Assumptions() {
                 </div>
 
                 <div className="space-y-3">
-                    {rows.length === 0 ? (
+                    {rows.length === EMPTY_ROW_COUNT ? (
                         <p className="text-sm text-muted-foreground">
                             No hay supuestos abiertos.
                         </p>

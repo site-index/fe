@@ -31,13 +31,20 @@ import type { BudgetLineRow } from '@/types/budget-line'
 
 const WORK_CATEGORY_NONE = '__none__'
 const UNIT_NONE = '__none__'
+const DESCRIPTION_MAX_LENGTH = 2000
+const MIN_DESCRIPTION_LENGTH = 1
+const ZERO_AMOUNT = 0
+const NO_ACTIVE_SUGGESTION_INDEX = -1
 
 const schema = z.object({
     description: z
         .string()
         .trim()
-        .min(1, 'La descripción es obligatoria')
-        .max(2000, 'Máximo 2000 caracteres'),
+        .min(MIN_DESCRIPTION_LENGTH, 'La descripción es obligatoria')
+        .max(
+            DESCRIPTION_MAX_LENGTH,
+            `Máximo ${DESCRIPTION_MAX_LENGTH} caracteres`
+        ),
     workCategoryId: z.union([z.literal(WORK_CATEGORY_NONE), z.string().uuid()]),
     measureUnitId: z.union([z.literal(UNIT_NONE), z.string().uuid()]),
     quantityStr: optionalNonNegStr,
@@ -63,7 +70,9 @@ function formDefaultsFromLine(line: BudgetLineRow): FormValues {
         workCategoryId: line.workCategoryId ?? WORK_CATEGORY_NONE,
         measureUnitId: line.measureUnit?.id ?? UNIT_NONE,
         quantityStr: String(line.quantity),
-        unitPriceStr: String(line.unitPriceStored ?? line.unitPrice ?? 0),
+        unitPriceStr: String(
+            line.unitPriceStored ?? line.unitPrice ?? ZERO_AMOUNT
+        ),
         amountMaterialStr: String(line.amountMaterial),
         amountLaborStr: String(line.amountLabor),
         amountEquipmentStr: String(line.amountEquipment),
@@ -102,15 +111,15 @@ function patchInputFromValues(values: FormValues): PatchBudgetLineInput {
                 : toNum(normalizedValues.unitPriceStr),
         amountMaterial:
             normalizedValues.amountMaterialStr.trim() === ''
-                ? 0
+                ? ZERO_AMOUNT
                 : toNum(normalizedValues.amountMaterialStr),
         amountLabor:
             normalizedValues.amountLaborStr.trim() === ''
-                ? 0
+                ? ZERO_AMOUNT
                 : toNum(normalizedValues.amountLaborStr),
         amountEquipment:
             normalizedValues.amountEquipmentStr.trim() === ''
-                ? 0
+                ? ZERO_AMOUNT
                 : toNum(normalizedValues.amountEquipmentStr),
     }
 }
@@ -264,7 +273,7 @@ export default function EditBudgetLineDialog({
                 suggestionsLoading={false}
                 filteredSuggestionRows={[]}
                 suggestionListboxId="edit-budget-line-suggestion-listbox"
-                activeSuggestionIndex={-1}
+                activeSuggestionIndex={NO_ACTIVE_SUGGESTION_INDEX}
                 setActiveSuggestionIndex={() => {}}
                 onDescriptionKeyDown={() => {}}
                 onDescriptionFocus={() => {}}

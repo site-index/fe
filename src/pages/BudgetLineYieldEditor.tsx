@@ -28,8 +28,16 @@ import { useProject } from '@/contexts/ProjectContext'
 import { useScope } from '@/contexts/ScopeContext'
 import { getApiErrorMessage } from '@/lib/api'
 import { qk } from '@/lib/query-keys'
+import {
+    RESOURCE_KIND_EQUIPMENT,
+    RESOURCE_KIND_LABOR,
+    RESOURCE_KIND_MATERIAL,
+} from '@/types/resource-kind'
 
-function parseNum(value: string, fallback = 0): number {
+const ZERO_VALUE = 0
+const DECIMAL_SCALE = 2
+
+function parseNum(value: string, fallback = ZERO_VALUE): number {
     const parsed = Number(value)
     return Number.isFinite(parsed) ? parsed : fallback
 }
@@ -39,16 +47,22 @@ function deriveAmounts(args: {
     pricesByResourceId: Map<string, number>
     resourcesById: Map<string, ResourceRow>
 }): { material: number; labor: number; equipment: number } {
-    const totals = { material: 0, labor: 0, equipment: 0 }
+    const totals = {
+        material: ZERO_VALUE,
+        labor: ZERO_VALUE,
+        equipment: ZERO_VALUE,
+    }
     for (const line of args.lines) {
         const resource = args.resourcesById.get(line.resourceId)
         if (!resource) continue
         const lineCost =
-            Math.max(0, line.quantity) *
-            (args.pricesByResourceId.get(line.resourceId) ?? 0)
-        if (resource.kind === 'MATERIAL') totals.material += lineCost
-        if (resource.kind === 'LABOR') totals.labor += lineCost
-        if (resource.kind === 'EQUIPMENT') totals.equipment += lineCost
+            Math.max(ZERO_VALUE, line.quantity) *
+            (args.pricesByResourceId.get(line.resourceId) ?? ZERO_VALUE)
+        if (resource.kind === RESOURCE_KIND_MATERIAL)
+            totals.material += lineCost
+        if (resource.kind === RESOURCE_KIND_LABOR) totals.labor += lineCost
+        if (resource.kind === RESOURCE_KIND_EQUIPMENT)
+            totals.equipment += lineCost
     }
     return totals
 }
@@ -222,7 +236,7 @@ function YieldEditorLoaded(args: {
         resourcesById,
     })
     const unitPrice = perUnit.material + perUnit.labor + perUnit.equipment
-    const total = unitPrice * Math.max(0, quantity)
+    const total = unitPrice * Math.max(ZERO_VALUE, quantity)
 
     const onSetResourcePrice = async (
         resourceId: string,
@@ -328,7 +342,9 @@ function YieldEditorLoaded(args: {
                         step="0.01"
                         value={quantity}
                         onChange={(event) =>
-                            setQuantity(parseNum(event.target.value, 0))
+                            setQuantity(
+                                parseNum(event.target.value, ZERO_VALUE)
+                            )
                         }
                     />
                 </div>
@@ -336,16 +352,16 @@ function YieldEditorLoaded(args: {
                     <p className="text-xs text-muted-foreground">
                         PU (solo lectura)
                     </p>
-                    <Input value={unitPrice.toFixed(2)} disabled />
+                    <Input value={unitPrice.toFixed(DECIMAL_SCALE)} disabled />
                 </div>
                 <div className="space-y-2 rounded-lg border border-border bg-card p-3">
                     <p className="text-xs text-muted-foreground">
                         MME por unidad (solo lectura)
                     </p>
                     <p className="font-mono text-sm">
-                        MAT {perUnit.material.toFixed(2)} · MO{' '}
-                        {perUnit.labor.toFixed(2)} · EQ{' '}
-                        {perUnit.equipment.toFixed(2)}
+                        MAT {perUnit.material.toFixed(DECIMAL_SCALE)} · MO{' '}
+                        {perUnit.labor.toFixed(DECIMAL_SCALE)} · EQ{' '}
+                        {perUnit.equipment.toFixed(DECIMAL_SCALE)}
                     </p>
                 </div>
                 <div className="space-y-2 rounded-lg border border-border bg-card p-3">
@@ -353,7 +369,7 @@ function YieldEditorLoaded(args: {
                         Total estimado
                     </p>
                     <p className="font-mono text-sm font-semibold">
-                        {total.toFixed(2)}
+                        {total.toFixed(DECIMAL_SCALE)}
                     </p>
                 </div>
             </div>

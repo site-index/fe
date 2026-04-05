@@ -31,6 +31,8 @@ let sessionInvalidatedHandler: (() => void) | null = null
 
 /** Single-flight refresh so parallel 401s do not hammer `/auth/refresh`. */
 let refreshInFlight: Promise<string | null> | null = null
+const HTTP_NO_CONTENT = 204
+const HTTP_UNAUTHORIZED = 401
 
 /** Clears client auth when refresh-after-401 fails (e.g. missing refresh cookie). */
 export function registerSessionInvalidatedHandler(
@@ -108,7 +110,7 @@ async function readErrorBody(res: Response): Promise<unknown> {
 }
 
 async function readSuccessBody<T>(res: Response): Promise<T> {
-    if (res.status === 204) {
+    if (res.status === HTTP_NO_CONTENT) {
         return undefined as T
     }
     const text = await res.text()
@@ -144,7 +146,7 @@ export async function apiFetch<T>(
     const url = buildUrl(path)
     const res = await apiFetchOnce(url, rest, rest.token)
 
-    if (res.status === 401 && !_retry) {
+    if (res.status === HTTP_UNAUTHORIZED && !_retry) {
         const newToken = await tryRefreshAccessToken()
         if (newToken) {
             return apiFetch<T>(path, {

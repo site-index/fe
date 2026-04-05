@@ -19,6 +19,7 @@ export interface Project {
 const EMPTY_PROJECT: Project = { id: '__empty__', name: 'Sin proyectos' }
 
 const LS_ACTIVE = 'siteindex_active_project_id'
+const FIRST_PROJECT_INDEX = 0
 
 interface ProjectContextType {
     activeProject: Project
@@ -63,8 +64,10 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         const id =
             selectedId && projects.some((p) => p.id === selectedId)
                 ? selectedId
-                : projects[0].id
-        return projects.find((p) => p.id === id) ?? projects[0]
+                : projects[FIRST_PROJECT_INDEX].id
+        return (
+            projects.find((p) => p.id === id) ?? projects[FIRST_PROJECT_INDEX]
+        )
     }, [projects, selectedId])
 
     const setActiveProjectPersist = (p: Project) => {

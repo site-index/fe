@@ -57,10 +57,14 @@ import {
 } from '@/lib/project-loaded-catalog-items'
 import { qk } from '@/lib/query-keys'
 
+const MIN_CATALOG_ITEM_ID_LENGTH = 1
+const EMPTY_ITEMS_LENGTH = 0
+const FIRST_ITEM_INDEX = 0
+
 const schema = z.object({
     catalogItemId: z
         .string()
-        .min(1, 'Elegí un ítem')
+        .min(MIN_CATALOG_ITEM_ID_LENGTH, 'Elegí un ítem')
         .uuid('Elegí un ítem válido'),
 })
 
@@ -78,7 +82,11 @@ function useItemYieldDialogDefaults(
     form: UseFormReturn<FormValues>
 ): void {
     useEffect(() => {
-        if (!open || catalogItemsLoading || catalogItems.length === 0) {
+        if (
+            !open ||
+            catalogItemsLoading ||
+            catalogItems.length === EMPTY_ITEMS_LENGTH
+        ) {
             return
         }
         const current = form.getValues('catalogItemId')
@@ -86,7 +94,10 @@ function useItemYieldDialogDefaults(
         if (exists) {
             return
         }
-        form.setValue('catalogItemId', catalogItems[0].catalogItemId)
+        form.setValue(
+            'catalogItemId',
+            catalogItems[FIRST_ITEM_INDEX].catalogItemId
+        )
     }, [open, catalogItemsLoading, catalogItems, form])
 }
 
@@ -152,7 +163,11 @@ function itemYieldFormCanSubmit(
     catalogItemsLen: number,
     isSubmitting: boolean
 ): boolean {
-    return !catalogItemsLoading && catalogItemsLen > 0 && !isSubmitting
+    return (
+        !catalogItemsLoading &&
+        catalogItemsLen > EMPTY_ITEMS_LENGTH &&
+        !isSubmitting
+    )
 }
 
 function CreateItemYieldFormFields({
@@ -180,7 +195,7 @@ function CreateItemYieldFormFields({
 }) {
     const itemPlaceholder = catalogItemsLoading
         ? 'Cargando ítems…'
-        : catalogItems.length === 0
+        : catalogItems.length === EMPTY_ITEMS_LENGTH
           ? 'No hay ítems cargados en el proyecto'
           : 'Elegí un ítem'
     return (
@@ -199,7 +214,8 @@ function CreateItemYieldFormFields({
                                 <Select
                                     disabled={
                                         catalogItemsLoading ||
-                                        catalogItems.length === 0
+                                        catalogItems.length ===
+                                            EMPTY_ITEMS_LENGTH
                                     }
                                     onValueChange={field.onChange}
                                     value={field.value}
@@ -224,7 +240,7 @@ function CreateItemYieldFormFields({
                                     </SelectContent>
                                 </Select>
                                 {!catalogItemsLoading &&
-                                catalogItems.length === 0 ? (
+                                catalogItems.length === EMPTY_ITEMS_LENGTH ? (
                                     <p className="text-xs text-muted-foreground">
                                         No hay ítems cargados en las líneas de
                                         este proyecto para crear un rendimiento.

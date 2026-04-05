@@ -48,6 +48,13 @@ import type { WorkCategoryRow } from '@/types/work-category'
 const WORK_CATEGORY_NONE = '__none__'
 const UNIT_NONE = '__none__'
 const SUGGESTION_LISTBOX_ID = 'create-budget-line-suggestion-listbox'
+const DESCRIPTION_MAX_LENGTH = 2000
+const SUGGESTION_CLOSE_DELAY_MS = 200
+const MIN_DESCRIPTION_LENGTH = 1
+const EMPTY_COLLECTION_LENGTH = 0
+const FIRST_ITEM_INDEX = 0
+const NO_ACTIVE_SUGGESTION_INDEX = -1
+const SUGGESTION_INDEX_STEP = 1
 
 type LibraryBinding =
     | null
@@ -71,8 +78,11 @@ const schema = z.object({
     description: z
         .string()
         .trim()
-        .min(1, 'La descripción es obligatoria')
-        .max(2000, 'Máximo 2000 caracteres'),
+        .min(MIN_DESCRIPTION_LENGTH, 'La descripción es obligatoria')
+        .max(
+            DESCRIPTION_MAX_LENGTH,
+            `Máximo ${DESCRIPTION_MAX_LENGTH} caracteres`
+        ),
     workCategoryId: z.union([z.literal(WORK_CATEGORY_NONE), z.string().uuid()]),
     measureUnitId: z.union([z.literal(UNIT_NONE), z.string().uuid()]),
     quantityStr: optionalNonNegStr,
@@ -143,7 +153,7 @@ function ensureManualWorkCategoryForSubmit(args: {
     if (args.submitted.workCategoryId !== args.workCategoryNoneValue) {
         return args.submitted
     }
-    const fallback = args.categories[0]?.id
+    const fallback = args.categories[FIRST_ITEM_INDEX]?.id
     if (!fallback) {
         return null
     }
@@ -184,13 +194,13 @@ function handleDescriptionEscapeKey(args: {
     if (args.event.key !== 'Escape') {
         return false
     }
-    if (!args.showSuggestions && args.rows.length === 0) {
+    if (!args.showSuggestions && args.rows.length === EMPTY_COLLECTION_LENGTH) {
         args.setSuggestionsOpen(false)
         return true
     }
     args.event.preventDefault()
     args.setSuggestionsOpen(false)
-    args.setActiveSuggestionIndex(-1)
+    args.setActiveSuggestionIndex(NO_ACTIVE_SUGGESTION_INDEX)
     return true
 }
 
@@ -206,23 +216,32 @@ function handleDescriptionSuggestionKey(args: {
     if (handleDescriptionEscapeKey(args)) {
         return
     }
-    if (!args.showSuggestions || args.rows.length === 0) {
+    if (!args.showSuggestions || args.rows.length === EMPTY_COLLECTION_LENGTH) {
         return
     }
     if (args.event.key === 'ArrowDown') {
         args.event.preventDefault()
         args.setActiveSuggestionIndex((i) => {
-            if (i < 0) return 0
-            return i < args.rows.length - 1 ? i + 1 : i
+            if (i < EMPTY_COLLECTION_LENGTH) return FIRST_ITEM_INDEX
+            return i < args.rows.length - SUGGESTION_INDEX_STEP
+                ? i + SUGGESTION_INDEX_STEP
+                : i
         })
         return
     }
     if (args.event.key === 'ArrowUp') {
         args.event.preventDefault()
-        args.setActiveSuggestionIndex((i) => (i > 0 ? i - 1 : -1))
+        args.setActiveSuggestionIndex((i) =>
+            i > EMPTY_COLLECTION_LENGTH
+                ? i - SUGGESTION_INDEX_STEP
+                : NO_ACTIVE_SUGGESTION_INDEX
+        )
         return
     }
-    if (args.event.key !== 'Enter' || args.activeSuggestionIndex < 0) {
+    if (
+        args.event.key !== 'Enter' ||
+        args.activeSuggestionIndex < EMPTY_COLLECTION_LENGTH
+    ) {
         return
     }
     const activeRow = args.rows[args.activeSuggestionIndex]
@@ -287,7 +306,7 @@ function onDescriptionInputChange(args: {
     setSuggestionsOpen: (open: boolean) => void
     setActiveSuggestionIndex: (index: number) => void
 }): void {
-    args.setActiveSuggestionIndex(-1)
+    args.setActiveSuggestionIndex(NO_ACTIVE_SUGGESTION_INDEX)
     if (args.libraryBinding != null) {
         return
     }
@@ -312,7 +331,7 @@ function resetDialogForm(args: {
     })
     args.setLibraryBinding(null)
     args.setSuggestionsOpen(false)
-    args.setActiveSuggestionIndex(-1)
+    args.setActiveSuggestionIndex(NO_ACTIVE_SUGGESTION_INDEX)
 }
 
 function renderCreateBudgetLineTrigger(args: {
@@ -448,7 +467,7 @@ function useDefaultWorkCategorySync(args: {
         if (current !== WORK_CATEGORY_NONE) {
             return
         }
-        const fallback = args.categories[0]?.id
+        const fallback = args.categories[FIRST_ITEM_INDEX]?.id
         if (!fallback) {
             return
         }
@@ -526,7 +545,9 @@ export default function CreateBudgetLineDialog({
     const [open, setOpen] = useState(false)
     const [libraryBinding, setLibraryBinding] = useState<LibraryBinding>(null)
     const [suggestionsOpen, setSuggestionsOpen] = useState(false)
-    const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1)
+    const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(
+        NO_ACTIVE_SUGGESTION_INDEX
+    )
     const { accessToken, studioSlug, isQueryReady } = useAuth()
     const { activeProject } = useProject()
     const queryClient = useQueryClient()
@@ -673,7 +694,7 @@ export default function CreateBudgetLineDialog({
         })
         setLibraryBinding(toLibraryBindingFromSuggestion(row))
         setSuggestionsOpen(false)
-        setActiveSuggestionIndex(-1)
+        setActiveSuggestionIndex(NO_ACTIVE_SUGGESTION_INDEX)
     }
 
     const clearLibraryBinding = () => {
@@ -768,7 +789,7 @@ export default function CreateBudgetLineDialog({
                     onDescriptionBlur={() => {
                         window.setTimeout(() => {
                             setSuggestionsOpen(false)
-                        }, 200)
+                        }, SUGGESTION_CLOSE_DELAY_MS)
                     }}
                     onDescriptionInput={() => {
                         onDescriptionInputChange({

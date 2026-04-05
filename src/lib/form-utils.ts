@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+const ZERO_NUMBER = 0
+
 /** Parse a user-typed decimal string (supports comma as decimal separator). */
 export function toNum(s: string): number {
     return Number(s.replace(',', '.').trim())
@@ -16,10 +18,10 @@ export function formatCurrency(value: number): string {
 
 function parseOptionalDecimalToZero(value: string): number {
     if (value.trim() === '') {
-        return 0
+        return ZERO_NUMBER
     }
     const parsed = toNum(value)
-    return Number.isFinite(parsed) ? parsed : 0
+    return Number.isFinite(parsed) ? parsed : ZERO_NUMBER
 }
 
 /** Compute per-unit breakdown sum from MAT/MO/EQ string fields. */
@@ -41,7 +43,7 @@ export function isBreakdownActiveFromStrings(values: {
     amountLaborStr: string
     amountEquipmentStr: string
 }): boolean {
-    return breakdownSumFromStrings(values) > 0
+    return breakdownSumFromStrings(values) > ZERO_NUMBER
 }
 
 /** Zod refinement: non-empty string that parses to a number ≥ 0. */
@@ -52,7 +54,7 @@ export const nonNegStr = z
         (s) =>
             s !== '' &&
             Number.isFinite(Number(s.replace(',', '.'))) &&
-            Number(s.replace(',', '.')) >= 0,
+            Number(s.replace(',', '.')) >= ZERO_NUMBER,
         'Tiene que ser un número ≥ 0'
     )
 
@@ -64,6 +66,6 @@ export const optionalNonNegStr = z
         (s) =>
             s === '' ||
             (Number.isFinite(Number(s.replace(',', '.'))) &&
-                Number(s.replace(',', '.')) >= 0),
+                Number(s.replace(',', '.')) >= ZERO_NUMBER),
         'Tiene que ser un número ≥ 0'
     )

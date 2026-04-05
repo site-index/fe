@@ -17,6 +17,9 @@ import type { WorkCategoryRow } from '@/types/work-category'
 
 export type { BudgetLineRow } from '@/types/budget-line'
 
+const EMPTY_LINES_LENGTH = 0
+const NO_CATEGORY_FALLBACK = 0
+
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
@@ -53,12 +56,15 @@ function buildSections(
         .map((category) => ({
             key: category.id,
             workCategoryId: category.id,
-            categoryNumber: category.sortOrder > 0 ? category.sortOrder : null,
+            categoryNumber:
+                category.sortOrder > NO_CATEGORY_FALLBACK
+                    ? category.sortOrder
+                    : null,
             name: category.name,
             lines: grouped.get(category.id) ?? [],
         }))
     const uncategorizedLines = grouped.get('__uncategorized__') ?? []
-    if (uncategorizedLines.length > 0) {
+    if (uncategorizedLines.length > EMPTY_LINES_LENGTH) {
         sections.push({
             key: '__uncategorized__',
             workCategoryId: null,
@@ -71,7 +77,7 @@ function buildSections(
 }
 
 function subtotalFromLines(lines: BudgetLineRow[]): number {
-    return lines.reduce((acc, line) => acc + line.total, 0)
+    return lines.reduce((acc, line) => acc + line.total, NO_CATEGORY_FALLBACK)
 }
 
 /* ------------------------------------------------------------------ */
@@ -271,7 +277,7 @@ function BudgetSectionBlock({
                     {onAdd}
                 </div>
             </div>
-            {section.lines.length === 0 ? (
+            {section.lines.length === EMPTY_LINES_LENGTH ? (
                 <p className="border-b border-border/50 px-3 py-2 text-xs text-muted-foreground print:px-2 print:py-1.5">
                     Sin ítems todavía en este rubro.
                 </p>
@@ -360,7 +366,7 @@ function BudgetLinesBody({
     const sections = buildSections(rows, categories)
     const sectionKeys = sections.map((section) => section.key)
     const allSectionsCollapsed =
-        sectionKeys.length > 0 &&
+        sectionKeys.length > EMPTY_LINES_LENGTH &&
         sectionKeys.every((key) => collapsedSections[key] ?? false)
 
     return (
@@ -396,7 +402,8 @@ function BudgetLinesBody({
                                     : 'Contraer rubros'
                             }
                             onClick={() => {
-                                if (sectionKeys.length === 0) return
+                                if (sectionKeys.length === EMPTY_LINES_LENGTH)
+                                    return
                                 if (allSectionsCollapsed) {
                                     setCollapsedSections({})
                                     return
@@ -438,7 +445,7 @@ function BudgetLinesBody({
                         <span className="text-right">Total</span>
                         <span className="print:hidden" />
                     </div>
-                    {sections.length === 0 ? (
+                    {sections.length === EMPTY_LINES_LENGTH ? (
                         <p className="px-4 py-8 text-center text-sm text-muted-foreground">
                             Todavía no hay líneas. Creá un ítem desde un rubro o
                             vía API.

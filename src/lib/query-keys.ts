@@ -1,8 +1,10 @@
 type StudioScope = string | null | undefined
 
+const EMPTY_STRING_LENGTH = 0
+
 function studioScopeKey(studioSlug: StudioScope): string {
     const normalized = studioSlug?.trim().toLowerCase()
-    return normalized && normalized.length > 0
+    return normalized && normalized.length > EMPTY_STRING_LENGTH
         ? normalized
         : '__studio_unknown__'
 }

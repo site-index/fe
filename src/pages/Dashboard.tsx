@@ -12,6 +12,8 @@ import { apiFetch } from '@/lib/api'
 import { qk } from '@/lib/query-keys'
 import type { DashboardData } from '@/types/dashboard'
 
+const EMPTY_ASSUMPTION_COUNT = 0
+
 export default function Dashboard() {
     const { activeProject, projectsLoading } = useProject()
     const { accessToken, studioSlug, isQueryReady } = useAuth()
@@ -102,7 +104,8 @@ export default function Dashboard() {
                     Últimos supuestos del sistema
                 </h2>
                 <ul className="space-y-2">
-                    {data.recentAssumptions.length === 0 ? (
+                    {data.recentAssumptions.length ===
+                    EMPTY_ASSUMPTION_COUNT ? (
                         <li className="text-sm text-muted-foreground">
                             No hay supuestos abiertos recientes.
                         </li>

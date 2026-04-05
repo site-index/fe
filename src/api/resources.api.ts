@@ -1,4 +1,5 @@
 import { apiFetch } from '@/lib/api'
+import type { ResourceKind } from '@/types/resource-kind'
 
 import type { ApiContext } from './api-context'
 
@@ -6,7 +7,7 @@ export type ResourceRow = {
     id: string
     code: string
     name: string
-    kind: 'MATERIAL' | 'LABOR' | 'EQUIPMENT'
+    kind: ResourceKind
     baseMeasureUnit: { id: string; code: string; name: string }
     commercialMeasureUnit: { id: string; code: string; name: string }
 }
@@ -15,7 +16,7 @@ export type ResourcePriceRow = {
     resourceId: string
     resourceCode: string
     resourceName: string
-    resourceKind: 'MATERIAL' | 'LABOR' | 'EQUIPMENT'
+    resourceKind: ResourceKind
     baseMeasureUnit: { id: string; code: string; name: string }
     measureUnit: { id: string; code: string; name: string }
     unitPrice: number
@@ -27,7 +28,7 @@ export type ProjectResourceDemandRow = {
     resourceId: string
     code: string
     name: string
-    kind: 'MATERIAL' | 'LABOR' | 'EQUIPMENT'
+    kind: ResourceKind
     measureUnit: { id: string; code: string; name: string }
     requiredQuantity: number
     estimatedUnitCost: number

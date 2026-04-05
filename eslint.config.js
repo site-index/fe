@@ -54,6 +54,7 @@ export default tseslint.config(
         rules: {
             complexity: ['error', 10],
             ...reactHooks.configs.recommended.rules,
+            '@typescript-eslint/no-magic-numbers': 'error',
             'react-refresh/only-export-components': [
                 'warn',
                 { allowConstantExport: true },
@@ -87,6 +88,12 @@ export default tseslint.config(
                         'Use `import type { … } from "react"` instead of React.* type namespaces (e.g. ReactNode, not React.ReactNode).',
                 },
             ],
+        },
+    },
+    {
+        files: ['**/*.spec.{ts,tsx}', '**/*.test.{ts,tsx}'],
+        rules: {
+            '@typescript-eslint/no-magic-numbers': 'off',
         },
     },
     {

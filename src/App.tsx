@@ -26,10 +26,17 @@ const SettingsPage = lazy(() => import('@/pages/Settings'))
 const Login = lazy(() => import('@/pages/Login'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 
+const QUERY_STALE_MINUTES = 2
+const SECONDS_PER_MINUTE = 60
+const MILLISECONDS_PER_SECOND = 1000
+
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
-            staleTime: 2 * 60 * 1000,
+            staleTime:
+                QUERY_STALE_MINUTES *
+                SECONDS_PER_MINUTE *
+                MILLISECONDS_PER_SECOND,
             retry: 1,
             refetchOnWindowFocus: false,
         },

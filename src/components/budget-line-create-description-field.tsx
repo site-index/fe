@@ -24,6 +24,9 @@ import {
 import { filterBudgetLineSuggestionRows } from '@/lib/budget-line-suggestion-filter'
 import { cn } from '@/lib/utils'
 
+const POPOVER_SIDE_OFFSET = 4
+const EMPTY_ROW_COUNT = 0
+
 function suggestionKey(row: SuggestionRow): string {
     return row.kind === 'yield' ? `y:${row.yieldId}` : `c:${row.catalogItemId}`
 }
@@ -133,7 +136,7 @@ export function BudgetLineCreateDescriptionField({
                         'max-w-[calc(100vw-2rem)]'
                     )}
                     align="start"
-                    sideOffset={4}
+                    sideOffset={POPOVER_SIDE_OFFSET}
                     onOpenAutoFocus={(e) => e.preventDefault()}
                 >
                     <DescriptionSuggestionList
@@ -185,7 +188,7 @@ function DescriptionSuggestionList({
     return (
         <SuggestionPanel className="max-h-[min(280px,50vh)]">
             <SuggestionPanelList>
-                {rows.length === 0 ? (
+                {rows.length === EMPTY_ROW_COUNT ? (
                     <SuggestionPanelEmpty className="py-3 px-2 text-xs text-muted-foreground">
                         No hay coincidencias. Seguí escribiendo o elegí texto
                         libre.

@@ -19,6 +19,10 @@ import { createPortal } from 'react-dom'
 
 import { cn } from '@/lib/utils'
 
+const DEFAULT_SIDE_OFFSET = 4
+const HALF_DIVISOR = 2
+const DEFAULT_TAB_INDEX = -1
+
 /* ------------------------------------------------------------------ */
 /*  Context                                                           */
 /* ------------------------------------------------------------------ */
@@ -97,7 +101,7 @@ const PopoverContent = forwardRef<HTMLDivElement, PopoverContentProps>(
         {
             className,
             align = 'center',
-            sideOffset = 4,
+            sideOffset = DEFAULT_SIDE_OFFSET,
             onOpenAutoFocus,
             container,
             children,
@@ -165,7 +169,7 @@ const PopoverContent = forwardRef<HTMLDivElement, PopoverContentProps>(
                     next.transform = 'translateX(-100%)'
                     break
                 default:
-                    next.left = rect.left + rect.width / 2
+                    next.left = rect.left + rect.width / HALF_DIVISOR
                     next.transform = 'translateX(-50%)'
                     break
             }
@@ -228,7 +232,7 @@ const PopoverContent = forwardRef<HTMLDivElement, PopoverContentProps>(
                 )}
                 style={style}
                 data-state={open ? 'open' : 'closed'}
-                tabIndex={tabIndex ?? -1}
+                tabIndex={tabIndex ?? DEFAULT_TAB_INDEX}
                 {...props}
             >
                 {children}

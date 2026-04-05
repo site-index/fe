@@ -5,6 +5,10 @@ import {
     type SuggestionRow,
 } from '@/components/use-budget-line-description-suggestions'
 
+const EMPTY_ROW_COUNT = 0
+const NO_ACTIVE_INDEX = -1
+const LAST_ITEM_OFFSET = 1
+
 export type CreateBudgetLineSuggestionPanelProps = {
     listboxId: string
     rows: SuggestionRow[]
@@ -22,15 +26,18 @@ export function CreateBudgetLineSuggestionPanel({
     onPick,
 }: CreateBudgetLineSuggestionPanelProps) {
     useEffect(() => {
-        if (activeIndex >= rows.length && rows.length > 0) {
-            onActiveIndexChange(rows.length - 1)
+        if (activeIndex >= rows.length && rows.length > EMPTY_ROW_COUNT) {
+            onActiveIndexChange(rows.length - LAST_ITEM_OFFSET)
         }
-        if (rows.length === 0 && activeIndex !== -1) {
-            onActiveIndexChange(-1)
+        if (
+            rows.length === EMPTY_ROW_COUNT &&
+            activeIndex !== NO_ACTIVE_INDEX
+        ) {
+            onActiveIndexChange(NO_ACTIVE_INDEX)
         }
     }, [rows.length, activeIndex, onActiveIndexChange])
 
-    if (rows.length === 0) {
+    if (rows.length === EMPTY_ROW_COUNT) {
         return (
             <div className="px-2 py-3 text-xs text-muted-foreground">
                 No hay coincidencias. Seguí escribiendo o elegí texto libre.

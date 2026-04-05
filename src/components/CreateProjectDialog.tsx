@@ -29,12 +29,18 @@ import { type Project, useProject } from '@/contexts/ProjectContext'
 import { apiFetch, getApiErrorMessage } from '@/lib/api'
 import { qk } from '@/lib/query-keys'
 
+const MIN_PROJECT_NAME_LENGTH = 1
+const MAX_PROJECT_NAME_LENGTH = 100
+
 const schema = z.object({
     name: z
         .string()
         .trim()
-        .min(1, 'El nombre es obligatorio')
-        .max(100, 'Máximo 100 caracteres'),
+        .min(MIN_PROJECT_NAME_LENGTH, 'El nombre es obligatorio')
+        .max(
+            MAX_PROJECT_NAME_LENGTH,
+            `Máximo ${MAX_PROJECT_NAME_LENGTH} caracteres`
+        ),
 })
 
 type FormValues = z.infer<typeof schema>

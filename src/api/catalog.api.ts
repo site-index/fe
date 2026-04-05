@@ -1,5 +1,7 @@
 import { apiFetch } from '@/lib/api'
 import type { MeasureUnitRow } from '@/types/measure-unit'
+import type { PurchaseMappingStatus } from '@/types/purchase-mapping'
+import type { ResourceKind } from '@/types/resource-kind'
 import type { WorkCategoryRow } from '@/types/work-category'
 
 import type { ApiContext } from './api-context'
@@ -18,12 +20,12 @@ export type StudioCatalogItemDefaultRow = {
     lines: Array<{
         resourceId: string
         resourceName: string
-        resourceKind: 'MATERIAL' | 'LABOR' | 'EQUIPMENT'
+        resourceKind: ResourceKind
         baseMeasureUnit: { id: string; code: string; name: string }
         purchaseMeasureUnit: { id: string; code: string; name: string } | null
         purchaseMeasureUnitId?: string | null
         purchaseLabel?: string | null
-        purchaseMappingStatus?: 'MAPPED' | 'UNMAPPED'
+        purchaseMappingStatus?: PurchaseMappingStatus
         baseQuantity: number
         yieldPerPurchase: number
         wastePercent: number
@@ -45,7 +47,7 @@ export type PatchStudioCatalogItemInput = {
             resourceId: string
             purchaseMeasureUnitId?: string | null
             purchaseLabel?: string | null
-            purchaseMappingStatus?: 'MAPPED' | 'UNMAPPED'
+            purchaseMappingStatus?: PurchaseMappingStatus
             baseQuantity: number
             yieldPerPurchase: number
             wastePercent: number

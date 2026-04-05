@@ -8,6 +8,8 @@ import { useProject } from '@/contexts/ProjectContext'
 import { useScope } from '@/contexts/ScopeContext'
 import { qk } from '@/lib/query-keys'
 
+const EMPTY_ROW_COUNT = 0
+
 export default function ResourceDemand() {
     const { activeProject, projectsLoading } = useProject()
     const { accessToken, studioSlug, isQueryReady } = useAuth()
@@ -123,7 +125,7 @@ export default function ResourceDemand() {
                                         </td>
                                     </tr>
                                 ))}
-                                {data.length === 0 ? (
+                                {data.length === EMPTY_ROW_COUNT ? (
                                     <tr>
                                         <td
                                             className="px-4 py-8 text-center text-muted-foreground"
