@@ -320,21 +320,21 @@ export default function ItemYieldLinesEditor({
 
     return (
         <div className="space-y-2.5 rounded-lg border border-border bg-card p-2.5 sm:space-y-3 sm:p-3">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-semibold">Líneas del rendimiento</p>
                 <Button
                     type="button"
-                    size="sm"
+                    size="icon"
                     variant="outline"
                     disabled={
                         disabled ||
                         availableResources.length === EMPTY_LINES_LENGTH
                     }
                     onClick={addLine}
-                    className="h-8 w-full gap-1.5 px-2 text-xs active:scale-[0.98] sm:w-auto sm:gap-2 sm:px-3 sm:text-sm"
+                    className="h-8 w-8 active:scale-[0.98]"
+                    aria-label="Agregar línea"
                 >
-                    <Plus className="h-4 w-4" />
-                    Agregar línea
+                    <Plus className="h-4 w-4" aria-hidden="true" />
                 </Button>
             </div>
             {lines.length === EMPTY_LINES_LENGTH ? (
