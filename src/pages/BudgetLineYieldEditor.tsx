@@ -69,7 +69,13 @@ function deriveAmounts(args: {
 
 function BackButton({ onBack }: { onBack: () => void }) {
     return (
-        <Button type="button" variant="ghost" size="sm" onClick={onBack}>
+        <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onBack}
+            className="active:scale-[0.98]"
+        >
             <ArrowLeft className="h-4 w-4" />
             Volver
         </Button>
@@ -315,14 +321,14 @@ function YieldEditorLoaded(args: {
 
     return (
         <div className="space-y-3 sm:space-y-4">
-            <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-card p-2 sm:border-none sm:bg-transparent sm:p-0">
+            <div className="sticky top-0 z-10 flex items-center justify-between gap-2 rounded-lg border border-border bg-background/80 p-2 backdrop-blur-sm sm:border-none sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
                 <BackButton onBack={args.onBack} />
                 <Button
                     type="button"
                     size="sm"
                     onClick={onSave}
                     disabled={saving}
-                    className="min-w-24"
+                    className="min-w-24 active:scale-[0.98]"
                 >
                     {saving ? 'Guardando…' : 'Guardar'}
                 </Button>
@@ -371,11 +377,17 @@ function YieldEditorLoaded(args: {
                     <p className="text-[11px] text-muted-foreground">
                         MME por unidad
                     </p>
-                    <p className="font-mono text-xs sm:text-sm">
-                        MAT {perUnit.material.toFixed(DECIMAL_SCALE)} · MO{' '}
-                        {perUnit.labor.toFixed(DECIMAL_SCALE)} · EQ{' '}
-                        {perUnit.equipment.toFixed(DECIMAL_SCALE)}
-                    </p>
+                    <div className="flex flex-col gap-0.5 font-mono text-xs sm:flex-row sm:gap-1.5 sm:text-sm">
+                        <span>
+                            MAT {perUnit.material.toFixed(DECIMAL_SCALE)}
+                        </span>
+                        <span className="hidden sm:inline">·</span>
+                        <span>MO {perUnit.labor.toFixed(DECIMAL_SCALE)}</span>
+                        <span className="hidden sm:inline">·</span>
+                        <span>
+                            EQ {perUnit.equipment.toFixed(DECIMAL_SCALE)}
+                        </span>
+                    </div>
                 </div>
                 <div className="space-y-1.5 rounded-lg border border-border bg-card p-2.5 sm:p-3">
                     <p className="text-[11px] text-muted-foreground">

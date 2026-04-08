@@ -180,7 +180,7 @@ function ItemYieldLineMobileCard({
     ).toFixed(PRICE_DISPLAY_DECIMALS)
 
     return (
-        <div className="rounded-md border border-border/60 bg-muted/20 px-2.5 py-2">
+        <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-3 transition-colors active:bg-muted/40">
             <div className="space-y-2">
                 <div className="flex items-start justify-between gap-2">
                     <p className="text-xs font-semibold text-muted-foreground">
@@ -192,7 +192,7 @@ function ItemYieldLineMobileCard({
                         size="sm"
                         disabled={disabled}
                         onClick={() => onRemoveLine(index)}
-                        className="h-7 gap-1 px-2 text-xs"
+                        className="h-7 gap-1 px-2 text-xs active:scale-[0.98]"
                     >
                         <Trash2 className="h-3.5 w-3.5" />
                         Eliminar
@@ -331,7 +331,7 @@ export default function ItemYieldLinesEditor({
 
     return (
         <div className="space-y-2.5 rounded-lg border border-border bg-card p-2.5 sm:space-y-3 sm:p-3">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm font-semibold">Líneas del rendimiento</p>
                 <Button
                     type="button"
@@ -342,17 +342,19 @@ export default function ItemYieldLinesEditor({
                         availableResources.length === EMPTY_LINES_LENGTH
                     }
                     onClick={addLine}
-                    className="h-8 gap-1.5 px-2 text-xs sm:gap-2 sm:px-3 sm:text-sm"
+                    className="h-8 w-full gap-1.5 px-2 text-xs active:scale-[0.98] sm:w-auto sm:gap-2 sm:px-3 sm:text-sm"
                 >
                     <Plus className="h-4 w-4" />
                     Agregar línea
                 </Button>
             </div>
             {lines.length === EMPTY_LINES_LENGTH ? (
-                <p className="text-xs text-muted-foreground">
-                    Sin líneas todavía. Agregá al menos una para definir consumo
-                    de recursos.
-                </p>
+                <div className="rounded-md border border-dashed border-border/60 px-4 py-6 text-center">
+                    <p className="text-xs text-muted-foreground">
+                        Sin líneas todavía. Agregá al menos una para definir
+                        consumo de recursos.
+                    </p>
+                </div>
             ) : (
                 <>
                     <div className="space-y-2 md:hidden">
