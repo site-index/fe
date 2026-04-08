@@ -14,11 +14,11 @@ export default function AppLayout() {
     const [sidebarOpen, setSidebarOpen] = useState(false)
 
     return (
-        <div className="flex min-h-screen overscroll-none">
+        <div className="flex h-[100dvh] min-h-0 overflow-hidden">
             {/* Desktop sidebar */}
             <AppSidebar />
 
-            <div className="flex-1 md:ml-60 flex flex-col">
+            <div className="flex min-h-0 flex-1 flex-col md:ml-60">
                 {/* Mobile header */}
                 {isMobile && (
                     <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-border bg-background px-4 py-3">
@@ -34,7 +34,7 @@ export default function AppLayout() {
                     </header>
                 )}
 
-                <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto overscroll-none">
+                <main className="min-h-0 flex-1 overflow-y-auto p-4 [-webkit-overflow-scrolling:touch] sm:p-6 lg:p-8">
                     <Outlet />
                 </main>
             </div>
