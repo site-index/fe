@@ -9,6 +9,9 @@ export default defineConfig({
     server: {
         host: '::',
         port: 8080,
+        watch: {
+            ignored: ['**/.tsbuild/**', '**/dist/**'],
+        },
         hmr: {
             overlay: false,
         },
