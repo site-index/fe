@@ -18,7 +18,6 @@ const DEFAULT_LINE_QUANTITY = 1
 const PRICE_DISPLAY_DECIMALS = 2
 const EMPTY_LINES_LENGTH = 0
 const FIRST_ITEM_INDEX = 0
-const DISPLAY_INDEX_OFFSET = 1
 
 function parseNum(value: string, fallback = DEFAULT_NUMERIC_FALLBACK): number {
     const parsed = Number(value)
@@ -175,64 +174,55 @@ function ItemYieldLineMobileCard({
         ...availableResources,
         ...(selectedResource ? [selectedResource] : []),
     ]
-    const currentPrice = (
+    const currentPriceNumber =
         pricesByResourceId.get(line.resourceId) ?? DEFAULT_NUMERIC_FALLBACK
-    ).toFixed(PRICE_DISPLAY_DECIMALS)
+    const currentPrice = currentPriceNumber.toFixed(PRICE_DISPLAY_DECIMALS)
+    const subtotal = line.quantity * currentPriceNumber
 
     return (
         <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-3 transition-colors active:bg-muted/40">
             <div className="space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                    <p className="text-xs font-semibold text-muted-foreground">
-                        Línea {index + DISPLAY_INDEX_OFFSET}
-                    </p>
+                <div className="flex items-center gap-2">
+                    <Select
+                        value={line.resourceId}
+                        disabled={disabled}
+                        onValueChange={(value) =>
+                            onPatchLine(index, {
+                                resourceId: value,
+                                quantity: DEFAULT_LINE_QUANTITY,
+                            })
+                        }
+                    >
+                        <SelectTrigger className="flex-1">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {resourceOptions.map((resource) => (
+                                <SelectItem
+                                    key={resource.id}
+                                    value={resource.id}
+                                >
+                                    {resource.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                     <Button
                         type="button"
                         variant="ghost"
-                        size="sm"
+                        size="icon"
                         disabled={disabled}
                         onClick={() => onRemoveLine(index)}
-                        className="h-7 gap-1 px-2 text-xs active:scale-[0.98]"
+                        className="h-8 w-8 shrink-0 active:scale-[0.98]"
+                        aria-label="Eliminar línea"
                     >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        Eliminar
+                        <Trash2 className="h-4 w-4" />
                     </Button>
                 </div>
 
-                <Select
-                    value={line.resourceId}
-                    disabled={disabled}
-                    onValueChange={(value) =>
-                        onPatchLine(index, {
-                            resourceId: value,
-                            quantity: DEFAULT_LINE_QUANTITY,
-                        })
-                    }
-                >
-                    <SelectTrigger>
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {resourceOptions.map((resource) => (
-                            <SelectItem key={resource.id} value={resource.id}>
-                                {resource.name}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-
-                <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="grid grid-cols-4 gap-2 text-xs">
                     <div className="space-y-1">
-                        <p className="text-muted-foreground">
-                            Unidad comercial
-                        </p>
-                        <p className="font-mono">
-                            {selectedResource?.commercialMeasureUnit.name ??
-                                '—'}
-                        </p>
-                    </div>
-                    <div className="space-y-1">
-                        <p className="text-muted-foreground">Cantidad</p>
+                        <p className="text-center text-muted-foreground">Q</p>
                         <Input
                             type="number"
                             min="0"
@@ -244,49 +234,48 @@ function ItemYieldLineMobileCard({
                                     quantity: parseNum(event.target.value),
                                 })
                             }
-                            className="h-8 text-sm"
+                            className="h-8 px-2 text-xs"
                         />
                     </div>
-                </div>
-
-                <details className="rounded-md border border-border/60 bg-background px-2 py-1.5">
-                    <summary className="cursor-pointer text-xs text-muted-foreground">
-                        Ver detalle de la línea
-                    </summary>
-                    <div className="mt-2 space-y-2">
-                        <p className="text-[11px] text-muted-foreground">
-                            Unidad base:{' '}
-                            {selectedResource?.baseMeasureUnit.name ?? '—'}
+                    <div className="space-y-1">
+                        <p className="text-center text-muted-foreground">U</p>
+                        <p className="h-8 rounded-md border border-input bg-muted/40 px-2 py-2 font-mono text-xs">
+                            {selectedResource?.commercialMeasureUnit.name ??
+                                '—'}
                         </p>
-                        <div className="space-y-1">
-                            <p className="text-xs text-muted-foreground">
-                                Precio
-                            </p>
-                            <Input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                disabled={disabled || !selectedResource}
-                                key={`mobile-price-${line.resourceId}`}
-                                defaultValue={currentPrice}
-                                onBlur={async (event) => {
-                                    if (!selectedResource) {
-                                        return
-                                    }
-                                    const unitPrice = parseNum(
-                                        event.target.value,
-                                        DEFAULT_NUMERIC_FALLBACK
-                                    )
-                                    await onSetResourcePrice(
-                                        selectedResource.id,
-                                        unitPrice
-                                    )
-                                }}
-                                className="h-8 text-sm"
-                            />
-                        </div>
                     </div>
-                </details>
+                    <div className="space-y-1">
+                        <p className="text-center text-muted-foreground">PU</p>
+                        <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            disabled={disabled || !selectedResource}
+                            key={`mobile-price-${line.resourceId}`}
+                            defaultValue={currentPrice}
+                            onBlur={async (event) => {
+                                if (!selectedResource) {
+                                    return
+                                }
+                                const unitPrice = parseNum(
+                                    event.target.value,
+                                    DEFAULT_NUMERIC_FALLBACK
+                                )
+                                await onSetResourcePrice(
+                                    selectedResource.id,
+                                    unitPrice
+                                )
+                            }}
+                            className="h-8 px-2 text-xs"
+                        />
+                    </div>
+                    <div className="space-y-1">
+                        <p className="text-center text-muted-foreground">Sub</p>
+                        <p className="h-8 rounded-md border border-input bg-muted/40 px-2 py-2 font-mono text-xs font-semibold">
+                            {subtotal.toFixed(PRICE_DISPLAY_DECIMALS)}
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
     )

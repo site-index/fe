@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 
@@ -36,6 +36,7 @@ import {
 
 const ZERO_VALUE = 0
 const DECIMAL_SCALE = 2
+const PU_HOLD_DELAY_MS = 180
 
 function parseNum(value: string, fallback = ZERO_VALUE): number {
     const parsed = Number(value)
@@ -208,7 +209,12 @@ function YieldEditorLoaded(args: {
     activeProjectId: string
     accessToken: string | null
     studioSlug: string
-    budgetLine: { id: string; description: string; quantity: number }
+    budgetLine: {
+        id: string
+        description: string
+        quantity: number
+        measureUnitName: string | null
+    }
     itemYield: {
         id: string
         linkedItems: string[]
@@ -227,6 +233,10 @@ function YieldEditorLoaded(args: {
     )
     const [quantity, setQuantity] = useState(args.budgetLine.quantity)
     const [saving, setSaving] = useState(false)
+    const [showMobileMmePreview, setShowMobileMmePreview] = useState(false)
+    const [priceOverridesByResourceId, setPriceOverridesByResourceId] =
+        useState<Map<string, number>>(new Map())
+    const puHoldTimerRef = useRef<number | null>(null)
     const resourcesById = useMemo(
         () =>
             new Map(
@@ -236,13 +246,46 @@ function YieldEditorLoaded(args: {
             ),
         [args.resources]
     )
+    const effectivePricesByResourceId = useMemo(() => {
+        const merged = new Map(args.pricesByResourceId)
+        for (const [resourceId, price] of priceOverridesByResourceId) {
+            merged.set(resourceId, price)
+        }
+        return merged
+    }, [args.pricesByResourceId, priceOverridesByResourceId])
+
     const perUnit = deriveAmounts({
         lines,
-        pricesByResourceId: args.pricesByResourceId,
+        pricesByResourceId: effectivePricesByResourceId,
         resourcesById,
     })
     const unitPrice = perUnit.material + perUnit.labor + perUnit.equipment
     const total = unitPrice * Math.max(ZERO_VALUE, quantity)
+
+    useEffect(() => {
+        return () => {
+            if (puHoldTimerRef.current !== null) {
+                window.clearTimeout(puHoldTimerRef.current)
+            }
+        }
+    }, [])
+
+    const startPuHold = () => {
+        if (puHoldTimerRef.current !== null) {
+            window.clearTimeout(puHoldTimerRef.current)
+        }
+        puHoldTimerRef.current = window.setTimeout(() => {
+            setShowMobileMmePreview(true)
+        }, PU_HOLD_DELAY_MS)
+    }
+
+    const endPuHold = () => {
+        if (puHoldTimerRef.current !== null) {
+            window.clearTimeout(puHoldTimerRef.current)
+            puHoldTimerRef.current = null
+        }
+        setShowMobileMmePreview(false)
+    }
 
     const onSetResourcePrice = async (
         resourceId: string,
@@ -250,20 +293,44 @@ function YieldEditorLoaded(args: {
     ) => {
         const resource = args.resources.find((row) => row.id === resourceId)
         if (!resource) return
-        await setResourcePrice(
-            resourceId,
-            {
-                measureUnitId: resource.commercialMeasureUnit.id,
-                unitPrice: unitPriceValue,
-            },
-            {
-                token: args.accessToken,
-                studioSlug: args.studioSlug,
-            }
-        )
-        await queryClient.invalidateQueries({
-            queryKey: qk.resourcePrices(args.studioSlug),
+        let previousOverride = ZERO_VALUE
+        let hadPreviousOverride = false
+        setPriceOverridesByResourceId((current) => {
+            hadPreviousOverride = current.has(resourceId)
+            previousOverride = current.get(resourceId) ?? ZERO_VALUE
+            const next = new Map(current)
+            next.set(resourceId, unitPriceValue)
+            return next
         })
+        try {
+            await setResourcePrice(
+                resourceId,
+                {
+                    measureUnitId: resource.commercialMeasureUnit.id,
+                    unitPrice: unitPriceValue,
+                },
+                {
+                    token: args.accessToken,
+                    studioSlug: args.studioSlug,
+                }
+            )
+            await queryClient.invalidateQueries({
+                queryKey: qk.resourcePrices(args.studioSlug),
+            })
+        } catch (updatePriceError) {
+            setPriceOverridesByResourceId((current) => {
+                const next = new Map(current)
+                if (hadPreviousOverride) {
+                    next.set(resourceId, previousOverride)
+                } else {
+                    next.delete(resourceId)
+                }
+                return next
+            })
+            toast.error('No se pudo actualizar el precio', {
+                description: getApiErrorMessage(updatePriceError),
+            })
+        }
     }
 
     const onSave = async () => {
@@ -334,19 +401,105 @@ function YieldEditorLoaded(args: {
                 </Button>
             </div>
 
-            <div className="space-y-1.5 rounded-lg border border-border bg-card p-3 sm:p-4">
-                <p className="text-xs text-muted-foreground">Línea</p>
-                <h1 className="line-clamp-2 text-base font-bold sm:text-lg">
+            <div className="rounded-lg border border-border bg-card p-3 sm:p-4">
+                <h1 className="line-clamp-2 text-center text-base font-bold sm:text-lg">
                     {args.budgetLine.description}
                 </h1>
-                <p className="text-xs text-muted-foreground">
-                    Editá recursos con el botón +. PU y MME se calculan
-                    automáticamente.
-                </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                <div className="space-y-1.5 rounded-lg border border-border bg-card p-2.5 sm:p-3">
+            <div className="rounded-lg border border-border bg-card p-2.5 sm:hidden">
+                <div className="grid grid-cols-4 gap-2">
+                    <div className="space-y-1.5">
+                        <p className="text-center text-[11px] text-muted-foreground">
+                            Q
+                        </p>
+                        <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={quantity}
+                            onChange={(event) =>
+                                setQuantity(
+                                    parseNum(event.target.value, ZERO_VALUE)
+                                )
+                            }
+                            className="h-8 text-xs"
+                        />
+                    </div>
+                    <div className="space-y-1.5 pl-2">
+                        <p className="text-center text-[11px] text-muted-foreground">
+                            U
+                        </p>
+                        <p className="line-clamp-1 rounded-md border border-input bg-muted/40 px-2 py-1.5 text-center font-mono text-xs">
+                            {args.budgetLine.measureUnitName ?? '—'}
+                        </p>
+                    </div>
+                    <div className="relative pl-2">
+                        <button
+                            type="button"
+                            onPointerDown={startPuHold}
+                            onPointerUp={endPuHold}
+                            onPointerLeave={endPuHold}
+                            onPointerCancel={endPuHold}
+                            className="w-full space-y-1.5 active:scale-[0.98]"
+                        >
+                            <p className="text-center text-[11px] text-muted-foreground">
+                                PU
+                            </p>
+                            <p className="text-center font-mono text-xs font-semibold">
+                                {unitPrice.toFixed(DECIMAL_SCALE)}
+                            </p>
+                        </button>
+                        {showMobileMmePreview ? (
+                            <div className="absolute bottom-full left-1/2 z-20 mb-1 w-36 -translate-x-1/2 rounded-md border border-border bg-background p-1.5 shadow-sm">
+                                <div className="space-y-0.5 font-mono text-[10px] tabular-nums">
+                                    <div className="grid grid-cols-[18px,1fr] items-center gap-x-1">
+                                        <span className="text-center leading-none text-muted-foreground">
+                                            M
+                                        </span>
+                                        <span className="text-right leading-none">
+                                            {perUnit.material.toFixed(
+                                                DECIMAL_SCALE
+                                            )}
+                                        </span>
+                                    </div>
+                                    <div className="grid grid-cols-[18px,1fr] items-center gap-x-1">
+                                        <span className="text-center leading-none text-muted-foreground">
+                                            MO
+                                        </span>
+                                        <span className="text-right leading-none">
+                                            {perUnit.labor.toFixed(
+                                                DECIMAL_SCALE
+                                            )}
+                                        </span>
+                                    </div>
+                                    <div className="grid grid-cols-[18px,1fr] items-center gap-x-1">
+                                        <span className="text-center leading-none text-muted-foreground">
+                                            E
+                                        </span>
+                                        <span className="text-right leading-none">
+                                            {perUnit.equipment.toFixed(
+                                                DECIMAL_SCALE
+                                            )}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : null}
+                    </div>
+                    <div className="space-y-1.5 pl-2">
+                        <p className="text-center text-[11px] text-muted-foreground">
+                            Total
+                        </p>
+                        <p className="text-center font-mono text-xs font-semibold">
+                            {total.toFixed(DECIMAL_SCALE)}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div className="hidden grid-cols-2 gap-3 sm:grid">
+                <div className="space-y-1.5 rounded-lg border border-border bg-card p-3">
                     <p className="text-[11px] text-muted-foreground">
                         Cantidad
                     </p>
@@ -363,7 +516,7 @@ function YieldEditorLoaded(args: {
                         className="h-9"
                     />
                 </div>
-                <div className="space-y-1.5 rounded-lg border border-border bg-card p-2.5 sm:p-3">
+                <div className="space-y-1.5 rounded-lg border border-border bg-card p-3">
                     <p className="text-[11px] text-muted-foreground">
                         PU (solo lectura)
                     </p>
@@ -373,27 +526,27 @@ function YieldEditorLoaded(args: {
                         className="h-9"
                     />
                 </div>
-                <div className="space-y-1.5 rounded-lg border border-border bg-card p-2.5 sm:p-3">
+                <div className="space-y-1.5 rounded-lg border border-border bg-card p-3">
                     <p className="text-[11px] text-muted-foreground">
                         MME por unidad
                     </p>
-                    <div className="flex flex-col gap-0.5 font-mono text-xs sm:flex-row sm:gap-1.5 sm:text-sm">
+                    <div className="flex flex-row gap-1.5 font-mono text-sm">
                         <span>
                             MAT {perUnit.material.toFixed(DECIMAL_SCALE)}
                         </span>
-                        <span className="hidden sm:inline">·</span>
+                        <span>·</span>
                         <span>MO {perUnit.labor.toFixed(DECIMAL_SCALE)}</span>
-                        <span className="hidden sm:inline">·</span>
+                        <span>·</span>
                         <span>
                             EQ {perUnit.equipment.toFixed(DECIMAL_SCALE)}
                         </span>
                     </div>
                 </div>
-                <div className="space-y-1.5 rounded-lg border border-border bg-card p-2.5 sm:p-3">
+                <div className="space-y-1.5 rounded-lg border border-border bg-card p-3">
                     <p className="text-[11px] text-muted-foreground">
                         Total estimado
                     </p>
-                    <p className="font-mono text-sm font-semibold sm:text-base">
+                    <p className="font-mono text-base font-semibold">
                         {total.toFixed(DECIMAL_SCALE)}
                     </p>
                 </div>
@@ -402,7 +555,7 @@ function YieldEditorLoaded(args: {
             <ItemYieldLinesEditor
                 lines={lines}
                 resources={args.resources}
-                pricesByResourceId={args.pricesByResourceId}
+                pricesByResourceId={effectivePricesByResourceId}
                 disabled={saving}
                 onSetResourcePrice={onSetResourcePrice}
                 onChange={setLines}
@@ -441,6 +594,7 @@ export default function BudgetLineYieldEditor() {
                     id: vm.budgetLine.id,
                     description: vm.budgetLine.description,
                     quantity: vm.budgetLine.quantity,
+                    measureUnitName: vm.budgetLine.measureUnit?.name ?? null,
                 }}
                 itemYield={{
                     id: vm.itemYield.id,
