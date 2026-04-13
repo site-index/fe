@@ -131,12 +131,26 @@ function useCreateBudgetLineSubmit(args: {
                 baseBody as unknown as CreateBudgetLineInput,
                 { token: args.accessToken, studioSlug: args.studioSlug }
             )
-            await args.queryClient.invalidateQueries({
-                queryKey: qk.budgetLines(args.studioSlug, args.activeProjectId),
-            })
-            await args.queryClient.invalidateQueries({
-                queryKey: qk.dashboard(args.studioSlug, args.activeProjectId),
-            })
+            void Promise.allSettled([
+                args.queryClient.invalidateQueries({
+                    queryKey: qk.budgetLines(
+                        args.studioSlug,
+                        args.activeProjectId
+                    ),
+                }),
+                args.queryClient.invalidateQueries({
+                    queryKey: qk.itemYields(
+                        args.studioSlug,
+                        args.activeProjectId
+                    ),
+                }),
+                args.queryClient.invalidateQueries({
+                    queryKey: qk.dashboard(
+                        args.studioSlug,
+                        args.activeProjectId
+                    ),
+                }),
+            ])
             toast.success('Línea de presupuesto creada', {
                 description: created.description,
             })

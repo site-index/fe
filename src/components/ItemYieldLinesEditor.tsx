@@ -296,6 +296,10 @@ export default function ItemYieldLinesEditor({
     const availableResources = resources.filter(
         (resource) => !usedResourceIds.has(resource.id)
     )
+    const hasNoResources = resources.length === EMPTY_LINES_LENGTH
+    const hasNoAvailableResources =
+        availableResources.length === EMPTY_LINES_LENGTH
+    const addLineDisabled = disabled || hasNoAvailableResources
 
     const patchLine = (
         index: number,
@@ -326,10 +330,7 @@ export default function ItemYieldLinesEditor({
                     type="button"
                     size="icon"
                     variant="outline"
-                    disabled={
-                        disabled ||
-                        availableResources.length === EMPTY_LINES_LENGTH
-                    }
+                    disabled={addLineDisabled}
                     onClick={addLine}
                     className="h-8 w-8 active:scale-[0.98]"
                     aria-label="Agregar línea"
@@ -337,6 +338,13 @@ export default function ItemYieldLinesEditor({
                     <Plus className="h-4 w-4" aria-hidden="true" />
                 </Button>
             </div>
+            {!disabled && addLineDisabled ? (
+                <p className="text-xs text-muted-foreground">
+                    {hasNoResources
+                        ? 'No hay recursos cargados en el estudio. Cargá recursos para agregar líneas.'
+                        : 'Ya usaste todos los recursos disponibles en este rendimiento.'}
+                </p>
+            ) : null}
             {lines.length === EMPTY_LINES_LENGTH ? (
                 <div className="rounded-md border border-dashed border-border/60 px-4 py-6 text-center">
                     <p className="text-xs text-muted-foreground">

@@ -126,6 +126,41 @@ function findItemYieldByBudgetLine<T extends { id: string }>(
     return rows.find((yieldRow) => yieldRow.id === itemYieldId) ?? null
 }
 
+function buildYieldEditorQueryState(args: {
+    budgetLinesPending: boolean
+    itemYieldsPending: boolean
+    resourcesPending: boolean
+    resourcePricesPending: boolean
+    budgetLinesError: unknown
+    itemYieldsError: unknown
+    resourcesError: unknown
+    resourcePricesError: unknown
+}): { isPending: boolean; error: Error | null } {
+    const isPending =
+        args.budgetLinesPending ||
+        args.itemYieldsPending ||
+        args.resourcesPending ||
+        args.resourcePricesPending
+    const error = (args.budgetLinesError ??
+        args.itemYieldsError ??
+        args.resourcesError ??
+        args.resourcePricesError ??
+        null) as Error | null
+    return { isPending, error }
+}
+
+function isLinkedYieldResolving(args: {
+    budgetLine: { itemYieldId?: string | null } | null
+    itemYield: { id: string } | null
+    itemYieldsFetching: boolean
+}): boolean {
+    return Boolean(
+        args.budgetLine?.itemYieldId &&
+        !args.itemYield &&
+        args.itemYieldsFetching
+    )
+}
+
 function useYieldEditorData() {
     const { budgetLineId = '' } = useParams()
     const { activeProject, projectsLoading } = useProject()
@@ -141,8 +176,9 @@ function useYieldEditorData() {
 
     const {
         data: budgetLines = [],
-        isPending,
-        error,
+        isPending: budgetLinesPending,
+        isFetching: budgetLinesFetching,
+        error: budgetLinesError,
     } = useQuery({
         queryKey: qk.budgetLines(studioSlug, activeProject.id),
         queryFn: () =>
@@ -152,7 +188,12 @@ function useYieldEditorData() {
             }),
         enabled: queryEnabled,
     })
-    const { data: itemYields = [] } = useQuery({
+    const {
+        data: itemYields = [],
+        isPending: itemYieldsPending,
+        isFetching: itemYieldsFetching,
+        error: itemYieldsError,
+    } = useQuery({
         queryKey: qk.itemYields(studioSlug, activeProject.id),
         queryFn: () =>
             getProjectItemYields(activeProject.id, {
@@ -161,7 +202,11 @@ function useYieldEditorData() {
             }),
         enabled: queryEnabled,
     })
-    const { data: resources = [] } = useQuery({
+    const {
+        data: resources = [],
+        isPending: resourcesPending,
+        error: resourcesError,
+    } = useQuery({
         queryKey: qk.resources(studioSlug),
         queryFn: () =>
             getResources({
@@ -170,7 +215,11 @@ function useYieldEditorData() {
             }),
         enabled: queryEnabled,
     })
-    const { data: resourcePrices = [] } = useQuery({
+    const {
+        data: resourcePrices = [],
+        isPending: resourcePricesPending,
+        error: resourcePricesError,
+    } = useQuery({
         queryKey: qk.resourcePrices(studioSlug),
         queryFn: () =>
             getResourcePrices({
@@ -185,9 +234,25 @@ function useYieldEditorData() {
         itemYields,
         budgetLine?.itemYieldId
     )
+    const resolvingLinkedYield = isLinkedYieldResolving({
+        budgetLine,
+        itemYield,
+        itemYieldsFetching: itemYieldsFetching || budgetLinesFetching,
+    })
     const pricesByResourceId = new Map(
         resourcePrices.map((row) => [row.resourceId, row.unitPrice] as const)
     )
+
+    const queryState = buildYieldEditorQueryState({
+        budgetLinesPending,
+        itemYieldsPending,
+        resourcesPending,
+        resourcePricesPending,
+        budgetLinesError,
+        itemYieldsError,
+        resourcesError,
+        resourcePricesError,
+    })
 
     return {
         activeProjectId: activeProject.id,
@@ -196,10 +261,11 @@ function useYieldEditorData() {
         projectsLoading,
         empty,
         isProjectScope,
-        isPending,
-        error,
+        isPending: queryState.isPending || resolvingLinkedYield,
+        error: queryState.error,
         budgetLine,
         itemYield,
+        resolvingLinkedYield,
         resources,
         pricesByResourceId,
     }
@@ -259,6 +325,8 @@ function YieldEditorLoaded(args: {
         pricesByResourceId: effectivePricesByResourceId,
         resourcesById,
     })
+    const hasNoResources = args.resources.length === ZERO_VALUE
+    const hasNoYieldLines = lines.length === ZERO_VALUE
     const unitPrice = perUnit.material + perUnit.labor + perUnit.equipment
     const total = unitPrice * Math.max(ZERO_VALUE, quantity)
 
@@ -552,6 +620,14 @@ function YieldEditorLoaded(args: {
                 </div>
             </div>
 
+            {hasNoResources || hasNoYieldLines ? (
+                <div className="rounded-md border border-dashed border-border/60 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+                    {hasNoResources
+                        ? 'No hay recursos cargados en el estudio. Sin recursos no se puede calcular PU ni agregar líneas.'
+                        : 'Este rendimiento todavía no tiene líneas. Agregá al menos una línea para calcular PU.'}
+                </div>
+            ) : null}
+
             <ItemYieldLinesEditor
                 lines={lines}
                 resources={args.resources}
@@ -575,7 +651,7 @@ export default function BudgetLineYieldEditor() {
             onBack={onBack}
         />
     )
-    if (vm.budgetLine && !vm.itemYield) {
+    if (vm.budgetLine && !vm.itemYield && !vm.resolvingLinkedYield) {
         content = (
             <EmptyState
                 message="Esta línea no tiene rendimiento vinculado."
