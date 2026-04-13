@@ -16,6 +16,7 @@ import {
 import {
     getResourcePrices,
     getResources,
+    type ResourcePriceRow,
     type ResourceRow,
     setResourcePrice,
 } from '@/api/resources.api'
@@ -66,6 +67,27 @@ function deriveAmounts(args: {
             totals.equipment += lineCost
     }
     return totals
+}
+
+function mergeResourcesWithPriceRows(args: {
+    resources: ResourceRow[]
+    resourcePrices: ResourcePriceRow[]
+}): ResourceRow[] {
+    const resourcesById = new Map(
+        args.resources.map((resource) => [resource.id, resource] as const)
+    )
+    for (const priceRow of args.resourcePrices) {
+        if (resourcesById.has(priceRow.resourceId)) continue
+        resourcesById.set(priceRow.resourceId, {
+            id: priceRow.resourceId,
+            code: priceRow.resourceCode,
+            name: priceRow.resourceName,
+            kind: priceRow.resourceKind,
+            baseMeasureUnit: priceRow.baseMeasureUnit,
+            commercialMeasureUnit: priceRow.measureUnit,
+        })
+    }
+    return [...resourcesById.values()]
 }
 
 function BackButton({ onBack }: { onBack: () => void }) {
@@ -203,7 +225,7 @@ function useYieldEditorData() {
         enabled: queryEnabled,
     })
     const {
-        data: resources = [],
+        data: rawResources = [],
         isPending: resourcesPending,
         error: resourcesError,
     } = useQuery({
@@ -241,6 +263,14 @@ function useYieldEditorData() {
     })
     const pricesByResourceId = new Map(
         resourcePrices.map((row) => [row.resourceId, row.unitPrice] as const)
+    )
+    const resources = useMemo(
+        () =>
+            mergeResourcesWithPriceRows({
+                resources: rawResources,
+                resourcePrices,
+            }),
+        [rawResources, resourcePrices]
     )
 
     const queryState = buildYieldEditorQueryState({
