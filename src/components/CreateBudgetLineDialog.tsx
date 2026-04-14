@@ -95,6 +95,9 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 const ZERO_VALUE = 0
+const EMPTY_RESOURCE_ROWS: Awaited<ReturnType<typeof getResources>> = []
+const EMPTY_RESOURCE_PRICE_ROWS: Awaited<ReturnType<typeof getResourcePrices>> =
+    []
 
 function deriveAmounts(args: {
     lines: ItemYieldLineInput[]
@@ -333,6 +336,26 @@ function useYieldPricingSync(args: {
             resourcesById: args.resourcesById,
         })
         const unitPrice = perUnit.material + perUnit.labor + perUnit.equipment
+        const next = {
+            unitPriceStr: String(unitPrice),
+            amountMaterialStr: String(perUnit.material),
+            amountLaborStr: String(perUnit.labor),
+            amountEquipmentStr: String(perUnit.equipment),
+        }
+        const current = {
+            unitPriceStr: args.form.getValues('unitPriceStr'),
+            amountMaterialStr: args.form.getValues('amountMaterialStr'),
+            amountLaborStr: args.form.getValues('amountLaborStr'),
+            amountEquipmentStr: args.form.getValues('amountEquipmentStr'),
+        }
+        const willChange =
+            current.unitPriceStr !== next.unitPriceStr ||
+            current.amountMaterialStr !== next.amountMaterialStr ||
+            current.amountLaborStr !== next.amountLaborStr ||
+            current.amountEquipmentStr !== next.amountEquipmentStr
+        if (!willChange) {
+            return
+        }
         args.form.setValue('unitPriceStr', String(unitPrice), {
             shouldValidate: true,
         })
@@ -659,7 +682,7 @@ export default function CreateBudgetLineDialog({
                 }),
             enabled: isOpenAndQueryReady,
         })
-    const { data: resources = [] } = useQuery({
+    const { data: resources = EMPTY_RESOURCE_ROWS } = useQuery({
         queryKey: qk.resources(studioSlug),
         queryFn: () =>
             getResources({
@@ -668,7 +691,7 @@ export default function CreateBudgetLineDialog({
             }),
         enabled: shouldLoadYieldData,
     })
-    const { data: resourcePrices = [] } = useQuery({
+    const { data: resourcePrices = EMPTY_RESOURCE_PRICE_ROWS } = useQuery({
         queryKey: qk.resourcePrices(studioSlug),
         queryFn: () =>
             getResourcePrices({
