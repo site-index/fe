@@ -44,7 +44,7 @@ type LineRowProps = {
     index: number
     line: ItemYieldLineInput
     disabled: boolean
-    availableResources: ResourceRow[]
+    selectableResources: ResourceRow[]
     selectedResource: ResourceRow | null
     pricesByResourceId: Map<string, number>
     onSetResourcePrice: (resourceId: string, unitPrice: number) => Promise<void>
@@ -56,18 +56,13 @@ function ItemYieldLineRow({
     index,
     line,
     disabled,
-    availableResources,
+    selectableResources,
     selectedResource,
     pricesByResourceId,
     onSetResourcePrice,
     onPatchLine,
     onRemoveLine,
 }: LineRowProps) {
-    const resourceOptions = [
-        ...availableResources,
-        ...(selectedResource ? [selectedResource] : []),
-    ]
-
     return (
         <tr key={`${line.resourceId}-${index}`} className="border-b align-top">
             <td className="px-2 py-2 min-w-56">
@@ -85,7 +80,7 @@ function ItemYieldLineRow({
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        {resourceOptions.map((resource) => (
+                        {selectableResources.map((resource) => (
                             <SelectItem key={resource.id} value={resource.id}>
                                 {resource.name}
                             </SelectItem>
@@ -163,17 +158,13 @@ function ItemYieldLineMobileCard({
     index,
     line,
     disabled,
-    availableResources,
+    selectableResources,
     selectedResource,
     pricesByResourceId,
     onSetResourcePrice,
     onPatchLine,
     onRemoveLine,
 }: LineRowProps) {
-    const resourceOptions = [
-        ...availableResources,
-        ...(selectedResource ? [selectedResource] : []),
-    ]
     const currentPriceNumber =
         pricesByResourceId.get(line.resourceId) ?? DEFAULT_NUMERIC_FALLBACK
     const currentPrice = currentPriceNumber.toFixed(PRICE_DISPLAY_DECIMALS)
@@ -197,7 +188,7 @@ function ItemYieldLineMobileCard({
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                            {resourceOptions.map((resource) => (
+                            {selectableResources.map((resource) => (
                                 <SelectItem
                                     key={resource.id}
                                     value={resource.id}
@@ -300,6 +291,12 @@ export default function ItemYieldLinesEditor({
     const hasNoAvailableResources =
         availableResources.length === EMPTY_LINES_LENGTH
     const addLineDisabled = disabled || hasNoAvailableResources
+    const getSelectableResources = (lineResourceId: string): ResourceRow[] =>
+        resources.filter(
+            (resource) =>
+                resource.id === lineResourceId ||
+                !usedResourceIds.has(resource.id)
+        )
 
     const patchLine = (
         index: number,
@@ -361,7 +358,9 @@ export default function ItemYieldLinesEditor({
                                 index={index}
                                 line={line}
                                 disabled={disabled}
-                                availableResources={availableResources}
+                                selectableResources={getSelectableResources(
+                                    line.resourceId
+                                )}
                                 selectedResource={
                                     resourceById.get(line.resourceId) ?? null
                                 }
@@ -400,7 +399,9 @@ export default function ItemYieldLinesEditor({
                                         index={index}
                                         line={line}
                                         disabled={disabled}
-                                        availableResources={availableResources}
+                                        selectableResources={getSelectableResources(
+                                            line.resourceId
+                                        )}
                                         selectedResource={
                                             resourceById.get(line.resourceId) ??
                                             null
