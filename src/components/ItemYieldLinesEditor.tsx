@@ -36,6 +36,7 @@ type Props = {
     resources: ResourceRow[]
     pricesByResourceId: Map<string, number>
     disabled?: boolean
+    flat?: boolean
     onChange: (next: ItemYieldLineInput[]) => void
     onSetResourcePrice: (resourceId: string, unitPrice: number) => Promise<void>
 }
@@ -287,6 +288,7 @@ export default function ItemYieldLinesEditor({
     resources,
     pricesByResourceId,
     disabled = false,
+    flat = false,
     onChange,
     onSetResourcePrice,
 }: Props) {
@@ -333,7 +335,14 @@ export default function ItemYieldLinesEditor({
     }
 
     return (
-        <div className="space-y-2.5 rounded-lg border border-border bg-card p-2.5 sm:space-y-3 sm:p-3">
+        <div
+            className={cn(
+                'space-y-2.5 sm:space-y-3',
+                flat
+                    ? ''
+                    : 'rounded-lg border border-border bg-card p-2.5 sm:p-3'
+            )}
+        >
             <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-semibold">Líneas del rendimiento</p>
                 <Button

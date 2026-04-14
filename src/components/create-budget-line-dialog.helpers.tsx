@@ -10,6 +10,7 @@ import type {
 import { cloneElement, isValidElement } from 'react'
 import type { UseFormReturn } from 'react-hook-form'
 
+import type { ItemYieldLineInput } from '@/api/item-yields.api'
 import { Button } from '@/components/ui/button'
 import type {
     SuggestionRow,
@@ -80,6 +81,20 @@ export function appendOptionalBudgetNumericFields(
     }
     if (values.amountEquipmentStr.trim() !== '') {
         body.amountEquipment = toNum(values.amountEquipmentStr)
+    }
+}
+
+export function appendOptionalYieldComponents(args: {
+    body: Record<string, unknown>
+    includeYieldSetup: boolean
+    yieldLines: ItemYieldLineInput[]
+}): void {
+    if (!args.includeYieldSetup) {
+        return
+    }
+    args.body.yieldComponents = {
+        linkedItems: [],
+        lines: args.yieldLines,
     }
 }
 

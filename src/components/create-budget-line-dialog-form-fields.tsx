@@ -67,8 +67,10 @@ type Props = {
     onClearLibraryBinding: () => void
     handleSuggestionPick: (row: SuggestionRow) => void
     isBreakdownActive: boolean
+    pricingLockedByYield?: boolean
     showCatalogSuggestionHint?: boolean
     topSection?: ReactNode
+    bottomSection?: ReactNode
 }
 
 type DescriptionSectionProps = {
@@ -110,6 +112,7 @@ function AmountInputField(args: {
     label: string
     register: ReturnType<UseFormReturn<BudgetLineCreateFormValues>['register']>
     error?: string
+    disabled?: boolean
 }) {
     return (
         <div className="space-y-2">
@@ -120,6 +123,7 @@ function AmountInputField(args: {
                 id={args.id}
                 inputMode="decimal"
                 placeholder="0"
+                disabled={args.disabled}
                 {...args.register}
             />
             <FieldError message={args.error} />
@@ -375,6 +379,7 @@ function DescriptionSection({
 function PricingAndBreakdownSection(args: {
     form: UseFormReturn<BudgetLineCreateFormValues>
     isBreakdownActive: boolean
+    pricingLockedByYield: boolean
 }) {
     return (
         <>
@@ -409,10 +414,17 @@ function PricingAndBreakdownSection(args: {
                         id="create-budget-line-unit-price"
                         inputMode="decimal"
                         placeholder="—"
-                        disabled={args.isBreakdownActive}
+                        disabled={
+                            args.isBreakdownActive || args.pricingLockedByYield
+                        }
                         {...args.form.register('unitPriceStr')}
                     />
-                    {args.isBreakdownActive ? (
+                    {args.pricingLockedByYield ? (
+                        <p className="text-xs text-muted-foreground">
+                            Se calcula automáticamente desde el rendimiento.
+                        </p>
+                    ) : null}
+                    {args.isBreakdownActive && !args.pricingLockedByYield ? (
                         <p className="text-xs text-muted-foreground">
                             Se calcula automáticamente como MAT + MO + EQ.
                         </p>
@@ -439,6 +451,7 @@ function PricingAndBreakdownSection(args: {
                             id="create-budget-line-amount-material"
                             label="Materiales (ARS / unidad)"
                             register={args.form.register('amountMaterialStr')}
+                            disabled={args.pricingLockedByYield}
                             error={
                                 args.form.formState.errors.amountMaterialStr
                                     ?.message
@@ -448,6 +461,7 @@ function PricingAndBreakdownSection(args: {
                             id="create-budget-line-amount-labor"
                             label="Mano de obra (ARS / unidad)"
                             register={args.form.register('amountLaborStr')}
+                            disabled={args.pricingLockedByYield}
                             error={
                                 args.form.formState.errors.amountLaborStr
                                     ?.message
@@ -457,6 +471,7 @@ function PricingAndBreakdownSection(args: {
                             id="create-budget-line-amount-equipment"
                             label="Equipo (ARS / unidad)"
                             register={args.form.register('amountEquipmentStr')}
+                            disabled={args.pricingLockedByYield}
                             error={
                                 args.form.formState.errors.amountEquipmentStr
                                     ?.message
@@ -492,8 +507,10 @@ export function CreateBudgetLineDialogFormFields({
     onClearLibraryBinding,
     handleSuggestionPick,
     isBreakdownActive,
+    pricingLockedByYield = false,
     showCatalogSuggestionHint = true,
     topSection,
+    bottomSection,
 }: Props) {
     const activeRow = filteredSuggestionRows[activeSuggestionIndex]
     const activeDescendant =
@@ -548,7 +565,9 @@ export function CreateBudgetLineDialogFormFields({
             <PricingAndBreakdownSection
                 form={form}
                 isBreakdownActive={isBreakdownActive}
+                pricingLockedByYield={pricingLockedByYield}
             />
+            {bottomSection}
         </div>
     )
 }

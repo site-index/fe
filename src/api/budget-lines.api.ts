@@ -2,11 +2,13 @@ import { apiFetch } from '@/lib/api'
 import type { BudgetLineRow } from '@/types/budget-line'
 
 import type { ApiContext } from './api-context'
+import type { ItemYieldComponentsInput } from './item-yields.api'
 
 export type CreateBudgetLineInput = {
     description: string
     itemYieldId?: string
     catalogItemId?: string
+    yieldComponents?: ItemYieldComponentsInput
     workCategoryId?: string
     measureUnitId?: string
     quantity?: number
@@ -38,21 +40,23 @@ export type PatchBudgetLineInput = {
 function createBudgetLineBody(
     input: CreateBudgetLineInput
 ): Record<string, unknown> {
-    const body: Record<string, unknown> = {
+    return {
         description: input.description,
+        ...Object.fromEntries(
+            Object.entries({
+                itemYieldId: input.itemYieldId || undefined,
+                catalogItemId: input.catalogItemId || undefined,
+                yieldComponents: input.yieldComponents,
+                workCategoryId: input.workCategoryId || undefined,
+                measureUnitId: input.measureUnitId || undefined,
+                quantity: input.quantity,
+                unitPrice: input.unitPrice,
+                amountMaterial: input.amountMaterial,
+                amountLabor: input.amountLabor,
+                amountEquipment: input.amountEquipment,
+            }).filter(([, value]) => value !== undefined)
+        ),
     }
-    if (input.itemYieldId) body.itemYieldId = input.itemYieldId
-    if (input.catalogItemId) body.catalogItemId = input.catalogItemId
-    if (input.workCategoryId) body.workCategoryId = input.workCategoryId
-    if (input.measureUnitId) body.measureUnitId = input.measureUnitId
-    if (input.quantity !== undefined) body.quantity = input.quantity
-    if (input.unitPrice !== undefined) body.unitPrice = input.unitPrice
-    if (input.amountMaterial !== undefined)
-        body.amountMaterial = input.amountMaterial
-    if (input.amountLabor !== undefined) body.amountLabor = input.amountLabor
-    if (input.amountEquipment !== undefined)
-        body.amountEquipment = input.amountEquipment
-    return body
 }
 
 export function getProjectBudgetLines(
