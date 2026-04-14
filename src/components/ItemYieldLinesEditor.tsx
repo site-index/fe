@@ -77,7 +77,12 @@ function ItemYieldLineRow({
                     }
                 >
                     <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue
+                            placeholder={
+                                selectedResource?.name ??
+                                'Seleccioná un recurso'
+                            }
+                        />
                     </SelectTrigger>
                     <SelectContent>
                         {selectableResources.map((resource) => (
@@ -185,7 +190,12 @@ function ItemYieldLineMobileCard({
                         }
                     >
                         <SelectTrigger className="flex-1">
-                            <SelectValue />
+                            <SelectValue
+                                placeholder={
+                                    selectedResource?.name ??
+                                    'Seleccioná un recurso'
+                                }
+                            />
                         </SelectTrigger>
                         <SelectContent>
                             {selectableResources.map((resource) => (
@@ -291,12 +301,15 @@ export default function ItemYieldLinesEditor({
     const hasNoAvailableResources =
         availableResources.length === EMPTY_LINES_LENGTH
     const addLineDisabled = disabled || hasNoAvailableResources
-    const getSelectableResources = (lineResourceId: string): ResourceRow[] =>
-        resources.filter(
+    const getSelectableResources = (lineResourceId: string): ResourceRow[] => {
+        const selected = resourceById.get(lineResourceId)
+        const rest = resources.filter(
             (resource) =>
-                resource.id === lineResourceId ||
+                resource.id !== lineResourceId &&
                 !usedResourceIds.has(resource.id)
         )
+        return selected ? [selected, ...rest] : rest
+    }
 
     const patchLine = (
         index: number,
