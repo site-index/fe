@@ -6,6 +6,7 @@ import {
     useCallback,
     useEffect,
     useMemo,
+    useRef,
     useState,
 } from 'react'
 import { useForm, type UseFormReturn, useWatch } from 'react-hook-form'
@@ -22,6 +23,7 @@ import {
 } from '@/api/budget-lines.api'
 import { getMeasureUnits, getWorkCategories } from '@/api/catalog.api'
 import type { ItemYieldLineInput } from '@/api/item-yields.api'
+import { getProjectItemYields } from '@/api/item-yields.api'
 import {
     getResourcePrices,
     getResources,
@@ -73,6 +75,7 @@ import {
     optionalNonNegStr,
 } from '@/lib/form-utils'
 import { qk } from '@/lib/query-keys'
+import type { ItemYield } from '@/types/item-yield'
 import {
     RESOURCE_KIND_EQUIPMENT,
     RESOURCE_KIND_LABOR,
@@ -104,7 +107,10 @@ const EMPTY_RESOURCE_ROWS: Awaited<ReturnType<typeof getResources>> = []
 const EMPTY_RESOURCE_PRICE_ROWS: Awaited<ReturnType<typeof getResourcePrices>> =
     []
 const EMPTY_PARAMETER_CONFIG_ROWS: BudgetLineParameterConfigRow[] = []
-const HIDDEN_PARAMETER_KEYS = new Set(['count'])
+const AREA_PARAMETER_KEY = 'areaM2'
+const VOLUME_PARAMETER_KEY = 'volumeM3'
+const THICKNESS_PARAMETER_KEY = 'thickness'
+const DERIVED_PARAMETER_DECIMALS = 6
 
 function deriveAmounts(args: {
     lines: ItemYieldLineInput[]
@@ -129,6 +135,170 @@ function deriveAmounts(args: {
             totals.equipment += lineCost
     }
     return totals
+}
+
+function parseFiniteNumberFromInput(value: string | undefined): number | null {
+    if (!value) {
+        return null
+    }
+    const parsed = Number(value.trim())
+    if (!Number.isFinite(parsed)) {
+        return null
+    }
+    return parsed
+}
+
+function toDerivedParameterValue(value: number): string {
+    return String(Number(value.toFixed(DERIVED_PARAMETER_DECIMALS)))
+}
+
+function setFiniteDerivedValue(
+    valuesById: Record<string, string>,
+    parameterDefinitionId: string,
+    value: number
+): Record<string, string> {
+    if (!Number.isFinite(value)) {
+        return valuesById
+    }
+    return {
+        ...valuesById,
+        [parameterDefinitionId]: toDerivedParameterValue(value),
+    }
+}
+
+function deriveFromVolumeChange(args: {
+    valuesById: Record<string, string>
+    volumeId: string
+    areaId: string
+    thicknessId: string
+}): Record<string, string> {
+    const volume = parseFiniteNumberFromInput(args.valuesById[args.volumeId])
+    const area = parseFiniteNumberFromInput(args.valuesById[args.areaId])
+    const thickness = parseFiniteNumberFromInput(
+        args.valuesById[args.thicknessId]
+    )
+    if (volume == null) {
+        return args.valuesById
+    }
+    if (area != null && area > ZERO_VALUE) {
+        return setFiniteDerivedValue(
+            args.valuesById,
+            args.thicknessId,
+            volume / area
+        )
+    }
+    if (thickness != null && thickness > ZERO_VALUE) {
+        return setFiniteDerivedValue(
+            args.valuesById,
+            args.areaId,
+            volume / thickness
+        )
+    }
+    return args.valuesById
+}
+
+function deriveFromAreaChange(args: {
+    valuesById: Record<string, string>
+    volumeId: string
+    areaId: string
+    thicknessId: string
+}): Record<string, string> {
+    const volume = parseFiniteNumberFromInput(args.valuesById[args.volumeId])
+    const area = parseFiniteNumberFromInput(args.valuesById[args.areaId])
+    const thickness = parseFiniteNumberFromInput(
+        args.valuesById[args.thicknessId]
+    )
+    if (area == null) {
+        return args.valuesById
+    }
+    if (volume != null && area > ZERO_VALUE) {
+        return setFiniteDerivedValue(
+            args.valuesById,
+            args.thicknessId,
+            volume / area
+        )
+    }
+    if (thickness != null) {
+        return setFiniteDerivedValue(
+            args.valuesById,
+            args.volumeId,
+            area * thickness
+        )
+    }
+    return args.valuesById
+}
+
+function deriveFromThicknessChange(args: {
+    valuesById: Record<string, string>
+    volumeId: string
+    areaId: string
+    thicknessId: string
+}): Record<string, string> {
+    const volume = parseFiniteNumberFromInput(args.valuesById[args.volumeId])
+    const area = parseFiniteNumberFromInput(args.valuesById[args.areaId])
+    const thickness = parseFiniteNumberFromInput(
+        args.valuesById[args.thicknessId]
+    )
+    if (thickness == null) {
+        return args.valuesById
+    }
+    if (area != null) {
+        return setFiniteDerivedValue(
+            args.valuesById,
+            args.volumeId,
+            area * thickness
+        )
+    }
+    if (volume != null && thickness > ZERO_VALUE) {
+        return setFiniteDerivedValue(
+            args.valuesById,
+            args.areaId,
+            volume / thickness
+        )
+    }
+    return args.valuesById
+}
+
+function applyDerivedGeometryByKey(args: {
+    changedKey: string
+    valuesById: Record<string, string>
+    parameterIdByKey: Record<string, string>
+}): Record<string, string> {
+    const volumeId = args.parameterIdByKey[VOLUME_PARAMETER_KEY]
+    const areaId = args.parameterIdByKey[AREA_PARAMETER_KEY]
+    const thicknessId = args.parameterIdByKey[THICKNESS_PARAMETER_KEY]
+    if (!volumeId || !areaId || !thicknessId) {
+        return args.valuesById
+    }
+
+    if (args.changedKey === VOLUME_PARAMETER_KEY) {
+        return deriveFromVolumeChange({
+            valuesById: args.valuesById,
+            volumeId,
+            areaId,
+            thicknessId,
+        })
+    }
+
+    if (args.changedKey === AREA_PARAMETER_KEY) {
+        return deriveFromAreaChange({
+            valuesById: args.valuesById,
+            volumeId,
+            areaId,
+            thicknessId,
+        })
+    }
+
+    if (args.changedKey === THICKNESS_PARAMETER_KEY) {
+        return deriveFromThicknessChange({
+            valuesById: args.valuesById,
+            volumeId,
+            areaId,
+            thicknessId,
+        })
+    }
+
+    return args.valuesById
 }
 
 function useCreateBudgetLineSubmit(args: {
@@ -239,9 +409,7 @@ function BudgetLineParameterInputsSection(args: {
     valuesById: Record<string, string>
     setValue: (parameterDefinitionId: string, value: string) => void
 }) {
-    const visibleParams = args.params.filter(
-        (param) => !HIDDEN_PARAMETER_KEYS.has(param.key)
-    )
+    const visibleParams = args.params
     if (visibleParams.length === 0) {
         return null
     }
@@ -491,6 +659,38 @@ function applySuggestionSelection(args: {
     args.setActiveSuggestionIndex(NO_ACTIVE_SUGGESTION_INDEX)
 }
 
+function toYieldLineInputs(
+    components: ItemYield['components']
+): ItemYieldLineInput[] {
+    return components.map((line) => ({
+        resourceId: line.resourceId,
+        quantity: line.quantity,
+        billingMode: line.billingMode,
+        customDriverKey: line.customDriverKey,
+    }))
+}
+
+function resolveInitialYieldProposal(args: {
+    libraryBinding: LibraryBinding
+    projectItemYields: ItemYield[]
+}): ItemYieldLineInput[] | null {
+    if (args.libraryBinding == null) {
+        return null
+    }
+    if (args.libraryBinding.kind === 'yield') {
+        const yieldId = args.libraryBinding.yieldId
+        const source = args.projectItemYields.find(
+            (itemYield) => itemYield.id === yieldId
+        )
+        return source ? toYieldLineInputs(source.components) : null
+    }
+    const catalogItemId = args.libraryBinding.catalogItemId
+    const source = args.projectItemYields.find(
+        (itemYield) => itemYield.catalogItemId === catalogItemId
+    )
+    return source ? toYieldLineInputs(source.components) : null
+}
+
 function useResourcePriceUpdater(args: {
     resources: Awaited<ReturnType<typeof getResources>>
     accessToken: string | null
@@ -603,6 +803,7 @@ type CreateBudgetLineDialogViewProps = {
     onDescriptionInput: () => void
     clearLibraryBinding: () => void
     handleSuggestionPick: (row: SuggestionRow) => void
+    onQuantityChange: (value: string) => void
     isBreakdownActive: boolean
     pricingLockedByYield: boolean
     parameterConfigRows: BudgetLineParameterConfigRow[]
@@ -665,6 +866,7 @@ function CreateBudgetLineDialogView(props: CreateBudgetLineDialogViewProps) {
                     onDescriptionInput={props.onDescriptionInput}
                     onClearLibraryBinding={props.clearLibraryBinding}
                     handleSuggestionPick={props.handleSuggestionPick}
+                    onQuantityChange={props.onQuantityChange}
                     isBreakdownActive={props.isBreakdownActive}
                     pricingLockedByYield={props.pricingLockedByYield}
                     hideWorkCategoryField={props.hideWorkCategoryField}
@@ -878,9 +1080,18 @@ export default function CreateBudgetLineDialog({
             selectedItemTypeStableId,
         }),
     })
-    const parameterConfigRows = (
+    const parameterConfigRows =
         parameterConfig?.params ?? EMPTY_PARAMETER_CONFIG_ROWS
-    ).filter((param) => !HIDDEN_PARAMETER_KEYS.has(param.key))
+    const parameterIdByKey = useMemo(
+        () =>
+            Object.fromEntries(
+                parameterConfigRows.map((param) => [
+                    param.key,
+                    param.parameterDefinitionId,
+                ])
+            ),
+        [parameterConfigRows]
+    )
     const parameterValuesForSubmit = useMemo(
         () =>
             buildOptionalParameterValues({
@@ -912,6 +1123,16 @@ export default function CreateBudgetLineDialog({
         accessToken,
         studioSlug
     )
+    const { data: projectItemYields = [] } = useQuery({
+        queryKey: qk.itemYields(studioSlug, activeProject.id),
+        queryFn: () =>
+            getProjectItemYields(activeProject.id, {
+                token: accessToken,
+                studioSlug,
+            }),
+        enabled: isOpenAndQueryReady,
+    })
+    const hasAutoProposedYieldRef = useRef(false)
 
     const usedCatalogItemIds = useMemo(
         () =>
@@ -988,6 +1209,7 @@ export default function CreateBudgetLineDialog({
     const resetYieldSetup = useCallback(() => {
         setIncludeYieldSetup(false)
         setYieldLines([])
+        hasAutoProposedYieldRef.current = false
     }, [])
 
     const handleSuggestionPick = (row: SuggestionRow) => {
@@ -1074,6 +1296,60 @@ export default function CreateBudgetLineDialog({
             setActiveSuggestionIndex,
         })
     }
+    const setDerivedParameterValueById = (
+        parameterDefinitionId: string,
+        value: string,
+        changedKey: string | undefined
+    ) => {
+        setParameterValuesById((current) => {
+            const withCurrentValue = {
+                ...current,
+                [parameterDefinitionId]: value,
+            }
+            if (!changedKey) {
+                return withCurrentValue
+            }
+            return applyDerivedGeometryByKey({
+                changedKey,
+                valuesById: withCurrentValue,
+                parameterIdByKey,
+            })
+        })
+        if (changedKey === AREA_PARAMETER_KEY) {
+            const nextQuantity = value.trim()
+            if (form.getValues('quantityStr') !== nextQuantity) {
+                form.setValue('quantityStr', nextQuantity, {
+                    shouldValidate: true,
+                })
+            }
+        }
+    }
+    const onQuantityChange = (value: string) => {
+        const areaParameterId = parameterIdByKey[AREA_PARAMETER_KEY]
+        if (!areaParameterId) {
+            return
+        }
+        setDerivedParameterValueById(
+            areaParameterId,
+            value.trim(),
+            AREA_PARAMETER_KEY
+        )
+    }
+    const maybeAutoProposeYieldSetup = (): void => {
+        if (hasAutoProposedYieldRef.current || yieldLines.length > 0) {
+            return
+        }
+        const initialProposal = resolveInitialYieldProposal({
+            libraryBinding,
+            projectItemYields,
+        })
+        if (!initialProposal || initialProposal.length === 0) {
+            return
+        }
+        setYieldLines(initialProposal)
+        setIncludeYieldSetup(true)
+        hasAutoProposedYieldRef.current = true
+    }
 
     return (
         <CreateBudgetLineDialogView
@@ -1101,16 +1377,23 @@ export default function CreateBudgetLineDialog({
             onDescriptionInput={onDescriptionInput}
             clearLibraryBinding={clearLibraryBinding}
             handleSuggestionPick={handleSuggestionPick}
+            onQuantityChange={onQuantityChange}
             isBreakdownActive={isBreakdownActive}
             pricingLockedByYield={pricingLockedByYield}
             parameterConfigRows={parameterConfigRows}
             parameterValuesById={parameterValuesById}
-            setParameterValueById={(parameterDefinitionId, value) =>
-                setParameterValuesById((current) => ({
-                    ...current,
-                    [parameterDefinitionId]: value,
-                }))
-            }
+            setParameterValueById={(parameterDefinitionId, value) => {
+                const changedKey = parameterConfigRows.find(
+                    (param) =>
+                        param.parameterDefinitionId === parameterDefinitionId
+                )?.key
+                setDerivedParameterValueById(
+                    parameterDefinitionId,
+                    value,
+                    changedKey
+                )
+                maybeAutoProposeYieldSetup()
+            }}
             hideWorkCategoryField={hideWorkCategoryField}
             canConfigureYieldSetup={canConfigureYieldSetup}
             setIncludeYieldSetup={setIncludeYieldSetup}

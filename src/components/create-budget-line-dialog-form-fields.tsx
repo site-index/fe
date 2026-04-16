@@ -68,6 +68,7 @@ type Props = {
     onDescriptionInput: () => void
     onClearLibraryBinding: () => void
     handleSuggestionPick: (row: SuggestionRow) => void
+    onQuantityChange?: (value: string) => void
     isBreakdownActive: boolean
     pricingLockedByYield?: boolean
     showCatalogSuggestionHint?: boolean
@@ -390,6 +391,7 @@ function PricingAndBreakdownSection(args: {
     unitNone: string
     measureUnitId: string
     onMeasureUnitChange: (value: string) => void
+    onQuantityChange?: (value: string) => void
     measureUnitError?: string
     isBreakdownActive: boolean
     pricingLockedByYield: boolean
@@ -408,7 +410,11 @@ function PricingAndBreakdownSection(args: {
                         id="create-budget-line-quantity"
                         inputMode="decimal"
                         placeholder="—"
-                        {...args.form.register('quantityStr')}
+                        {...args.form.register('quantityStr', {
+                            onChange: (event) => {
+                                args.onQuantityChange?.(event.target.value)
+                            },
+                        })}
                     />
                     <FieldError
                         message={
@@ -520,6 +526,7 @@ export function CreateBudgetLineDialogFormFields({
     onDescriptionInput,
     onClearLibraryBinding,
     handleSuggestionPick,
+    onQuantityChange,
     isBreakdownActive,
     pricingLockedByYield = false,
     showCatalogSuggestionHint = true,
@@ -579,6 +586,7 @@ export function CreateBudgetLineDialogFormFields({
                 onMeasureUnitChange={(v) =>
                     form.setValue('measureUnitId', v, { shouldValidate: true })
                 }
+                onQuantityChange={onQuantityChange}
                 measureUnitError={form.formState.errors.measureUnitId?.message}
                 isBreakdownActive={isBreakdownActive}
                 pricingLockedByYield={pricingLockedByYield}
