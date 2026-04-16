@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils'
 const DEFAULT_NUMERIC_FALLBACK = 0
 const DEFAULT_LINE_QUANTITY = 1
 const PRICE_DISPLAY_DECIMALS = 2
+const PRICE_INPUT_PLACEHOLDER = '0'
 const EMPTY_LINES_LENGTH = 0
 const FIRST_ITEM_INDEX = 0
 
@@ -29,6 +30,10 @@ function createEmptyLine(resourceId: string): ItemYieldLineInput {
         resourceId,
         quantity: DEFAULT_LINE_QUANTITY,
     }
+}
+
+function formatPriceInputValue(value: number): string {
+    return Number.isFinite(value) ? String(value) : PRICE_INPUT_PLACEHOLDER
 }
 
 type Props = {
@@ -64,6 +69,7 @@ function ItemYieldLineRow({
     onPatchLine,
     onRemoveLine,
 }: LineRowProps) {
+    const storedPrice = pricesByResourceId.get(line.resourceId)
     return (
         <tr key={`${line.resourceId}-${index}`} className="border-b align-top">
             <td className="px-2 py-2 min-w-56">
@@ -114,10 +120,12 @@ function ItemYieldLineRow({
                     step="0.01"
                     disabled={disabled || !selectedResource}
                     key={`price-${line.resourceId}`}
-                    defaultValue={(
-                        pricesByResourceId.get(line.resourceId) ??
-                        DEFAULT_NUMERIC_FALLBACK
-                    ).toFixed(PRICE_DISPLAY_DECIMALS)}
+                    defaultValue={
+                        storedPrice === undefined
+                            ? undefined
+                            : formatPriceInputValue(storedPrice)
+                    }
+                    placeholder={PRICE_INPUT_PLACEHOLDER}
                     onBlur={async (event) => {
                         if (!selectedResource) {
                             return
@@ -171,9 +179,12 @@ function ItemYieldLineMobileCard({
     onPatchLine,
     onRemoveLine,
 }: LineRowProps) {
-    const currentPriceNumber =
-        pricesByResourceId.get(line.resourceId) ?? DEFAULT_NUMERIC_FALLBACK
-    const currentPrice = currentPriceNumber.toFixed(PRICE_DISPLAY_DECIMALS)
+    const storedPrice = pricesByResourceId.get(line.resourceId)
+    const currentPriceNumber = storedPrice ?? DEFAULT_NUMERIC_FALLBACK
+    const currentPrice =
+        storedPrice === undefined
+            ? undefined
+            : formatPriceInputValue(storedPrice)
     const subtotal = line.quantity * currentPriceNumber
 
     return (
@@ -255,6 +266,7 @@ function ItemYieldLineMobileCard({
                             disabled={disabled || !selectedResource}
                             key={`mobile-price-${line.resourceId}`}
                             defaultValue={currentPrice}
+                            placeholder={PRICE_INPUT_PLACEHOLDER}
                             onBlur={async (event) => {
                                 if (!selectedResource) {
                                     return
