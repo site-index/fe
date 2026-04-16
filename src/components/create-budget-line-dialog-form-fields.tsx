@@ -69,6 +69,7 @@ type Props = {
     isBreakdownActive: boolean
     pricingLockedByYield?: boolean
     showCatalogSuggestionHint?: boolean
+    hideWorkCategoryField?: boolean
     topSection?: ReactNode
     bottomSection?: ReactNode
 }
@@ -509,6 +510,7 @@ export function CreateBudgetLineDialogFormFields({
     isBreakdownActive,
     pricingLockedByYield = false,
     showCatalogSuggestionHint = true,
+    hideWorkCategoryField = false,
     topSection,
     bottomSection,
 }: Props) {
@@ -520,6 +522,21 @@ export function CreateBudgetLineDialogFormFields({
 
     return (
         <div className="flex-1 space-y-4 overflow-y-auto px-4 py-3">
+            {hideWorkCategoryField ? null : (
+                <WorkCategorySection
+                    libraryBinding={libraryBinding}
+                    categories={categories}
+                    categoriesLoading={categoriesLoading}
+                    workCategoryNoneValue={workCategoryNoneValue}
+                    value={values.workCategoryId}
+                    onChange={(v) =>
+                        form.setValue('workCategoryId', v, {
+                            shouldValidate: true,
+                        })
+                    }
+                    error={form.formState.errors.workCategoryId?.message}
+                />
+            )}
             <DescriptionSection
                 form={form}
                 libraryBinding={libraryBinding}
@@ -539,18 +556,6 @@ export function CreateBudgetLineDialogFormFields({
                 showCatalogSuggestionHint={showCatalogSuggestionHint}
             />
             {topSection}
-
-            <WorkCategorySection
-                libraryBinding={libraryBinding}
-                categories={categories}
-                categoriesLoading={categoriesLoading}
-                workCategoryNoneValue={workCategoryNoneValue}
-                value={values.workCategoryId}
-                onChange={(v) =>
-                    form.setValue('workCategoryId', v, { shouldValidate: true })
-                }
-                error={form.formState.errors.workCategoryId?.message}
-            />
             <MeasureUnitSection
                 libraryBinding={libraryBinding}
                 measureUnits={measureUnits}

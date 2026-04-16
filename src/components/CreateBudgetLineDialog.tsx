@@ -490,6 +490,7 @@ type CreateBudgetLineDialogViewProps = {
     handleSuggestionPick: (row: SuggestionRow) => void
     isBreakdownActive: boolean
     pricingLockedByYield: boolean
+    hideWorkCategoryField: boolean
     canConfigureYieldSetup: boolean
     setIncludeYieldSetup: (value: (prev: boolean) => boolean) => void
     yieldLines: ItemYieldLineInput[]
@@ -545,6 +546,7 @@ function CreateBudgetLineDialogView(props: CreateBudgetLineDialogViewProps) {
                     handleSuggestionPick={props.handleSuggestionPick}
                     isBreakdownActive={props.isBreakdownActive}
                     pricingLockedByYield={props.pricingLockedByYield}
+                    hideWorkCategoryField={props.hideWorkCategoryField}
                     bottomSection={
                         <div className="space-y-2">
                             <Accordion
@@ -628,6 +630,7 @@ export default function CreateBudgetLineDialog({
     const resolvedDefaultWorkCategoryId = resolveDefaultWorkCategoryId(
         defaultWorkCategoryId
     )
+    const hideWorkCategoryField = defaultWorkCategoryId != null
     const {
         isOpenAndQueryReady,
         canConfigureYieldSetup,
@@ -933,6 +936,7 @@ export default function CreateBudgetLineDialog({
             handleSuggestionPick={handleSuggestionPick}
             isBreakdownActive={isBreakdownActive}
             pricingLockedByYield={pricingLockedByYield}
+            hideWorkCategoryField={hideWorkCategoryField}
             canConfigureYieldSetup={canConfigureYieldSetup}
             setIncludeYieldSetup={setIncludeYieldSetup}
             yieldLines={yieldLines}

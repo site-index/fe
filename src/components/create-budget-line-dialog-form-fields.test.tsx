@@ -18,7 +18,13 @@ const BASE_VALUES: BudgetLineCreateFormValues = {
     amountEquipmentStr: '',
 }
 
-function FormFieldsHarness({ pricingLockedByYield = false } = {}) {
+function FormFieldsHarness({
+    pricingLockedByYield = false,
+    hideWorkCategoryField = false,
+}: {
+    pricingLockedByYield?: boolean
+    hideWorkCategoryField?: boolean
+} = {}) {
     const form = useForm<BudgetLineCreateFormValues>({
         defaultValues: BASE_VALUES,
     })
@@ -48,6 +54,7 @@ function FormFieldsHarness({ pricingLockedByYield = false } = {}) {
             handleSuggestionPick={() => {}}
             isBreakdownActive={false}
             pricingLockedByYield={pricingLockedByYield}
+            hideWorkCategoryField={hideWorkCategoryField}
             bottomSection={
                 <div data-testid="yield-bottom">Yield bottom slot</div>
             }
@@ -87,5 +94,23 @@ describe('CreateBudgetLineDialogFormFields', () => {
             screen.getByLabelText('Mano de obra (ARS / unidad)')
         ).toBeDisabled()
         expect(screen.getByLabelText('Equipo (ARS / unidad)')).toBeDisabled()
+    })
+
+    it('renders rubro selector before description when visible', () => {
+        render(<FormFieldsHarness />)
+
+        const rubroSelect = screen.getByLabelText('Rubro')
+        const descriptionInput = screen.getByLabelText('Descripción')
+
+        expect(
+            rubroSelect.compareDocumentPosition(descriptionInput) &
+                Node.DOCUMENT_POSITION_FOLLOWING
+        ).toBeTruthy()
+    })
+
+    it('hides rubro selector when work category is preselected', () => {
+        render(<FormFieldsHarness hideWorkCategoryField />)
+
+        expect(screen.queryByLabelText('Rubro')).not.toBeInTheDocument()
     })
 })
