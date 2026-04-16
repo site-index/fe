@@ -295,7 +295,6 @@ function DescriptionSection({
     onClearLibraryBinding,
     handleSuggestionPick,
     suggestionsLoading,
-    showCatalogSuggestionHint,
 }: DescriptionSectionProps) {
     const descField = form.register('description')
     return (
@@ -367,12 +366,6 @@ function DescriptionSection({
             {suggestionsLoading && showSuggestions ? (
                 <p className="text-xs text-muted-foreground">
                     Cargando sugerencias…
-                </p>
-            ) : null}
-            {showCatalogSuggestionHint ? (
-                <p className="text-xs text-muted-foreground">
-                    Si no existe un catalog item con ese nombre, se propone uno
-                    nuevo en estado pendiente de aprobación.
                 </p>
             ) : null}
         </div>
