@@ -102,14 +102,6 @@ function FieldError({ message }: { message?: string }) {
     return <p className="text-sm text-destructive">{message}</p>
 }
 
-function libraryBindingHintText(
-    binding: NonNullable<BudgetLineLibraryBinding>
-) {
-    return binding.kind === 'yield'
-        ? 'La define el rendimiento vinculado a la biblioteca.'
-        : 'La define el ítem del catálogo.'
-}
-
 function AmountInputField(args: {
     id: string
     label: string
@@ -157,9 +149,6 @@ function WorkCategorySection({
                 <label className="text-sm font-medium">Rubro</label>
                 <p className="text-sm font-medium rounded-md border border-input bg-muted/40 px-3 py-2">
                     {libraryBinding.workCategoryName}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                    Lo define el rendimiento vinculado a la biblioteca.
                 </p>
             </div>
         )
@@ -232,9 +221,6 @@ function MeasureUnitSection({
                 >
                     {displayName}
                 </p>
-                <p className="text-xs text-muted-foreground">
-                    {libraryBindingHintText(libraryBinding)}
-                </p>
                 <FieldError message={error} />
             </div>
         )
@@ -245,9 +231,6 @@ function MeasureUnitSection({
                 <label className="text-sm font-medium">{label}</label>
                 <p className="text-sm font-medium rounded-md border border-input bg-muted/40 px-3 py-2">
                     Sin unidad
-                </p>
-                <p className="text-xs text-muted-foreground">
-                    {libraryBindingHintText(libraryBinding)}
                 </p>
             </div>
         )
@@ -434,16 +417,6 @@ function PricingAndBreakdownSection(args: {
                         }
                         {...args.form.register('unitPriceStr')}
                     />
-                    {args.pricingLockedByYield ? (
-                        <p className="text-xs text-muted-foreground">
-                            Se calcula automáticamente desde el rendimiento.
-                        </p>
-                    ) : null}
-                    {args.isBreakdownActive && !args.pricingLockedByYield ? (
-                        <p className="text-xs text-muted-foreground">
-                            Se calcula automáticamente como MAT + MO + EQ.
-                        </p>
-                    ) : null}
                     <FieldError
                         message={
                             args.form.formState.errors.unitPriceStr?.message
