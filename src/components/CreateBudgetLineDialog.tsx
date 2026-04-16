@@ -6,7 +6,6 @@ import {
     useCallback,
     useEffect,
     useMemo,
-    useRef,
     useState,
 } from 'react'
 import { useForm, type UseFormReturn, useWatch } from 'react-hook-form'
@@ -21,7 +20,12 @@ import {
     getBudgetLineParameterConfig,
     getProjectBudgetLines,
 } from '@/api/budget-lines.api'
-import { getMeasureUnits, getWorkCategories } from '@/api/catalog.api'
+import {
+    getMeasureUnits,
+    getStudioCatalogItems,
+    getWorkCategories,
+    type StudioCatalogItemDefaultRow,
+} from '@/api/catalog.api'
 import type { ItemYieldLineInput } from '@/api/item-yields.api'
 import { getProjectItemYields } from '@/api/item-yields.api'
 import {
@@ -75,6 +79,7 @@ import {
     optionalNonNegStr,
 } from '@/lib/form-utils'
 import { qk } from '@/lib/query-keys'
+import type { BudgetLineRow } from '@/types/budget-line'
 import type { ItemYield } from '@/types/item-yield'
 import {
     RESOURCE_KIND_EQUIPMENT,
@@ -106,6 +111,7 @@ const ZERO_VALUE = 0
 const EMPTY_RESOURCE_ROWS: Awaited<ReturnType<typeof getResources>> = []
 const EMPTY_RESOURCE_PRICE_ROWS: Awaited<ReturnType<typeof getResourcePrices>> =
     []
+const EMPTY_STUDIO_CATALOG_ITEMS: StudioCatalogItemDefaultRow[] = []
 const EMPTY_PARAMETER_CONFIG_ROWS: BudgetLineParameterConfigRow[] = []
 const AREA_PARAMETER_KEY = 'areaM2'
 const VOLUME_PARAMETER_KEY = 'volumeM3'
@@ -670,9 +676,21 @@ function toYieldLineInputs(
     }))
 }
 
+function toStudioDefaultYieldLineInputs(
+    lines: StudioCatalogItemDefaultRow['lines']
+): ItemYieldLineInput[] {
+    return lines.map((line) => ({
+        resourceId: line.resourceId,
+        quantity: line.baseQuantity,
+        billingMode: 'QUANTITY',
+        customDriverKey: null,
+    }))
+}
+
 function resolveInitialYieldProposal(args: {
     libraryBinding: LibraryBinding
     projectItemYields: ItemYield[]
+    studioCatalogItems: StudioCatalogItemDefaultRow[]
 }): ItemYieldLineInput[] | null {
     if (args.libraryBinding == null) {
         return null
@@ -688,7 +706,92 @@ function resolveInitialYieldProposal(args: {
     const source = args.projectItemYields.find(
         (itemYield) => itemYield.catalogItemId === catalogItemId
     )
-    return source ? toYieldLineInputs(source.components) : null
+    if (source) {
+        return toYieldLineInputs(source.components)
+    }
+    const studioDefault = args.studioCatalogItems.find(
+        (catalogItem) => catalogItem.catalogItemId === catalogItemId
+    )
+    return studioDefault
+        ? toStudioDefaultYieldLineInputs(studioDefault.lines)
+        : null
+}
+
+function applyAutoYieldProposal(args: {
+    libraryBinding: LibraryBinding
+    projectItemYields: ItemYield[]
+    studioCatalogItems: StudioCatalogItemDefaultRow[]
+    setYieldLines: (value: ItemYieldLineInput[]) => void
+    setIncludeYieldSetup: (value: boolean) => void
+}): void {
+    if (args.libraryBinding == null) {
+        return
+    }
+    const initialProposal =
+        resolveInitialYieldProposal({
+            libraryBinding: args.libraryBinding,
+            projectItemYields: args.projectItemYields,
+            studioCatalogItems: args.studioCatalogItems,
+        }) ?? []
+    args.setYieldLines(initialProposal)
+    args.setIncludeYieldSetup(initialProposal.length > 0)
+}
+
+function applyDerivedParameterChange(args: {
+    parameterDefinitionId: string | undefined
+    value: string
+    changedKey: string | undefined
+    parameterIdByKey: Record<string, string>
+    setParameterValuesById: (
+        updater: (current: Record<string, string>) => Record<string, string>
+    ) => void
+    form: UseFormReturn<FormValues>
+}): void {
+    if (!args.parameterDefinitionId) {
+        return
+    }
+    args.setParameterValuesById((current) => {
+        const withCurrentValue = {
+            ...current,
+            [args.parameterDefinitionId as string]: args.value,
+        }
+        if (!args.changedKey) {
+            return withCurrentValue
+        }
+        return applyDerivedGeometryByKey({
+            changedKey: args.changedKey,
+            valuesById: withCurrentValue,
+            parameterIdByKey: args.parameterIdByKey,
+        })
+    })
+    if (args.changedKey !== AREA_PARAMETER_KEY) {
+        return
+    }
+    const nextQuantity = args.value.trim()
+    if (args.form.getValues('quantityStr') !== nextQuantity) {
+        args.form.setValue('quantityStr', nextQuantity, {
+            shouldValidate: true,
+        })
+    }
+}
+
+function toUsedCatalogItemIds(lines: BudgetLineRow[]): Set<string> {
+    return new Set(
+        lines
+            .map((line) => line.catalogItemId)
+            .filter(
+                (catalogItemId): catalogItemId is string =>
+                    catalogItemId != null
+            )
+    )
+}
+
+function toUsedItemYieldIds(lines: BudgetLineRow[]): Set<string> {
+    return new Set(
+        lines
+            .map((line) => line.itemYieldId)
+            .filter((itemYieldId): itemYieldId is string => itemYieldId != null)
+    )
 }
 
 function useResourcePriceUpdater(args: {
@@ -1132,24 +1235,23 @@ export default function CreateBudgetLineDialog({
             }),
         enabled: isOpenAndQueryReady,
     })
-    const hasAutoProposedYieldRef = useRef(false)
+    const { data: studioCatalogItems } = useQuery({
+        queryKey: qk.studioCatalogItems(studioSlug),
+        queryFn: () =>
+            getStudioCatalogItems({
+                token: accessToken,
+                studioSlug,
+            }),
+        enabled: isOpenAndQueryReady,
+        initialData: EMPTY_STUDIO_CATALOG_ITEMS,
+    })
 
     const usedCatalogItemIds = useMemo(
-        () =>
-            new Set(
-                existingBudgetLines
-                    .map((line) => line.catalogItemId)
-                    .filter((id): id is string => id != null)
-            ),
+        () => toUsedCatalogItemIds(existingBudgetLines),
         [existingBudgetLines]
     )
     const usedItemYieldIds = useMemo(
-        () =>
-            new Set(
-                existingBudgetLines
-                    .map((line) => line.itemYieldId)
-                    .filter((id): id is string => id != null)
-            ),
+        () => toUsedItemYieldIds(existingBudgetLines),
         [existingBudgetLines]
     )
 
@@ -1209,7 +1311,6 @@ export default function CreateBudgetLineDialog({
     const resetYieldSetup = useCallback(() => {
         setIncludeYieldSetup(false)
         setYieldLines([])
-        hasAutoProposedYieldRef.current = false
     }, [])
 
     const handleSuggestionPick = (row: SuggestionRow) => {
@@ -1296,59 +1397,46 @@ export default function CreateBudgetLineDialog({
             setActiveSuggestionIndex,
         })
     }
-    const setDerivedParameterValueById = (
-        parameterDefinitionId: string,
-        value: string,
-        changedKey: string | undefined
-    ) => {
-        setParameterValuesById((current) => {
-            const withCurrentValue = {
-                ...current,
-                [parameterDefinitionId]: value,
-            }
-            if (!changedKey) {
-                return withCurrentValue
-            }
-            return applyDerivedGeometryByKey({
-                changedKey,
-                valuesById: withCurrentValue,
-                parameterIdByKey,
-            })
-        })
-        if (changedKey === AREA_PARAMETER_KEY) {
-            const nextQuantity = value.trim()
-            if (form.getValues('quantityStr') !== nextQuantity) {
-                form.setValue('quantityStr', nextQuantity, {
-                    shouldValidate: true,
-                })
-            }
-        }
-    }
     const onQuantityChange = (value: string) => {
-        const areaParameterId = parameterIdByKey[AREA_PARAMETER_KEY]
-        if (!areaParameterId) {
-            return
-        }
-        setDerivedParameterValueById(
-            areaParameterId,
-            value.trim(),
-            AREA_PARAMETER_KEY
-        )
-    }
-    const maybeAutoProposeYieldSetup = (): void => {
-        if (hasAutoProposedYieldRef.current || yieldLines.length > 0) {
-            return
-        }
-        const initialProposal = resolveInitialYieldProposal({
+        applyDerivedParameterChange({
+            parameterDefinitionId: parameterIdByKey[AREA_PARAMETER_KEY],
+            value: value.trim(),
+            changedKey: AREA_PARAMETER_KEY,
+            parameterIdByKey,
+            setParameterValuesById,
+            form,
+        })
+        applyAutoYieldProposal({
             libraryBinding,
             projectItemYields,
+            studioCatalogItems,
+            setYieldLines,
+            setIncludeYieldSetup,
         })
-        if (!initialProposal || initialProposal.length === 0) {
-            return
-        }
-        setYieldLines(initialProposal)
-        setIncludeYieldSetup(true)
-        hasAutoProposedYieldRef.current = true
+    }
+
+    const onParameterValueChange = (
+        parameterDefinitionId: string,
+        value: string
+    ) => {
+        const changedKey = parameterConfigRows.find(
+            (param) => param.parameterDefinitionId === parameterDefinitionId
+        )?.key
+        applyDerivedParameterChange({
+            parameterDefinitionId,
+            value,
+            changedKey,
+            parameterIdByKey,
+            setParameterValuesById,
+            form,
+        })
+        applyAutoYieldProposal({
+            libraryBinding,
+            projectItemYields,
+            studioCatalogItems,
+            setYieldLines,
+            setIncludeYieldSetup,
+        })
     }
 
     return (
@@ -1382,18 +1470,7 @@ export default function CreateBudgetLineDialog({
             pricingLockedByYield={pricingLockedByYield}
             parameterConfigRows={parameterConfigRows}
             parameterValuesById={parameterValuesById}
-            setParameterValueById={(parameterDefinitionId, value) => {
-                const changedKey = parameterConfigRows.find(
-                    (param) =>
-                        param.parameterDefinitionId === parameterDefinitionId
-                )?.key
-                setDerivedParameterValueById(
-                    parameterDefinitionId,
-                    value,
-                    changedKey
-                )
-                maybeAutoProposeYieldSetup()
-            }}
+            setParameterValueById={onParameterValueChange}
             hideWorkCategoryField={hideWorkCategoryField}
             canConfigureYieldSetup={canConfigureYieldSetup}
             setIncludeYieldSetup={setIncludeYieldSetup}
