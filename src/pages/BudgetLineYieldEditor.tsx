@@ -44,22 +44,54 @@ function parseNum(value: string, fallback = ZERO_VALUE): number {
     return Number.isFinite(parsed) ? parsed : fallback
 }
 
+function resolveLineMultiplier(args: {
+    line: ItemYieldLineInput
+    drivers: Record<string, number>
+}): number {
+    if (args.line.billingMode === 'FIXED') {
+        return 1
+    }
+    if (args.line.billingMode === 'QUANTITY') {
+        return args.drivers.quantity
+    }
+    if (args.line.billingMode === 'DURATION') {
+        return args.drivers.duration
+    }
+    return Math.max(
+        ZERO_VALUE,
+        args.drivers[args.line.customDriverKey ?? ''] ?? ZERO_VALUE
+    )
+}
+
 function deriveAmounts(args: {
     lines: ItemYieldLineInput[]
     pricesByResourceId: Map<string, number>
     resourcesById: Map<string, ResourceRow>
+    budgetLineQuantity: number
 }): { material: number; labor: number; equipment: number } {
     const totals = {
         material: ZERO_VALUE,
         labor: ZERO_VALUE,
         equipment: ZERO_VALUE,
     }
+    const baseQuantity = Math.max(ZERO_VALUE, args.budgetLineQuantity)
+    if (baseQuantity <= ZERO_VALUE) {
+        return totals
+    }
+    const drivers: Record<string, number> = {
+        quantity: baseQuantity,
+        duration: ZERO_VALUE,
+        perimeter: ZERO_VALUE,
+        height: ZERO_VALUE,
+    }
     for (const line of args.lines) {
         const resource = args.resourcesById.get(line.resourceId)
         if (!resource) continue
-        const lineCost =
-            Math.max(ZERO_VALUE, line.quantity) *
-            (args.pricesByResourceId.get(line.resourceId) ?? ZERO_VALUE)
+        const lineQuantity = Math.max(ZERO_VALUE, line.quantity)
+        const unitPrice =
+            args.pricesByResourceId.get(line.resourceId) ?? ZERO_VALUE
+        const multiplier = resolveLineMultiplier({ line, drivers })
+        const lineCost = (lineQuantity * unitPrice * multiplier) / baseQuantity
         if (resource.kind === RESOURCE_KIND_MATERIAL)
             totals.material += lineCost
         if (resource.kind === RESOURCE_KIND_LABOR) totals.labor += lineCost
@@ -315,7 +347,12 @@ function YieldEditorLoaded(args: {
     itemYield: {
         id: string
         linkedItems: string[]
-        components: Array<{ resourceId: string; quantity: number }>
+        components: Array<{
+            resourceId: string
+            quantity: number
+            billingMode: ItemYieldLineInput['billingMode']
+            customDriverKey: string | null
+        }>
     }
     resources: ResourceRow[]
     pricesByResourceId: Map<string, number>
@@ -326,6 +363,8 @@ function YieldEditorLoaded(args: {
         args.itemYield.components.map((line) => ({
             resourceId: line.resourceId,
             quantity: line.quantity,
+            billingMode: line.billingMode,
+            customDriverKey: line.customDriverKey,
         }))
     )
     const [quantity, setQuantity] = useState(args.budgetLine.quantity)
@@ -355,6 +394,7 @@ function YieldEditorLoaded(args: {
         lines,
         pricesByResourceId: effectivePricesByResourceId,
         resourcesById,
+        budgetLineQuantity: quantity,
     })
     const hasNoResources = args.resources.length === ZERO_VALUE
     const hasNoYieldLines = lines.length === ZERO_VALUE

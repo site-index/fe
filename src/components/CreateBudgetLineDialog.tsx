@@ -13,8 +13,11 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 
 import {
+    type BudgetLineParameterConfigRow,
+    type BudgetLineParameterValueInput,
     type CreateBudgetLineInput,
     createProjectBudgetLine,
+    getBudgetLineParameterConfig,
     getProjectBudgetLines,
 } from '@/api/budget-lines.api'
 import { getMeasureUnits, getWorkCategories } from '@/api/catalog.api'
@@ -29,6 +32,7 @@ import {
     appendOptionalBudgetNumericFields,
     appendOptionalYieldComponents,
     buildBudgetLineCreateBody,
+    buildOptionalParameterValues,
     DESCRIPTION_MAX_LENGTH,
     ensureManualWorkCategoryForSubmit,
     filterUnusedSuggestions,
@@ -57,6 +61,7 @@ import {
     AccordionItem,
     AccordionTrigger,
 } from '@/components/ui/accordion'
+import { Input } from '@/components/ui/input'
 import type { SuggestionRow } from '@/components/use-budget-line-description-suggestions'
 import { useBudgetLineDescriptionSuggestions } from '@/components/use-budget-line-description-suggestions'
 import { useAuth } from '@/contexts/AuthContext'
@@ -98,6 +103,7 @@ const ZERO_VALUE = 0
 const EMPTY_RESOURCE_ROWS: Awaited<ReturnType<typeof getResources>> = []
 const EMPTY_RESOURCE_PRICE_ROWS: Awaited<ReturnType<typeof getResourcePrices>> =
     []
+const EMPTY_PARAMETER_CONFIG_ROWS: BudgetLineParameterConfigRow[] = []
 
 function deriveAmounts(args: {
     lines: ItemYieldLineInput[]
@@ -136,6 +142,7 @@ function useCreateBudgetLineSubmit(args: {
     defaultForm: FormValues
     includeYieldSetup: boolean
     yieldLines: ItemYieldLineInput[]
+    parameterValues: BudgetLineParameterValueInput[]
     setLibraryBinding: (value: LibraryBinding) => void
     setOpen: (open: boolean) => void
     resetYieldSetup: () => void
@@ -182,6 +189,9 @@ function useCreateBudgetLineSubmit(args: {
             includeYieldSetup: args.includeYieldSetup,
             yieldLines: args.yieldLines,
         })
+        if (args.parameterValues.length > 0) {
+            baseBody.parameterValues = args.parameterValues
+        }
         try {
             const created = await createProjectBudgetLine(
                 args.activeProjectId,
@@ -221,6 +231,79 @@ function useCreateBudgetLineSubmit(args: {
             })
         }
     }
+}
+
+function BudgetLineParameterInputsSection(args: {
+    params: BudgetLineParameterConfigRow[]
+    valuesById: Record<string, string>
+    setValue: (parameterDefinitionId: string, value: string) => void
+}) {
+    if (args.params.length === 0) {
+        return null
+    }
+    return (
+        <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-3">
+            <p className="text-xs text-muted-foreground">
+                Parámetros relacionados (opcionales)
+            </p>
+            {args.params.map((param) => {
+                const value = args.valuesById[param.parameterDefinitionId] ?? ''
+                if (param.valueType === 'BOOLEAN') {
+                    return (
+                        <div
+                            key={param.parameterDefinitionId}
+                            className="space-y-2"
+                        >
+                            <label className="text-sm font-medium">
+                                {param.label}
+                            </label>
+                            <select
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                aria-label={param.label}
+                                value={value}
+                                onChange={(event) =>
+                                    args.setValue(
+                                        param.parameterDefinitionId,
+                                        event.target.value
+                                    )
+                                }
+                            >
+                                <option value="">Sin definir</option>
+                                <option value="true">Sí</option>
+                                <option value="false">No</option>
+                            </select>
+                        </div>
+                    )
+                }
+                return (
+                    <div
+                        key={param.parameterDefinitionId}
+                        className="space-y-2"
+                    >
+                        <label className="text-sm font-medium">
+                            {param.label}
+                        </label>
+                        <Input
+                            aria-label={param.label}
+                            value={value}
+                            inputMode={
+                                param.valueType === 'TEXT'
+                                    ? undefined
+                                    : 'decimal'
+                            }
+                            placeholder={param.valueType === 'TEXT' ? '—' : '0'}
+                            onChange={(event) =>
+                                args.setValue(
+                                    param.parameterDefinitionId,
+                                    event.target.value
+                                )
+                            }
+                        />
+                    </div>
+                )
+            })}
+        </div>
+    )
 }
 
 function useDefaultWorkCategorySync(args: {
@@ -458,6 +541,31 @@ function getDialogQueryFlags(args: {
     }
 }
 
+function isParameterConfigQueryEnabled(args: {
+    isOpenAndQueryReady: boolean
+    selectedItemTypeStableId: string | null
+}): boolean {
+    if (!args.isOpenAndQueryReady) {
+        return false
+    }
+    return (
+        args.selectedItemTypeStableId != null &&
+        args.selectedItemTypeStableId !== ''
+    )
+}
+
+function resolveSelectedItemTypeStableId(
+    libraryBinding: LibraryBinding
+): string | null {
+    return libraryBinding?.itemTypeStableId ?? null
+}
+
+function shouldHideWorkCategoryField(
+    defaultWorkCategoryId: string | null | undefined
+): boolean {
+    return defaultWorkCategoryId != null
+}
+
 interface CreateBudgetLineDialogProps {
     trigger?: ReactNode
     defaultWorkCategoryId?: string | null
@@ -490,6 +598,12 @@ type CreateBudgetLineDialogViewProps = {
     handleSuggestionPick: (row: SuggestionRow) => void
     isBreakdownActive: boolean
     pricingLockedByYield: boolean
+    parameterConfigRows: BudgetLineParameterConfigRow[]
+    parameterValuesById: Record<string, string>
+    setParameterValueById: (
+        parameterDefinitionId: string,
+        value: string
+    ) => void
     hideWorkCategoryField: boolean
     canConfigureYieldSetup: boolean
     setIncludeYieldSetup: (value: (prev: boolean) => boolean) => void
@@ -547,6 +661,13 @@ function CreateBudgetLineDialogView(props: CreateBudgetLineDialogViewProps) {
                     isBreakdownActive={props.isBreakdownActive}
                     pricingLockedByYield={props.pricingLockedByYield}
                     hideWorkCategoryField={props.hideWorkCategoryField}
+                    topSection={
+                        <BudgetLineParameterInputsSection
+                            params={props.parameterConfigRows}
+                            valuesById={props.parameterValuesById}
+                            setValue={props.setParameterValueById}
+                        />
+                    }
                     bottomSection={
                         <div className="space-y-2">
                             <Accordion
@@ -624,13 +745,18 @@ export default function CreateBudgetLineDialog({
     )
     const [includeYieldSetup, setIncludeYieldSetup] = useState(false)
     const [yieldLines, setYieldLines] = useState<ItemYieldLineInput[]>([])
+    const [parameterValuesById, setParameterValuesById] = useState<
+        Record<string, string>
+    >({})
     const { accessToken, studioSlug, isQueryReady } = useAuth()
     const { activeProject } = useProject()
     const queryClient = useQueryClient()
     const resolvedDefaultWorkCategoryId = resolveDefaultWorkCategoryId(
         defaultWorkCategoryId
     )
-    const hideWorkCategoryField = defaultWorkCategoryId != null
+    const hideWorkCategoryField = shouldHideWorkCategoryField(
+        defaultWorkCategoryId
+    )
     const {
         isOpenAndQueryReady,
         canConfigureYieldSetup,
@@ -723,6 +849,38 @@ export default function CreateBudgetLineDialog({
         [resources]
     )
     const pricingLockedByYield = includeYieldSetupEffective
+    const selectedItemTypeStableId =
+        resolveSelectedItemTypeStableId(libraryBinding)
+    const { data: parameterConfig } = useQuery({
+        queryKey: qk.budgetLinesParameterConfig(
+            studioSlug,
+            activeProject.id,
+            selectedItemTypeStableId
+        ),
+        queryFn: () =>
+            getBudgetLineParameterConfig(
+                activeProject.id,
+                selectedItemTypeStableId!,
+                {
+                    token: accessToken,
+                    studioSlug,
+                }
+            ),
+        enabled: isParameterConfigQueryEnabled({
+            isOpenAndQueryReady,
+            selectedItemTypeStableId,
+        }),
+    })
+    const parameterConfigRows =
+        parameterConfig?.params ?? EMPTY_PARAMETER_CONFIG_ROWS
+    const parameterValuesForSubmit = useMemo(
+        () =>
+            buildOptionalParameterValues({
+                params: parameterConfigRows,
+                valuesByParameterId: parameterValuesById,
+            }),
+        [parameterConfigRows, parameterValuesById]
+    )
 
     const { data: existingBudgetLines = [] } = useQuery({
         queryKey: qk.budgetLines(studioSlug, activeProject.id),
@@ -874,6 +1032,7 @@ export default function CreateBudgetLineDialog({
         defaultForm,
         includeYieldSetup: includeYieldSetupEffective,
         yieldLines,
+        parameterValues: parameterValuesForSubmit,
         setLibraryBinding,
         setOpen,
         resetYieldSetup,
@@ -936,6 +1095,14 @@ export default function CreateBudgetLineDialog({
             handleSuggestionPick={handleSuggestionPick}
             isBreakdownActive={isBreakdownActive}
             pricingLockedByYield={pricingLockedByYield}
+            parameterConfigRows={parameterConfigRows}
+            parameterValuesById={parameterValuesById}
+            setParameterValueById={(parameterDefinitionId, value) =>
+                setParameterValuesById((current) => ({
+                    ...current,
+                    [parameterDefinitionId]: value,
+                }))
+            }
             hideWorkCategoryField={hideWorkCategoryField}
             canConfigureYieldSetup={canConfigureYieldSetup}
             setIncludeYieldSetup={setIncludeYieldSetup}

@@ -1,5 +1,9 @@
 import { apiFetch } from '@/lib/api'
-import type { ItemYield, ItemYieldOption } from '@/types/item-yield'
+import type {
+    ItemYield,
+    ItemYieldOption,
+    YieldLineBillingMode,
+} from '@/types/item-yield'
 
 import type { ApiContext } from './api-context'
 
@@ -11,6 +15,8 @@ export type CreateItemYieldInput = {
 export type ItemYieldLineInput = {
     resourceId: string
     quantity: number
+    billingMode: YieldLineBillingMode
+    customDriverKey?: string | null
 }
 
 export type ItemYieldComponentsInput = {

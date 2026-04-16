@@ -1,4 +1,5 @@
 import { Plus, Trash2 } from 'lucide-react'
+import type { ReactNode } from 'react'
 
 import type { ItemYieldLineInput } from '@/api/item-yields.api'
 import type { ResourceRow } from '@/api/resources.api'
@@ -12,6 +13,8 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
+import type { YieldLineBillingMode } from '@/types/item-yield'
+import { RESOURCE_KIND_LABOR } from '@/types/resource-kind'
 
 const DEFAULT_NUMERIC_FALLBACK = 0
 const DEFAULT_LINE_QUANTITY = 1
@@ -19,21 +22,43 @@ const PRICE_DISPLAY_DECIMALS = 2
 const PRICE_INPUT_PLACEHOLDER = '0'
 const EMPTY_LINES_LENGTH = 0
 const FIRST_ITEM_INDEX = 0
+const DEFAULT_BILLING_MODE: YieldLineBillingMode = 'QUANTITY'
+const CUSTOM_DRIVER_KEY_OPTIONS = [
+    { key: 'quantity', label: 'Cantidad' },
+    { key: 'duration', label: 'Duración' },
+    { key: 'perimeter', label: 'Perímetro' },
+    { key: 'height', label: 'Altura' },
+] as const
+
+function defaultBillingMode(): YieldLineBillingMode {
+    return DEFAULT_BILLING_MODE
+}
 
 function parseNum(value: string, fallback = DEFAULT_NUMERIC_FALLBACK): number {
     const parsed = Number(value)
     return Number.isFinite(parsed) ? parsed : fallback
 }
 
-function createEmptyLine(resourceId: string): ItemYieldLineInput {
+function createEmptyLine(resource: ResourceRow): ItemYieldLineInput {
     return {
-        resourceId,
+        resourceId: resource.id,
         quantity: DEFAULT_LINE_QUANTITY,
+        billingMode: defaultBillingMode(),
+        customDriverKey: null,
     }
 }
 
 function formatPriceInputValue(value: number): string {
     return Number.isFinite(value) ? String(value) : PRICE_INPUT_PLACEHOLDER
+}
+
+function optionalPriceInputValue(
+    value: number | undefined
+): string | undefined {
+    if (value === undefined) {
+        return undefined
+    }
+    return formatPriceInputValue(value)
 }
 
 type Props = {
@@ -58,6 +83,119 @@ type LineRowProps = {
     onRemoveLine: (index: number) => void
 }
 
+function resourceChangePatch(resourceId: string): Partial<ItemYieldLineInput> {
+    return {
+        resourceId,
+        quantity: DEFAULT_LINE_QUANTITY,
+        billingMode: defaultBillingMode(),
+        customDriverKey: null,
+    }
+}
+
+function billingModePatch(
+    line: ItemYieldLineInput,
+    mode: YieldLineBillingMode
+): Partial<ItemYieldLineInput> {
+    return {
+        billingMode: mode,
+        customDriverKey:
+            mode === 'CUSTOM_DRIVER'
+                ? (line.customDriverKey ?? CUSTOM_DRIVER_KEY_OPTIONS[0].key)
+                : null,
+    }
+}
+
+async function commitResourcePrice(args: {
+    selectedResource: ResourceRow | null
+    inputValue: string
+    onSetResourcePrice: (resourceId: string, unitPrice: number) => Promise<void>
+}): Promise<void> {
+    if (!args.selectedResource) {
+        return
+    }
+    const unitPrice = parseNum(args.inputValue, DEFAULT_NUMERIC_FALLBACK)
+    await args.onSetResourcePrice(args.selectedResource.id, unitPrice)
+}
+
+function renderLaborModeField(args: {
+    isLabor: boolean
+    line: ItemYieldLineInput
+    disabled: boolean
+    onPatchLine: (patch: Partial<ItemYieldLineInput>) => void
+    triggerClassName?: string
+}): ReactNode {
+    if (!args.isLabor) {
+        return <p className="px-2 py-2 text-xs text-muted-foreground">—</p>
+    }
+    return (
+        <Select
+            value={args.line.billingMode}
+            disabled={args.disabled}
+            onValueChange={(value: YieldLineBillingMode) =>
+                args.onPatchLine(billingModePatch(args.line, value))
+            }
+        >
+            <SelectTrigger className={args.triggerClassName}>
+                <SelectValue placeholder="Modo" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value="FIXED">Fijo por línea</SelectItem>
+                <SelectItem value="QUANTITY">Escala por cantidad</SelectItem>
+                <SelectItem value="DURATION">Escala por duración</SelectItem>
+                <SelectItem value="CUSTOM_DRIVER">
+                    Driver personalizado
+                </SelectItem>
+            </SelectContent>
+        </Select>
+    )
+}
+
+function renderLaborDriverField(args: {
+    isLabor: boolean
+    line: ItemYieldLineInput
+    disabled: boolean
+    onPatchLine: (patch: Partial<ItemYieldLineInput>) => void
+    triggerClassName?: string
+    emptyClassName?: string
+}): ReactNode {
+    if (!args.isLabor || args.line.billingMode !== 'CUSTOM_DRIVER') {
+        return (
+            <p
+                className={
+                    args.emptyClassName ??
+                    'px-2 py-2 text-xs text-muted-foreground'
+                }
+            >
+                —
+            </p>
+        )
+    }
+    return (
+        <Select
+            value={
+                args.line.customDriverKey ?? CUSTOM_DRIVER_KEY_OPTIONS[0].key
+            }
+            disabled={args.disabled}
+            onValueChange={(value) =>
+                args.onPatchLine({
+                    customDriverKey: value,
+                })
+            }
+        >
+            <SelectTrigger className={args.triggerClassName}>
+                <SelectValue placeholder="Driver" />
+            </SelectTrigger>
+            <SelectContent>
+                {CUSTOM_DRIVER_KEY_OPTIONS.map((option) => (
+                    <SelectItem key={option.key} value={option.key}>
+                        {option.label}
+                    </SelectItem>
+                ))}
+            </SelectContent>
+        </Select>
+    )
+}
+
 function ItemYieldLineRow({
     index,
     line,
@@ -70,6 +208,11 @@ function ItemYieldLineRow({
     onRemoveLine,
 }: LineRowProps) {
     const storedPrice = pricesByResourceId.get(line.resourceId)
+    const isLabor = selectedResource?.kind === RESOURCE_KIND_LABOR
+    const priceInputDefault = optionalPriceInputValue(storedPrice)
+    const patchCurrentLine = (patch: Partial<ItemYieldLineInput>): void => {
+        onPatchLine(index, patch)
+    }
     return (
         <tr key={`${line.resourceId}-${index}`} className="border-b align-top">
             <td className="px-2 py-2 min-w-56">
@@ -77,10 +220,7 @@ function ItemYieldLineRow({
                     value={line.resourceId}
                     disabled={disabled}
                     onValueChange={(value) =>
-                        onPatchLine(index, {
-                            resourceId: value,
-                            quantity: DEFAULT_LINE_QUANTITY,
-                        })
+                        patchCurrentLine(resourceChangePatch(value))
                     }
                 >
                     <SelectTrigger>
@@ -120,21 +260,14 @@ function ItemYieldLineRow({
                     step="0.01"
                     disabled={disabled || !selectedResource}
                     key={`price-${line.resourceId}`}
-                    defaultValue={
-                        storedPrice === undefined
-                            ? undefined
-                            : formatPriceInputValue(storedPrice)
-                    }
+                    defaultValue={priceInputDefault}
                     placeholder={PRICE_INPUT_PLACEHOLDER}
                     onBlur={async (event) => {
-                        if (!selectedResource) {
-                            return
-                        }
-                        const unitPrice = parseNum(
-                            event.target.value,
-                            DEFAULT_NUMERIC_FALLBACK
-                        )
-                        await onSetResourcePrice(selectedResource.id, unitPrice)
+                        await commitResourcePrice({
+                            selectedResource,
+                            inputValue: event.target.value,
+                            onSetResourcePrice,
+                        })
                     }}
                 />
             </td>
@@ -146,11 +279,27 @@ function ItemYieldLineRow({
                     disabled={disabled}
                     value={line.quantity}
                     onChange={(event) =>
-                        onPatchLine(index, {
+                        patchCurrentLine({
                             quantity: parseNum(event.target.value),
                         })
                     }
                 />
+            </td>
+            <td className="px-2 py-2 min-w-44">
+                {renderLaborModeField({
+                    isLabor,
+                    line,
+                    disabled,
+                    onPatchLine: patchCurrentLine,
+                })}
+            </td>
+            <td className="px-2 py-2 min-w-44">
+                {renderLaborDriverField({
+                    isLabor,
+                    line,
+                    disabled,
+                    onPatchLine: patchCurrentLine,
+                })}
             </td>
             <td className="px-2 py-2 text-right">
                 <Button
@@ -180,12 +329,16 @@ function ItemYieldLineMobileCard({
     onRemoveLine,
 }: LineRowProps) {
     const storedPrice = pricesByResourceId.get(line.resourceId)
+    const isLabor = selectedResource?.kind === RESOURCE_KIND_LABOR
     const currentPriceNumber = storedPrice ?? DEFAULT_NUMERIC_FALLBACK
     const currentPrice =
         storedPrice === undefined
             ? undefined
             : formatPriceInputValue(storedPrice)
     const subtotal = line.quantity * currentPriceNumber
+    const patchCurrentLine = (patch: Partial<ItemYieldLineInput>): void => {
+        onPatchLine(index, patch)
+    }
 
     return (
         <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-3 transition-colors active:bg-muted/40">
@@ -195,10 +348,7 @@ function ItemYieldLineMobileCard({
                         value={line.resourceId}
                         disabled={disabled}
                         onValueChange={(value) =>
-                            onPatchLine(index, {
-                                resourceId: value,
-                                quantity: DEFAULT_LINE_QUANTITY,
-                            })
+                            patchCurrentLine(resourceChangePatch(value))
                         }
                     >
                         <SelectTrigger className="flex-1">
@@ -243,7 +393,7 @@ function ItemYieldLineMobileCard({
                             disabled={disabled}
                             value={line.quantity}
                             onChange={(event) =>
-                                onPatchLine(index, {
+                                patchCurrentLine({
                                     quantity: parseNum(event.target.value),
                                 })
                             }
@@ -268,17 +418,11 @@ function ItemYieldLineMobileCard({
                             defaultValue={currentPrice}
                             placeholder={PRICE_INPUT_PLACEHOLDER}
                             onBlur={async (event) => {
-                                if (!selectedResource) {
-                                    return
-                                }
-                                const unitPrice = parseNum(
-                                    event.target.value,
-                                    DEFAULT_NUMERIC_FALLBACK
-                                )
-                                await onSetResourcePrice(
-                                    selectedResource.id,
-                                    unitPrice
-                                )
+                                await commitResourcePrice({
+                                    selectedResource,
+                                    inputValue: event.target.value,
+                                    onSetResourcePrice,
+                                })
                             }}
                             className="h-8 px-2 text-xs"
                         />
@@ -290,6 +434,36 @@ function ItemYieldLineMobileCard({
                         </p>
                     </div>
                 </div>
+                {isLabor ? (
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="space-y-1">
+                            <p className="text-center text-muted-foreground">
+                                Modo
+                            </p>
+                            {renderLaborModeField({
+                                isLabor,
+                                line,
+                                disabled,
+                                onPatchLine: patchCurrentLine,
+                                triggerClassName: 'h-8 px-2 text-xs',
+                            })}
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-center text-muted-foreground">
+                                Driver
+                            </p>
+                            {renderLaborDriverField({
+                                isLabor,
+                                line,
+                                disabled,
+                                onPatchLine: patchCurrentLine,
+                                triggerClassName: 'h-8 px-2 text-xs',
+                                emptyClassName:
+                                    'h-8 rounded-md border border-input bg-muted/40 px-2 py-2 text-center text-xs text-muted-foreground',
+                            })}
+                        </div>
+                    </div>
+                ) : null}
             </div>
         </div>
     )
@@ -343,7 +517,7 @@ export default function ItemYieldLinesEditor({
         if (!first) {
             return
         }
-        onChange([...lines, createEmptyLine(first.id)])
+        onChange([...lines, createEmptyLine(first)])
     }
 
     return (
@@ -420,6 +594,12 @@ export default function ItemYieldLinesEditor({
                                     </th>
                                     <th className="px-2 py-2 text-left">
                                         Cantidad
+                                    </th>
+                                    <th className="px-2 py-2 text-left">
+                                        Modo laboral
+                                    </th>
+                                    <th className="px-2 py-2 text-left">
+                                        Driver laboral
                                     </th>
                                     <th className="px-2 py-2 text-right">
                                         Acción

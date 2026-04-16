@@ -10,6 +10,10 @@ import type {
 import { cloneElement, isValidElement } from 'react'
 import type { UseFormReturn } from 'react-hook-form'
 
+import type {
+    BudgetLineParameterConfigRow,
+    BudgetLineParameterValueInput,
+} from '@/api/budget-lines.api'
 import type { ItemYieldLineInput } from '@/api/item-yields.api'
 import { Button } from '@/components/ui/button'
 import type {
@@ -33,6 +37,7 @@ export type LibraryBinding =
     | {
           kind: 'yield'
           yieldId: string
+          itemTypeStableId: string | null
           workCategoryName: string
           measureUnitId: string | null
           measureUnitName: string | null
@@ -40,6 +45,7 @@ export type LibraryBinding =
     | {
           kind: 'catalog'
           catalogItemId: string
+          itemTypeStableId: string
           workCategoryId: string
           workCategoryName: string
           measureUnitId: string | null
@@ -98,6 +104,69 @@ export function appendOptionalYieldComponents(args: {
     }
 }
 
+export function buildOptionalParameterValues(args: {
+    params: BudgetLineParameterConfigRow[]
+    valuesByParameterId: Record<string, string>
+}): BudgetLineParameterValueInput[] {
+    function toOptionalParameterValue(
+        param: BudgetLineParameterConfigRow,
+        trimmed: string
+    ): BudgetLineParameterValueInput | null {
+        if (param.valueType === 'BOOLEAN') {
+            if (trimmed !== 'true' && trimmed !== 'false') {
+                return null
+            }
+            return {
+                parameterDefinitionId: param.parameterDefinitionId,
+                valueType: 'BOOLEAN',
+                booleanValue: trimmed === 'true',
+            }
+        }
+        if (param.valueType === 'INTEGER') {
+            const integerValue = Number.parseInt(trimmed, 10)
+            if (!Number.isFinite(integerValue)) {
+                return null
+            }
+            return {
+                parameterDefinitionId: param.parameterDefinitionId,
+                valueType: 'INTEGER',
+                integerValue,
+            }
+        }
+        if (param.valueType === 'DECIMAL') {
+            const decimalValue = Number(trimmed)
+            if (!Number.isFinite(decimalValue)) {
+                return null
+            }
+            return {
+                parameterDefinitionId: param.parameterDefinitionId,
+                valueType: 'DECIMAL',
+                decimalValue,
+            }
+        }
+        return {
+            parameterDefinitionId: param.parameterDefinitionId,
+            valueType: 'TEXT',
+            textValue: trimmed,
+        }
+    }
+
+    const rows: BudgetLineParameterValueInput[] = []
+    for (const param of args.params) {
+        const raw = args.valuesByParameterId[param.parameterDefinitionId]
+        const trimmed = raw?.trim() ?? ''
+        if (trimmed === '') {
+            continue
+        }
+        const row = toOptionalParameterValue(param, trimmed)
+        if (row == null) {
+            continue
+        }
+        rows.push(row)
+    }
+    return rows
+}
+
 export function buildBudgetLineCreateBody(
     values: FormValuesBase,
     libraryBinding: LibraryBinding,
@@ -150,6 +219,7 @@ export function toLibraryBindingFromSuggestion(
         return {
             kind: 'yield',
             yieldId: row.yieldId,
+            itemTypeStableId: row.itemTypeStableId,
             workCategoryName: row.workCategoryName,
             measureUnitId: row.measureUnitId,
             measureUnitName: row.measureUnitName,
@@ -158,6 +228,7 @@ export function toLibraryBindingFromSuggestion(
     return {
         kind: 'catalog',
         catalogItemId: row.catalogItemId,
+        itemTypeStableId: row.itemTypeStableId,
         workCategoryId: row.workCategoryId,
         workCategoryName: row.workCategoryName,
         measureUnitId: row.measureUnitId,

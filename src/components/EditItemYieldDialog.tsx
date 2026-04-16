@@ -48,6 +48,8 @@ function useDialogDefaults(
             itemYield.components.map((line) => ({
                 resourceId: line.resourceId,
                 quantity: line.quantity,
+                billingMode: line.billingMode,
+                customDriverKey: line.customDriverKey,
             }))
         )
     }, [itemYield, open, setLines])
