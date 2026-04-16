@@ -8,6 +8,7 @@ import type { ApiContext } from './api-context'
 
 export type StudioCatalogItemDefaultRow = {
     catalogItemId: string
+    itemTypeStableId: string
     code: string
     name: string
     workCategoryId: string

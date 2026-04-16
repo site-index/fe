@@ -38,6 +38,20 @@ export const qk = {
             projectId,
             'budget-lines',
         ] as const,
+    budgetLinesParameterConfig: (
+        studioSlug: StudioScope,
+        projectId: string,
+        itemTypeStableId: string | null
+    ) =>
+        [
+            'studio',
+            studioScopeKey(studioSlug),
+            'project',
+            projectId,
+            'budget-lines',
+            'parameter-config',
+            itemTypeStableId ?? '__none__',
+        ] as const,
     resourceDemand: (studioSlug: StudioScope, projectId: string) =>
         [
             'studio',

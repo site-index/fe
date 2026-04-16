@@ -18,11 +18,12 @@ type MeasureUnitApiShape = {
 
 type ItemYieldApiRow = Pick<
     ItemYield,
-    'id' | 'workCategoryId' | 'workCategoryName' | 'name'
+    'id' | 'itemTypeStableId' | 'workCategoryId' | 'workCategoryName' | 'name'
 >
 
 type StudioCatalogItemApiRow = {
     catalogItemId: string
+    itemTypeStableId: string
     name: string
     workCategoryId: string
     workCategoryName: string
@@ -37,6 +38,7 @@ export type SuggestionRow =
           name: string
           description: string
           workCategoryName: string
+          itemTypeStableId: string | null
           measureUnitId: string | null
           measureUnitName: string | null
       }
@@ -47,6 +49,7 @@ export type SuggestionRow =
           description: string
           workCategoryName: string
           workCategoryId: string
+          itemTypeStableId: string
           measureUnitId: string | null
           measureUnitName: string | null
       }
@@ -68,6 +71,7 @@ function buildSuggestionRows(
         workCategoryName: y.workCategoryName,
         measureUnitId: null,
         measureUnitName: null,
+        itemTypeStableId: y.itemTypeStableId,
     }))
     const yieldNames = new Set(
         yields.map((y) => y.name.trim().toLowerCase()).filter(Boolean)
@@ -81,6 +85,7 @@ function buildSuggestionRows(
             description: '',
             workCategoryName: c.workCategoryName,
             workCategoryId: c.workCategoryId,
+            itemTypeStableId: c.itemTypeStableId,
             measureUnitId: c.measureUnit?.id ?? null,
             measureUnitName: c.measureUnit?.name ?? null,
         }))

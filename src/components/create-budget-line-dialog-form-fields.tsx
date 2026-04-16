@@ -20,6 +20,7 @@ export type BudgetLineLibraryBinding =
     | {
           kind: 'yield'
           yieldId: string
+          itemTypeStableId: string | null
           workCategoryName: string
           measureUnitId: string | null
           measureUnitName: string | null
@@ -27,6 +28,7 @@ export type BudgetLineLibraryBinding =
     | {
           kind: 'catalog'
           catalogItemId: string
+          itemTypeStableId: string
           workCategoryId: string
           workCategoryName: string
           measureUnitId: string | null

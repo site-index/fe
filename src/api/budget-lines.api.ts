@@ -13,6 +13,26 @@ export type BudgetLineParameterValueInput = {
     textValue?: string | null
 }
 
+export type BudgetLineParameterConfigRow = {
+    parameterDefinitionId: string
+    key: string
+    label: string
+    valueType: 'DECIMAL' | 'INTEGER' | 'BOOLEAN' | 'TEXT'
+    enabled: boolean
+    isRequired: boolean
+    isCertificationDriver: boolean
+    isBudgetPrimaryDriver: boolean
+    isBudgetFormulaInput: boolean
+    sortOrder: number
+}
+
+export type ResolvedBudgetLineParameterConfig = {
+    params: BudgetLineParameterConfigRow[]
+    primaryBudgetDriver: BudgetLineParameterConfigRow | null
+    certificationDriver: BudgetLineParameterConfigRow | null
+    formulaExpression: string | null
+}
+
 export type CreateBudgetLineInput = {
     description: string
     itemYieldId?: string
@@ -79,6 +99,20 @@ export function getProjectBudgetLines(
         token: ctx.token,
         studioSlug: ctx.studioSlug,
     })
+}
+
+export function getBudgetLineParameterConfig(
+    projectId: string,
+    itemTypeStableId: string,
+    ctx: ApiContext
+): Promise<ResolvedBudgetLineParameterConfig> {
+    return apiFetch<ResolvedBudgetLineParameterConfig>(
+        `/v1/projects/${projectId}/budget-lines/parameter-config/${itemTypeStableId}`,
+        {
+            token: ctx.token,
+            studioSlug: ctx.studioSlug,
+        }
+    )
 }
 
 export function createProjectBudgetLine(
