@@ -336,7 +336,6 @@ export default function StudioCatalogItems() {
                                                                     .value,
                                                         })
                                                     }
-                                                    placeholder="Ej. bolsa 25kg"
                                                 />
                                             </td>
                                             <td className="py-2 px-2 min-w-44">
@@ -356,7 +355,7 @@ export default function StudioCatalogItems() {
                                                     }
                                                 >
                                                     <SelectTrigger>
-                                                        <SelectValue placeholder="Sin unidad" />
+                                                        <SelectValue />
                                                     </SelectTrigger>
                                                     <SelectContent>
                                                         <SelectItem

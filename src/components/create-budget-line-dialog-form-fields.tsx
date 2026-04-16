@@ -138,7 +138,6 @@ function AmountInputField(args: {
             <Input
                 id={args.id}
                 inputMode="decimal"
-                placeholder="0"
                 disabled={args.disabled}
                 {...args.register}
             />
@@ -332,7 +331,6 @@ function DescriptionSection({
                 <Input
                     id="create-budget-line-description"
                     autoComplete="off"
-                    placeholder="Ej. Hormigón H21 — losa"
                     readOnly={libraryBinding != null}
                     aria-autocomplete="list"
                     aria-expanded={showSuggestions}
@@ -409,7 +407,6 @@ function PricingAndBreakdownSection(args: {
                     <Input
                         id="create-budget-line-quantity"
                         inputMode="decimal"
-                        placeholder="—"
                         {...args.form.register('quantityStr', {
                             onChange: (event) => {
                                 args.onQuantityChange?.(event.target.value)
@@ -443,7 +440,6 @@ function PricingAndBreakdownSection(args: {
                     <Input
                         id="create-budget-line-unit-price"
                         inputMode="decimal"
-                        placeholder="—"
                         disabled={
                             args.isBreakdownActive || args.pricingLockedByYield
                         }

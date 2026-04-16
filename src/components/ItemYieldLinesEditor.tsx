@@ -136,7 +136,7 @@ function renderLaborModeField(args: {
             }
         >
             <SelectTrigger className={args.triggerClassName}>
-                <SelectValue placeholder="Modo" />
+                <SelectValue />
             </SelectTrigger>
             <SelectContent>
                 <SelectItem value="FIXED">Fijo por línea</SelectItem>
@@ -183,7 +183,7 @@ function renderLaborDriverField(args: {
             }
         >
             <SelectTrigger className={args.triggerClassName}>
-                <SelectValue placeholder="Driver" />
+                <SelectValue />
             </SelectTrigger>
             <SelectContent>
                 {CUSTOM_DRIVER_KEY_OPTIONS.map((option) => (

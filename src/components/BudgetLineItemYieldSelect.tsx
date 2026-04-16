@@ -64,7 +64,7 @@ export function BudgetLineItemYieldSelect({
                 className="h-8 text-xs"
                 aria-label="Rendimiento vinculado"
             >
-                <SelectValue placeholder="—" />
+                <SelectValue />
             </SelectTrigger>
             <SelectContent>
                 <SelectItem value={YIELD_NONE}>Sin rendimiento</SelectItem>

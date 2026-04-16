@@ -159,10 +159,7 @@ export default function CreateProjectDialog({
                                                     Nombre del proyecto
                                                 </FormLabel>
                                                 <FormControl>
-                                                    <Input
-                                                        placeholder="Mi proyecto"
-                                                        {...field}
-                                                    />
+                                                    <Input {...field} />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>

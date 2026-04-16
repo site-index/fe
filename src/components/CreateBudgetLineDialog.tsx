@@ -472,7 +472,6 @@ function BudgetLineParameterInputsSection(args: {
                                     ? undefined
                                     : 'decimal'
                             }
-                            placeholder={param.valueType === 'TEXT' ? '—' : '0'}
                             onChange={(event) =>
                                 args.setValue(
                                     param.parameterDefinitionId,

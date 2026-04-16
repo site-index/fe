@@ -149,7 +149,7 @@ export default function LoginForm({ onSuccess, className }: Props) {
                         required
                     >
                         <SelectTrigger id="login-studio">
-                            <SelectValue placeholder="Seleccioná un estudio" />
+                            <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                             {studioChoices.map((s) => (

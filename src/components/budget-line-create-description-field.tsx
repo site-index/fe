@@ -111,7 +111,6 @@ export function BudgetLineCreateDescriptionField({
                 <PopoverAnchor asChild>
                     <FormControl>
                         <Input
-                            placeholder="Ej. Hormigón H21 — losa"
                             autoComplete="off"
                             aria-autocomplete="list"
                             aria-expanded={showSuggestions}
