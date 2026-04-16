@@ -205,6 +205,7 @@ function MeasureUnitSection({
     value,
     onChange,
     error,
+    label = 'Unidad (opcional)',
 }: {
     libraryBinding: BudgetLineLibraryBinding
     measureUnits: MeasureUnitRow[]
@@ -213,6 +214,7 @@ function MeasureUnitSection({
     value: string
     onChange: (value: string) => void
     error?: string
+    label?: string
 }) {
     if (libraryBinding?.measureUnitId != null) {
         const displayName =
@@ -221,7 +223,7 @@ function MeasureUnitSection({
             '—'
         return (
             <div className="space-y-2">
-                <label className="text-sm font-medium">Unidad (opcional)</label>
+                <label className="text-sm font-medium">{label}</label>
                 <p
                     id="create-budget-line-measure-unit-locked"
                     className="text-sm font-medium rounded-md border border-input bg-muted/40 px-3 py-2"
@@ -238,7 +240,7 @@ function MeasureUnitSection({
     if (libraryBinding != null) {
         return (
             <div className="space-y-2">
-                <label className="text-sm font-medium">Unidad (opcional)</label>
+                <label className="text-sm font-medium">{label}</label>
                 <p className="text-sm font-medium rounded-md border border-input bg-muted/40 px-3 py-2">
                     Sin unidad
                 </p>
@@ -255,11 +257,11 @@ function MeasureUnitSection({
                 htmlFor="create-budget-line-measure-unit"
                 className="text-sm font-medium"
             >
-                Unidad (opcional)
+                {label}
             </label>
             <select
                 id="create-budget-line-measure-unit"
-                aria-label="Unidad"
+                aria-label={label}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
                 value={value}
                 disabled={measureUnitsLoading}
@@ -379,18 +381,25 @@ function DescriptionSection({
 
 function PricingAndBreakdownSection(args: {
     form: UseFormReturn<BudgetLineCreateFormValues>
+    libraryBinding: BudgetLineLibraryBinding
+    measureUnits: MeasureUnitRow[]
+    measureUnitsLoading: boolean
+    unitNone: string
+    measureUnitId: string
+    onMeasureUnitChange: (value: string) => void
+    measureUnitError?: string
     isBreakdownActive: boolean
     pricingLockedByYield: boolean
 }) {
     return (
         <>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-2">
                 <div className="space-y-2">
                     <label
                         htmlFor="create-budget-line-quantity"
                         className="text-sm font-medium"
                     >
-                        Cantidad
+                        Q
                     </label>
                     <Input
                         id="create-budget-line-quantity"
@@ -404,12 +413,22 @@ function PricingAndBreakdownSection(args: {
                         }
                     />
                 </div>
+                <MeasureUnitSection
+                    libraryBinding={args.libraryBinding}
+                    measureUnits={args.measureUnits}
+                    measureUnitsLoading={args.measureUnitsLoading}
+                    unitNone={args.unitNone}
+                    value={args.measureUnitId}
+                    onChange={args.onMeasureUnitChange}
+                    error={args.measureUnitError}
+                    label="PU"
+                />
                 <div className="space-y-2">
                     <label
                         htmlFor="create-budget-line-unit-price"
                         className="text-sm font-medium"
                     >
-                        P. unitario (ARS / unidad)
+                        $
                     </label>
                     <Input
                         id="create-budget-line-unit-price"
@@ -556,19 +575,17 @@ export function CreateBudgetLineDialogFormFields({
                 showCatalogSuggestionHint={showCatalogSuggestionHint}
             />
             {topSection}
-            <MeasureUnitSection
+            <PricingAndBreakdownSection
+                form={form}
                 libraryBinding={libraryBinding}
                 measureUnits={measureUnits}
                 measureUnitsLoading={measureUnitsLoading}
                 unitNone={unitNone}
-                value={values.measureUnitId}
-                onChange={(v) =>
+                measureUnitId={values.measureUnitId}
+                onMeasureUnitChange={(v) =>
                     form.setValue('measureUnitId', v, { shouldValidate: true })
                 }
-                error={form.formState.errors.measureUnitId?.message}
-            />
-            <PricingAndBreakdownSection
-                form={form}
+                measureUnitError={form.formState.errors.measureUnitId?.message}
                 isBreakdownActive={isBreakdownActive}
                 pricingLockedByYield={pricingLockedByYield}
             />

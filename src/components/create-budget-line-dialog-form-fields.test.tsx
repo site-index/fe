@@ -84,9 +84,7 @@ describe('CreateBudgetLineDialogFormFields', () => {
             screen.getByText('Desglose por categoría (opcional, por unidad)')
         )
 
-        expect(
-            screen.getByLabelText('P. unitario (ARS / unidad)')
-        ).toBeDisabled()
+        expect(screen.getByLabelText('$')).toBeDisabled()
         expect(
             screen.getByLabelText('Materiales (ARS / unidad)')
         ).toBeDisabled()
