@@ -104,6 +104,7 @@ const EMPTY_RESOURCE_ROWS: Awaited<ReturnType<typeof getResources>> = []
 const EMPTY_RESOURCE_PRICE_ROWS: Awaited<ReturnType<typeof getResourcePrices>> =
     []
 const EMPTY_PARAMETER_CONFIG_ROWS: BudgetLineParameterConfigRow[] = []
+const HIDDEN_PARAMETER_KEYS = new Set(['count'])
 
 function deriveAmounts(args: {
     lines: ItemYieldLineInput[]
@@ -238,7 +239,10 @@ function BudgetLineParameterInputsSection(args: {
     valuesById: Record<string, string>
     setValue: (parameterDefinitionId: string, value: string) => void
 }) {
-    if (args.params.length === 0) {
+    const visibleParams = args.params.filter(
+        (param) => !HIDDEN_PARAMETER_KEYS.has(param.key)
+    )
+    if (visibleParams.length === 0) {
         return null
     }
     return (
@@ -246,18 +250,28 @@ function BudgetLineParameterInputsSection(args: {
             <p className="text-xs text-muted-foreground">
                 Parámetros relacionados (opcionales)
             </p>
-            {args.params.map((param) => {
-                const value = args.valuesById[param.parameterDefinitionId] ?? ''
-                if (param.valueType === 'BOOLEAN') {
-                    return (
-                        <div
-                            key={param.parameterDefinitionId}
-                            className="space-y-2"
-                        >
-                            <label className="text-sm font-medium">
-                                {param.label}
-                            </label>
+            <div
+                className="grid gap-2"
+                style={{
+                    gridTemplateColumns: `repeat(${visibleParams.length}, minmax(0, 1fr))`,
+                }}
+            >
+                {visibleParams.map((param) => (
+                    <label
+                        key={`${param.parameterDefinitionId}-label`}
+                        className="truncate text-center text-sm font-medium"
+                        title={param.label}
+                    >
+                        {param.label}
+                    </label>
+                ))}
+                {visibleParams.map((param) => {
+                    const value =
+                        args.valuesById[param.parameterDefinitionId] ?? ''
+                    if (param.valueType === 'BOOLEAN') {
+                        return (
                             <select
+                                key={param.parameterDefinitionId}
                                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                 aria-label={param.label}
                                 value={value}
@@ -272,18 +286,11 @@ function BudgetLineParameterInputsSection(args: {
                                 <option value="true">Sí</option>
                                 <option value="false">No</option>
                             </select>
-                        </div>
-                    )
-                }
-                return (
-                    <div
-                        key={param.parameterDefinitionId}
-                        className="space-y-2"
-                    >
-                        <label className="text-sm font-medium">
-                            {param.label}
-                        </label>
+                        )
+                    }
+                    return (
                         <Input
+                            key={param.parameterDefinitionId}
                             aria-label={param.label}
                             value={value}
                             inputMode={
@@ -299,9 +306,9 @@ function BudgetLineParameterInputsSection(args: {
                                 )
                             }
                         />
-                    </div>
-                )
-            })}
+                    )
+                })}
+            </div>
         </div>
     )
 }
@@ -871,8 +878,9 @@ export default function CreateBudgetLineDialog({
             selectedItemTypeStableId,
         }),
     })
-    const parameterConfigRows =
+    const parameterConfigRows = (
         parameterConfig?.params ?? EMPTY_PARAMETER_CONFIG_ROWS
+    ).filter((param) => !HIDDEN_PARAMETER_KEYS.has(param.key))
     const parameterValuesForSubmit = useMemo(
         () =>
             buildOptionalParameterValues({

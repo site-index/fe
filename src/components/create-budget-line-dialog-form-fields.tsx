@@ -102,6 +102,26 @@ function FieldError({ message }: { message?: string }) {
     return <p className="text-sm text-destructive">{message}</p>
 }
 
+function measureUnitLabelClassName(centerLabel: boolean) {
+    return centerLabel
+        ? 'text-sm font-medium block text-center'
+        : 'text-sm font-medium'
+}
+
+function resolveMeasureUnitDisplayName(args: {
+    libraryBinding: BudgetLineLibraryBinding
+    measureUnits: MeasureUnitRow[]
+    value: string
+}) {
+    if (args.libraryBinding?.measureUnitName) {
+        return args.libraryBinding.measureUnitName
+    }
+    const selectedMeasureUnit = args.measureUnits.find(
+        (unit) => unit.id === args.value
+    )
+    return selectedMeasureUnit?.name ?? '—'
+}
+
 function AmountInputField(args: {
     id: string
     label: string
@@ -197,6 +217,7 @@ function MeasureUnitSection({
     onChange,
     error,
     label = 'Unidad (opcional)',
+    centerLabel = false,
 }: {
     libraryBinding: BudgetLineLibraryBinding
     measureUnits: MeasureUnitRow[]
@@ -206,15 +227,19 @@ function MeasureUnitSection({
     onChange: (value: string) => void
     error?: string
     label?: string
+    centerLabel?: boolean
 }) {
+    const labelClassName = measureUnitLabelClassName(centerLabel)
+
     if (libraryBinding?.measureUnitId != null) {
-        const displayName =
-            libraryBinding.measureUnitName ??
-            measureUnits.find((u) => u.id === value)?.name ??
-            '—'
+        const displayName = resolveMeasureUnitDisplayName({
+            libraryBinding,
+            measureUnits,
+            value,
+        })
         return (
             <div className="space-y-2">
-                <label className="text-sm font-medium">{label}</label>
+                <label className={labelClassName}>{label}</label>
                 <p
                     id="create-budget-line-measure-unit-locked"
                     className="text-sm font-medium rounded-md border border-input bg-muted/40 px-3 py-2"
@@ -228,7 +253,7 @@ function MeasureUnitSection({
     if (libraryBinding != null) {
         return (
             <div className="space-y-2">
-                <label className="text-sm font-medium">{label}</label>
+                <label className={labelClassName}>{label}</label>
                 <p className="text-sm font-medium rounded-md border border-input bg-muted/40 px-3 py-2">
                     Sin unidad
                 </p>
@@ -240,7 +265,7 @@ function MeasureUnitSection({
         <div className="space-y-2">
             <label
                 htmlFor="create-budget-line-measure-unit"
-                className="text-sm font-medium"
+                className={labelClassName}
             >
                 {label}
             </label>
@@ -375,7 +400,7 @@ function PricingAndBreakdownSection(args: {
                 <div className="space-y-2">
                     <label
                         htmlFor="create-budget-line-quantity"
-                        className="text-sm font-medium"
+                        className="block text-center text-sm font-medium"
                     >
                         Q
                     </label>
@@ -399,14 +424,15 @@ function PricingAndBreakdownSection(args: {
                     value={args.measureUnitId}
                     onChange={args.onMeasureUnitChange}
                     error={args.measureUnitError}
-                    label="PU"
+                    label="U"
+                    centerLabel
                 />
                 <div className="space-y-2">
                     <label
                         htmlFor="create-budget-line-unit-price"
-                        className="text-sm font-medium"
+                        className="block text-center text-sm font-medium"
                     >
-                        $
+                        PU
                     </label>
                     <Input
                         id="create-budget-line-unit-price"
