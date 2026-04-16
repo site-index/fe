@@ -4,6 +4,15 @@ import type { BudgetLineRow } from '@/types/budget-line'
 import type { ApiContext } from './api-context'
 import type { ItemYieldComponentsInput } from './item-yields.api'
 
+export type BudgetLineParameterValueInput = {
+    parameterDefinitionId: string
+    valueType: 'DECIMAL' | 'INTEGER' | 'BOOLEAN' | 'TEXT'
+    decimalValue?: number | null
+    integerValue?: number | null
+    booleanValue?: boolean | null
+    textValue?: string | null
+}
+
 export type CreateBudgetLineInput = {
     description: string
     itemYieldId?: string
@@ -16,6 +25,7 @@ export type CreateBudgetLineInput = {
     amountMaterial?: number
     amountLabor?: number
     amountEquipment?: number
+    parameterValues?: BudgetLineParameterValueInput[]
 }
 
 export type PatchBudgetLinePricingInput = {
@@ -35,6 +45,7 @@ export type PatchBudgetLineInput = {
     amountMaterial?: number
     amountLabor?: number
     amountEquipment?: number
+    parameterValues?: BudgetLineParameterValueInput[] | null
 }
 
 function createBudgetLineBody(
@@ -54,6 +65,7 @@ function createBudgetLineBody(
                 amountMaterial: input.amountMaterial,
                 amountLabor: input.amountLabor,
                 amountEquipment: input.amountEquipment,
+                parameterValues: input.parameterValues,
             }).filter(([, value]) => value !== undefined)
         ),
     }

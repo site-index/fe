@@ -310,6 +310,7 @@ function YieldEditorLoaded(args: {
         description: string
         quantity: number
         measureUnitName: string | null
+        warnings?: string[]
     }
     itemYield: {
         id: string
@@ -503,6 +504,14 @@ function YieldEditorLoaded(args: {
                 <h1 className="line-clamp-2 text-center text-base font-bold sm:text-lg">
                     {args.budgetLine.description}
                 </h1>
+                {args.budgetLine.warnings &&
+                args.budgetLine.warnings.length > 0 ? (
+                    <div className="mt-2 space-y-1 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1.5 text-xs text-amber-800">
+                        {args.budgetLine.warnings.map((warning) => (
+                            <p key={warning}>{warning}</p>
+                        ))}
+                    </div>
+                ) : null}
             </div>
 
             <div className="rounded-lg border border-border bg-card p-2.5 sm:hidden">
@@ -701,6 +710,7 @@ export default function BudgetLineYieldEditor() {
                     description: vm.budgetLine.description,
                     quantity: vm.budgetLine.quantity,
                     measureUnitName: vm.budgetLine.measureUnit?.name ?? null,
+                    warnings: vm.budgetLine.warnings,
                 }}
                 itemYield={{
                     id: vm.itemYield.id,

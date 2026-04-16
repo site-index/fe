@@ -8,6 +8,29 @@ interface BudgetLineMobileRowProps {
     onOpen: (l: BudgetLineRow) => void
 }
 
+function RowStatusBadges({
+    usesUnitPriceOverride,
+    warnings,
+}: {
+    usesUnitPriceOverride: boolean
+    warnings: string[] | undefined
+}) {
+    return (
+        <>
+            {usesUnitPriceOverride ? (
+                <span className="ml-2 rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-amber-700">
+                    Costo manual
+                </span>
+            ) : null}
+            {warnings && warnings.length > 0 ? (
+                <span className="ml-2 rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-amber-700">
+                    Incompleto
+                </span>
+            ) : null}
+        </>
+    )
+}
+
 export default function BudgetLineMobileRow({
     line,
     showBreakdown,
@@ -26,12 +49,18 @@ export default function BudgetLineMobileRow({
                             className={`line-clamp-2 text-sm ${line.flaky ? 'data-flaky' : ''}`}
                         >
                             {line.description}
-                            {line.usesUnitPriceOverride ? (
-                                <span className="ml-2 rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-amber-700">
-                                    Costo manual
-                                </span>
-                            ) : null}
+                            <RowStatusBadges
+                                usesUnitPriceOverride={
+                                    line.usesUnitPriceOverride
+                                }
+                                warnings={line.warnings}
+                            />
                         </p>
+                        {line.warnings && line.warnings.length > 0 ? (
+                            <p className="text-xs text-amber-700">
+                                {line.warnings[0]}
+                            </p>
+                        ) : null}
                     </div>
                     <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                 </div>

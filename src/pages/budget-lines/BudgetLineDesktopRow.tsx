@@ -8,6 +8,34 @@ interface BudgetLineDesktopRowProps {
     onOpen: (l: BudgetLineRow) => void
 }
 
+function RowStatusBadges({
+    usesUnitPriceOverride,
+    warnings,
+}: {
+    usesUnitPriceOverride: boolean
+    warnings: string[] | undefined
+}) {
+    return (
+        <>
+            {usesUnitPriceOverride ? (
+                <span className="ml-2 rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-amber-700 print:hidden">
+                    Costo manual
+                </span>
+            ) : null}
+            {warnings && warnings.length > 0 ? (
+                <span className="ml-2 rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-amber-700 print:hidden">
+                    Incompleto
+                </span>
+            ) : null}
+            {warnings && warnings.length > 0 ? (
+                <span className="ml-2 text-xs text-amber-700">
+                    {warnings[0]}
+                </span>
+            ) : null}
+        </>
+    )
+}
+
 export default function BudgetLineDesktopRow({
     line,
     categoryNumber,
@@ -29,11 +57,10 @@ export default function BudgetLineDesktopRow({
             </span>
             <span className={`truncate ${line.flaky ? 'data-flaky' : ''}`}>
                 {line.description}
-                {line.usesUnitPriceOverride ? (
-                    <span className="ml-2 rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-amber-700 print:hidden">
-                        Costo manual
-                    </span>
-                ) : null}
+                <RowStatusBadges
+                    usesUnitPriceOverride={line.usesUnitPriceOverride}
+                    warnings={line.warnings}
+                />
             </span>
             <span className="font-mono text-xs text-muted-foreground">
                 {line.measureUnit?.name ?? '—'}

@@ -20,4 +20,15 @@ export type BudgetLineRow = {
     amountEquipment: number
     itemTypeStableId: string | null
     usesUnitPriceOverride: boolean
+    parameterValues?: Array<{
+        parameterDefinitionId: string
+        key: string
+        label: string
+        valueType: 'DECIMAL' | 'INTEGER' | 'BOOLEAN' | 'TEXT'
+        decimalValue: number | null
+        integerValue: number | null
+        booleanValue: boolean | null
+        textValue: string | null
+    }>
+    warnings?: string[]
 }
