@@ -63,11 +63,67 @@ function resolveLineMultiplier(args: {
     )
 }
 
+function readParameterNumber(args: {
+    value: {
+        decimalValue: number | null
+        integerValue: number | null
+        booleanValue: boolean | null
+    }
+}): number | null {
+    if (
+        args.value.decimalValue != null &&
+        Number.isFinite(args.value.decimalValue)
+    )
+        return args.value.decimalValue
+    if (
+        args.value.integerValue != null &&
+        Number.isFinite(args.value.integerValue)
+    )
+        return args.value.integerValue
+    if (args.value.booleanValue != null) return args.value.booleanValue ? 1 : 0
+    return null
+}
+
+function deriveMixVolumeM3(args: {
+    budgetLineQuantity: number
+    parameterValues:
+        | Array<{
+              key: string
+              decimalValue: number | null
+              integerValue: number | null
+              booleanValue: boolean | null
+          }>
+        | undefined
+}): number {
+    const byKey = new Map<string, number>()
+    for (const value of args.parameterValues ?? []) {
+        const numeric = readParameterNumber({ value })
+        if (numeric == null) continue
+        byKey.set(value.key, Math.max(ZERO_VALUE, numeric))
+    }
+    const explicitVolume = byKey.get('volumeM3')
+    if (explicitVolume != null) {
+        return explicitVolume
+    }
+    const areaM2 =
+        byKey.get('areaM2') ?? Math.max(ZERO_VALUE, args.budgetLineQuantity)
+    const thicknessM = byKey.get('thickness') ?? ZERO_VALUE
+    return areaM2 * Math.max(ZERO_VALUE, thicknessM)
+}
+
 function deriveAmounts(args: {
     lines: ItemYieldLineInput[]
     pricesByResourceId: Map<string, number>
     resourcesById: Map<string, ResourceRow>
     budgetLineQuantity: number
+    parameterValues:
+        | Array<{
+              key: string
+              decimalValue: number | null
+              integerValue: number | null
+              booleanValue: boolean | null
+          }>
+        | undefined
 }): { material: number; labor: number; equipment: number } {
     const totals = {
         material: ZERO_VALUE,
@@ -83,6 +139,10 @@ function deriveAmounts(args: {
         duration: ZERO_VALUE,
         perimeter: ZERO_VALUE,
         height: ZERO_VALUE,
+        mixVolumeM3: deriveMixVolumeM3({
+            budgetLineQuantity: baseQuantity,
+            parameterValues: args.parameterValues,
+        }),
     }
     for (const line of args.lines) {
         const resource = args.resourcesById.get(line.resourceId)
@@ -342,6 +402,14 @@ function YieldEditorLoaded(args: {
         description: string
         quantity: number
         measureUnitName: string | null
+        parameterValues:
+            | Array<{
+                  key: string
+                  decimalValue: number | null
+                  integerValue: number | null
+                  booleanValue: boolean | null
+              }>
+            | undefined
         warnings?: string[]
     }
     itemYield: {
@@ -395,6 +463,7 @@ function YieldEditorLoaded(args: {
         pricesByResourceId: effectivePricesByResourceId,
         resourcesById,
         budgetLineQuantity: quantity,
+        parameterValues: args.budgetLine.parameterValues,
     })
     const hasNoResources = args.resources.length === ZERO_VALUE
     const hasNoYieldLines = lines.length === ZERO_VALUE
@@ -750,6 +819,7 @@ export default function BudgetLineYieldEditor() {
                     description: vm.budgetLine.description,
                     quantity: vm.budgetLine.quantity,
                     measureUnitName: vm.budgetLine.measureUnit?.name ?? null,
+                    parameterValues: vm.budgetLine.parameterValues,
                     warnings: vm.budgetLine.warnings,
                 }}
                 itemYield={{

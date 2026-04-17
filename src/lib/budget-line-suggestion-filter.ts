@@ -11,7 +11,7 @@ export function filterBudgetLineSuggestionRows(
     description: string,
     workCategoryId: string | null
 ): SuggestionRow[] {
-    if (fuse == null || suggestionRows.length === EMPTY_ROW_COUNT) {
+    if (suggestionRows.length === EMPTY_ROW_COUNT) {
         return []
     }
     const scopedRows =
@@ -21,13 +21,24 @@ export function filterBudgetLineSuggestionRows(
                   (row) => row.workCategoryId === workCategoryId
               )
     if (scopedRows.length === EMPTY_ROW_COUNT) {
-        return []
+        // Guardrail: if category scoping yields nothing, keep suggestions usable
+        // instead of rendering an empty panel.
+        return suggestionRows
     }
     const query = description.trim()
     if (query === '') {
         return scopedRows
     }
-    return fuse
+    if (fuse == null) {
+        const queryLower = query.toLowerCase()
+        const directMatches = scopedRows.filter((row) => {
+            const name = row.name.toLowerCase()
+            const category = row.workCategoryName.toLowerCase()
+            return name.includes(queryLower) || category.includes(queryLower)
+        })
+        return directMatches.length > 0 ? directMatches : scopedRows
+    }
+    const ranked = fuse
         .search(query)
         .map((result) => result.item)
         .filter((row) =>
@@ -35,4 +46,5 @@ export function filterBudgetLineSuggestionRows(
                 ? true
                 : row.workCategoryId === workCategoryId
         )
+    return ranked.length > 0 ? ranked : scopedRows
 }

@@ -311,11 +311,14 @@ export function filterUnusedSuggestions(args: {
         args.description,
         args.workCategoryId === WORK_CATEGORY_NONE ? null : args.workCategoryId
     )
-    return rows.filter((row) =>
+    const dedupedRows = rows.filter((row) =>
         row.kind === 'catalog'
             ? !args.usedCatalogItemIds.has(row.catalogItemId)
             : !args.usedItemYieldIds.has(row.yieldId)
     )
+    // Guardrail: never strand the user with an empty picker when we do have rows.
+    // If usage-based filtering removes everything, keep scoped rows visible.
+    return dedupedRows.length > 0 ? dedupedRows : rows
 }
 
 export function shouldShowSuggestionPanel(args: {
@@ -326,14 +329,9 @@ export function shouldShowSuggestionPanel(args: {
     suggestionsLoading: boolean
     hasCorpus: boolean
 }): boolean {
-    return (
-        args.open &&
-        !args.libraryBinding &&
-        args.suggestionsOpen &&
-        args.queryEnabled &&
-        !args.suggestionsLoading &&
-        args.hasCorpus
-    )
+    // Keep panel visibility tied to user interaction (focus/click), not data timing.
+    // Rows can populate asynchronously while the panel is already open.
+    return args.open && !args.libraryBinding && args.suggestionsOpen
 }
 
 export function openSuggestionsWhenFreeLine(args: {

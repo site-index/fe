@@ -69,10 +69,10 @@ export function BudgetLineCreateDescriptionField({
         queryEnabled,
         hasCorpus,
     } = useBudgetLineDescriptionSuggestions(
-        dialogOpen,
         projectId,
         accessToken,
-        studioSlug
+        studioSlug,
+        dialogOpen
     )
 
     const showSuggestions =

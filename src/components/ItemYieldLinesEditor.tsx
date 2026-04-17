@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import type { YieldLineBillingMode } from '@/types/item-yield'
-import { RESOURCE_KIND_LABOR } from '@/types/resource-kind'
 
 const DEFAULT_NUMERIC_FALLBACK = 0
 const DEFAULT_LINE_QUANTITY = 1
@@ -23,11 +22,18 @@ const PRICE_INPUT_PLACEHOLDER = '0'
 const EMPTY_LINES_LENGTH = 0
 const FIRST_ITEM_INDEX = 0
 const DEFAULT_BILLING_MODE: YieldLineBillingMode = 'QUANTITY'
+const BILLING_MODE_LABELS: Record<YieldLineBillingMode, string> = {
+    FIXED: 'Fijo por línea',
+    QUANTITY: 'Escala por cantidad',
+    DURATION: 'Escala por duración',
+    CUSTOM_DRIVER: 'Driver personalizado',
+}
 const CUSTOM_DRIVER_KEY_OPTIONS = [
     { key: 'quantity', label: 'Cantidad' },
     { key: 'duration', label: 'Duración' },
     { key: 'perimeter', label: 'Perímetro' },
     { key: 'height', label: 'Altura' },
+    { key: 'mixVolumeM3', label: 'Volumen de mezcla (m³)' },
 ] as const
 
 function defaultBillingMode(): YieldLineBillingMode {
@@ -52,11 +58,9 @@ function formatPriceInputValue(value: number): string {
     return Number.isFinite(value) ? String(value) : PRICE_INPUT_PLACEHOLDER
 }
 
-function optionalPriceInputValue(
-    value: number | undefined
-): string | undefined {
-    if (value === undefined) {
-        return undefined
+function optionalPriceInputValue(value: number | undefined): string {
+    if (value == null) {
+        return PRICE_INPUT_PLACEHOLDER
     }
     return formatPriceInputValue(value)
 }
@@ -117,48 +121,55 @@ async function commitResourcePrice(args: {
     await args.onSetResourcePrice(args.selectedResource.id, unitPrice)
 }
 
-function renderLaborModeField(args: {
-    isLabor: boolean
+function renderBillingModeField(args: {
     line: ItemYieldLineInput
     disabled: boolean
     onPatchLine: (patch: Partial<ItemYieldLineInput>) => void
     triggerClassName?: string
 }): ReactNode {
-    if (!args.isLabor) {
-        return <p className="px-2 py-2 text-xs text-muted-foreground">—</p>
-    }
+    const selectedMode = args.line.billingMode
     return (
         <Select
-            value={args.line.billingMode}
+            value={selectedMode}
             disabled={args.disabled}
             onValueChange={(value: YieldLineBillingMode) =>
                 args.onPatchLine(billingModePatch(args.line, value))
             }
         >
             <SelectTrigger className={args.triggerClassName}>
-                <SelectValue />
+                <SelectValue
+                    placeholder={
+                        BILLING_MODE_LABELS[selectedMode] ??
+                        BILLING_MODE_LABELS[DEFAULT_BILLING_MODE]
+                    }
+                />
             </SelectTrigger>
             <SelectContent>
-                <SelectItem value="FIXED">Fijo por línea</SelectItem>
-                <SelectItem value="QUANTITY">Escala por cantidad</SelectItem>
-                <SelectItem value="DURATION">Escala por duración</SelectItem>
+                <SelectItem value="FIXED">
+                    {BILLING_MODE_LABELS.FIXED}
+                </SelectItem>
+                <SelectItem value="QUANTITY">
+                    {BILLING_MODE_LABELS.QUANTITY}
+                </SelectItem>
+                <SelectItem value="DURATION">
+                    {BILLING_MODE_LABELS.DURATION}
+                </SelectItem>
                 <SelectItem value="CUSTOM_DRIVER">
-                    Driver personalizado
+                    {BILLING_MODE_LABELS.CUSTOM_DRIVER}
                 </SelectItem>
             </SelectContent>
         </Select>
     )
 }
 
-function renderLaborDriverField(args: {
-    isLabor: boolean
+function renderDriverField(args: {
     line: ItemYieldLineInput
     disabled: boolean
     onPatchLine: (patch: Partial<ItemYieldLineInput>) => void
     triggerClassName?: string
     emptyClassName?: string
 }): ReactNode {
-    if (!args.isLabor || args.line.billingMode !== 'CUSTOM_DRIVER') {
+    if (args.line.billingMode !== 'CUSTOM_DRIVER') {
         return (
             <p
                 className={
@@ -170,11 +181,15 @@ function renderLaborDriverField(args: {
             </p>
         )
     }
+    const selectedDriverKey =
+        args.line.customDriverKey ?? CUSTOM_DRIVER_KEY_OPTIONS[0].key
+    const selectedDriverLabel =
+        CUSTOM_DRIVER_KEY_OPTIONS.find(
+            (option) => option.key === selectedDriverKey
+        )?.label ?? CUSTOM_DRIVER_KEY_OPTIONS[0].label
     return (
         <Select
-            value={
-                args.line.customDriverKey ?? CUSTOM_DRIVER_KEY_OPTIONS[0].key
-            }
+            value={selectedDriverKey}
             disabled={args.disabled}
             onValueChange={(value) =>
                 args.onPatchLine({
@@ -183,7 +198,7 @@ function renderLaborDriverField(args: {
             }
         >
             <SelectTrigger className={args.triggerClassName}>
-                <SelectValue />
+                <SelectValue placeholder={selectedDriverLabel} />
             </SelectTrigger>
             <SelectContent>
                 {CUSTOM_DRIVER_KEY_OPTIONS.map((option) => (
@@ -208,7 +223,6 @@ function ItemYieldLineRow({
     onRemoveLine,
 }: LineRowProps) {
     const storedPrice = pricesByResourceId.get(line.resourceId)
-    const isLabor = selectedResource?.kind === RESOURCE_KIND_LABOR
     const priceInputDefault = optionalPriceInputValue(storedPrice)
     const patchCurrentLine = (patch: Partial<ItemYieldLineInput>): void => {
         onPatchLine(index, patch)
@@ -286,16 +300,14 @@ function ItemYieldLineRow({
                 />
             </td>
             <td className="px-2 py-2 min-w-44">
-                {renderLaborModeField({
-                    isLabor,
+                {renderBillingModeField({
                     line,
                     disabled,
                     onPatchLine: patchCurrentLine,
                 })}
             </td>
             <td className="px-2 py-2 min-w-44">
-                {renderLaborDriverField({
-                    isLabor,
+                {renderDriverField({
                     line,
                     disabled,
                     onPatchLine: patchCurrentLine,
@@ -329,12 +341,8 @@ function ItemYieldLineMobileCard({
     onRemoveLine,
 }: LineRowProps) {
     const storedPrice = pricesByResourceId.get(line.resourceId)
-    const isLabor = selectedResource?.kind === RESOURCE_KIND_LABOR
     const currentPriceNumber = storedPrice ?? DEFAULT_NUMERIC_FALLBACK
-    const currentPrice =
-        storedPrice === undefined
-            ? undefined
-            : formatPriceInputValue(storedPrice)
+    const currentPrice = optionalPriceInputValue(storedPrice)
     const subtotal = line.quantity * currentPriceNumber
     const patchCurrentLine = (patch: Partial<ItemYieldLineInput>): void => {
         onPatchLine(index, patch)
@@ -434,36 +442,32 @@ function ItemYieldLineMobileCard({
                         </p>
                     </div>
                 </div>
-                {isLabor ? (
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div className="space-y-1">
-                            <p className="text-center text-muted-foreground">
-                                Modo
-                            </p>
-                            {renderLaborModeField({
-                                isLabor,
-                                line,
-                                disabled,
-                                onPatchLine: patchCurrentLine,
-                                triggerClassName: 'h-8 px-2 text-xs',
-                            })}
-                        </div>
-                        <div className="space-y-1">
-                            <p className="text-center text-muted-foreground">
-                                Driver
-                            </p>
-                            {renderLaborDriverField({
-                                isLabor,
-                                line,
-                                disabled,
-                                onPatchLine: patchCurrentLine,
-                                triggerClassName: 'h-8 px-2 text-xs',
-                                emptyClassName:
-                                    'h-8 rounded-md border border-input bg-muted/40 px-2 py-2 text-center text-xs text-muted-foreground',
-                            })}
-                        </div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="space-y-1">
+                        <p className="text-center text-muted-foreground">
+                            Modo
+                        </p>
+                        {renderBillingModeField({
+                            line,
+                            disabled,
+                            onPatchLine: patchCurrentLine,
+                            triggerClassName: 'h-8 px-2 text-xs',
+                        })}
                     </div>
-                ) : null}
+                    <div className="space-y-1">
+                        <p className="text-center text-muted-foreground">
+                            Driver
+                        </p>
+                        {renderDriverField({
+                            line,
+                            disabled,
+                            onPatchLine: patchCurrentLine,
+                            triggerClassName: 'h-8 px-2 text-xs',
+                            emptyClassName:
+                                'h-8 rounded-md border border-input bg-muted/40 px-2 py-2 text-center text-xs text-muted-foreground',
+                        })}
+                    </div>
+                </div>
             </div>
         </div>
     )

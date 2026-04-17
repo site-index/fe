@@ -346,6 +346,9 @@ function DescriptionSection({
                     onFocus={() => {
                         onDescriptionFocus()
                     }}
+                    onClick={() => {
+                        onDescriptionFocus()
+                    }}
                     onKeyDown={onDescriptionKeyDown}
                     onChange={(event) => {
                         descField.onChange(event)

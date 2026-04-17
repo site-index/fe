@@ -93,12 +93,12 @@ function buildSuggestionRows(
 }
 
 export function useBudgetLineDescriptionSuggestions(
-    dialogOpen: boolean,
     projectId: string,
     accessToken: string | null,
-    studioSlug: string
+    studioSlug: string,
+    queryEnabled = true
 ) {
-    const queryEnabled = dialogOpen && projectId !== '__empty__'
+    const suggestionsQueryEnabled = queryEnabled && projectId !== '__empty__'
 
     const { data: itemYields = [], isPending: yieldsLoading } = useQuery({
         queryKey: qk.itemYields(studioSlug, projectId),
@@ -109,7 +109,7 @@ export function useBudgetLineDescriptionSuggestions(
             })
             return rows as unknown as ItemYieldApiRow[]
         },
-        enabled: queryEnabled,
+        enabled: suggestionsQueryEnabled,
     })
 
     const { data: catalogDefaults = [], isPending: catalogLoading } = useQuery({
@@ -121,7 +121,7 @@ export function useBudgetLineDescriptionSuggestions(
             })
             return rows as StudioCatalogItemApiRow[]
         },
-        enabled: queryEnabled,
+        enabled: suggestionsQueryEnabled,
     })
 
     const suggestionRows = useMemo(
@@ -152,7 +152,7 @@ export function useBudgetLineDescriptionSuggestions(
         fuse,
         suggestionRows,
         suggestionsLoading,
-        queryEnabled,
+        queryEnabled: suggestionsQueryEnabled,
         hasCorpus: suggestionRows.length > EMPTY_ROWS_LENGTH,
     }
 }

@@ -117,23 +117,99 @@ const AREA_PARAMETER_KEY = 'areaM2'
 const VOLUME_PARAMETER_KEY = 'volumeM3'
 const THICKNESS_PARAMETER_KEY = 'thickness'
 const DERIVED_PARAMETER_DECIMALS = 6
+const DURATION_DRIVER_KEY = 'duration'
+const PERIMETER_DRIVER_KEY = 'perimeter'
+const HEIGHT_DRIVER_KEY = 'height'
+const MIX_VOLUME_DRIVER_KEY = 'mixVolumeM3'
+
+function resolveParameterConfigRows(
+    parameterConfig: { params: BudgetLineParameterConfigRow[] } | undefined
+): BudgetLineParameterConfigRow[] {
+    if (!parameterConfig) {
+        return EMPTY_PARAMETER_CONFIG_ROWS
+    }
+    return parameterConfig.params
+}
+
+function parseNumOrZero(value: string | undefined): number {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : ZERO_VALUE
+}
+
+function resolveLineMultiplier(args: {
+    line: ItemYieldLineInput
+    drivers: Record<string, number>
+}): number {
+    if (args.line.billingMode === 'FIXED') {
+        return 1
+    }
+    if (args.line.billingMode === 'QUANTITY') {
+        return args.drivers.quantity
+    }
+    if (args.line.billingMode === 'DURATION') {
+        return args.drivers.duration
+    }
+    return Math.max(
+        ZERO_VALUE,
+        args.drivers[args.line.customDriverKey ?? ''] ?? ZERO_VALUE
+    )
+}
+
+function deriveMixVolumeM3(args: {
+    budgetLineQuantity: number
+    parameterValuesByKey: Record<string, string>
+}): number {
+    const explicitVolume = parseNumOrZero(
+        args.parameterValuesByKey[VOLUME_PARAMETER_KEY]
+    )
+    if (explicitVolume > ZERO_VALUE) {
+        return explicitVolume
+    }
+    const areaM2 = parseNumOrZero(args.parameterValuesByKey[AREA_PARAMETER_KEY])
+    const thickness = parseNumOrZero(
+        args.parameterValuesByKey[THICKNESS_PARAMETER_KEY]
+    )
+    const areaDriver =
+        areaM2 > ZERO_VALUE
+            ? areaM2
+            : Math.max(ZERO_VALUE, args.budgetLineQuantity)
+    return areaDriver * Math.max(ZERO_VALUE, thickness)
+}
 
 function deriveAmounts(args: {
     lines: ItemYieldLineInput[]
     pricesByResourceId: Map<string, number>
     resourcesById: Map<string, { kind: string }>
+    budgetLineQuantity: number
+    parameterValuesByKey: Record<string, string>
 }): { material: number; labor: number; equipment: number } {
     const totals = {
         material: ZERO_VALUE,
         labor: ZERO_VALUE,
         equipment: ZERO_VALUE,
     }
+    const baseQuantity = Math.max(ZERO_VALUE, args.budgetLineQuantity)
+    if (baseQuantity <= ZERO_VALUE) {
+        return totals
+    }
+    const drivers: Record<string, number> = {
+        quantity: baseQuantity,
+        [DURATION_DRIVER_KEY]: ZERO_VALUE,
+        [PERIMETER_DRIVER_KEY]: ZERO_VALUE,
+        [HEIGHT_DRIVER_KEY]: ZERO_VALUE,
+        [MIX_VOLUME_DRIVER_KEY]: deriveMixVolumeM3({
+            budgetLineQuantity: baseQuantity,
+            parameterValuesByKey: args.parameterValuesByKey,
+        }),
+    }
     for (const line of args.lines) {
         const resource = args.resourcesById.get(line.resourceId)
         if (!resource) continue
-        const lineCost =
-            Math.max(ZERO_VALUE, line.quantity) *
-            (args.pricesByResourceId.get(line.resourceId) ?? ZERO_VALUE)
+        const lineQuantity = Math.max(ZERO_VALUE, line.quantity)
+        const unitPrice =
+            args.pricesByResourceId.get(line.resourceId) ?? ZERO_VALUE
+        const multiplier = resolveLineMultiplier({ line, drivers })
+        const lineCost = (lineQuantity * unitPrice * multiplier) / baseQuantity
         if (resource.kind === RESOURCE_KIND_MATERIAL)
             totals.material += lineCost
         if (resource.kind === RESOURCE_KIND_LABOR) totals.labor += lineCost
@@ -587,6 +663,8 @@ function useYieldPricingSync(args: {
     lines: ItemYieldLineInput[]
     pricesByResourceId: Map<string, number>
     resourcesById: Map<string, { kind: string }>
+    budgetLineQuantity: number
+    parameterValuesByKey: Record<string, string>
     form: UseFormReturn<FormValues>
 }): void {
     useEffect(() => {
@@ -597,6 +675,8 @@ function useYieldPricingSync(args: {
             lines: args.lines,
             pricesByResourceId: args.pricesByResourceId,
             resourcesById: args.resourcesById,
+            budgetLineQuantity: args.budgetLineQuantity,
+            parameterValuesByKey: args.parameterValuesByKey,
         })
         const unitPrice = perUnit.material + perUnit.labor + perUnit.equipment
         const next = {
@@ -637,6 +717,8 @@ function useYieldPricingSync(args: {
         args.pricesByResourceId,
         args.pricingLockedByYield,
         args.resourcesById,
+        args.budgetLineQuantity,
+        args.parameterValuesByKey,
     ])
 }
 
@@ -675,14 +757,27 @@ function toYieldLineInputs(
     }))
 }
 
+const MIX_VOLUME_DRIVER = 'mixVolumeM3'
+const PLASTER_MIX_VOLUME_RESOURCE_NAMES = new Set([
+    'Cemento holcim - bolsa 50kg',
+    'Arena',
+    'Mano de obra revoque',
+])
+
 function toStudioDefaultYieldLineInputs(
     lines: StudioCatalogItemDefaultRow['lines']
 ): ItemYieldLineInput[] {
     return lines.map((line) => ({
         resourceId: line.resourceId,
         quantity: line.baseQuantity,
-        billingMode: 'QUANTITY',
-        customDriverKey: null,
+        billingMode: PLASTER_MIX_VOLUME_RESOURCE_NAMES.has(line.resourceName)
+            ? 'CUSTOM_DRIVER'
+            : 'QUANTITY',
+        customDriverKey: PLASTER_MIX_VOLUME_RESOURCE_NAMES.has(
+            line.resourceName
+        )
+            ? MIX_VOLUME_DRIVER
+            : null,
     }))
 }
 
@@ -791,6 +886,68 @@ function toUsedItemYieldIds(lines: BudgetLineRow[]): Set<string> {
             .map((line) => line.itemYieldId)
             .filter((itemYieldId): itemYieldId is string => itemYieldId != null)
     )
+}
+
+function fallbackSuggestionRowsFromLoadedData(args: {
+    projectItemYields: ItemYield[]
+    studioCatalogItems: StudioCatalogItemDefaultRow[]
+}): SuggestionRow[] {
+    const byYield: SuggestionRow[] = args.projectItemYields.map(
+        (itemYield) => ({
+            kind: 'yield',
+            yieldId: itemYield.id,
+            workCategoryId: itemYield.workCategoryId,
+            name: itemYield.name,
+            description: '',
+            workCategoryName: itemYield.workCategoryName,
+            itemTypeStableId: itemYield.itemTypeStableId,
+            measureUnitId: null,
+            measureUnitName: null,
+        })
+    )
+    const yieldNames = new Set(
+        args.projectItemYields
+            .map((itemYield) => itemYield.name.trim().toLowerCase())
+            .filter(Boolean)
+    )
+    const byCatalog: SuggestionRow[] = args.studioCatalogItems
+        .filter((item) => !yieldNames.has(item.name.trim().toLowerCase()))
+        .map((item) => ({
+            kind: 'catalog',
+            catalogItemId: item.catalogItemId,
+            name: item.name,
+            description: '',
+            workCategoryName: item.workCategoryName,
+            workCategoryId: item.workCategoryId,
+            itemTypeStableId: item.itemTypeStableId,
+            measureUnitId: item.measureUnit?.id ?? null,
+            measureUnitName: item.measureUnit?.name ?? null,
+        }))
+    return [...byYield, ...byCatalog]
+}
+
+function resolveEffectiveSuggestionRows(args: {
+    suggestionRows: SuggestionRow[]
+    projectItemYields: ItemYield[]
+    studioCatalogItems: StudioCatalogItemDefaultRow[]
+}): SuggestionRow[] {
+    if (args.suggestionRows.length > 0) {
+        return args.suggestionRows
+    }
+    return fallbackSuggestionRowsFromLoadedData({
+        projectItemYields: args.projectItemYields,
+        studioCatalogItems: args.studioCatalogItems,
+    })
+}
+
+function resolveHasCorpus(args: {
+    hasCorpus: boolean
+    effectiveSuggestionRows: SuggestionRow[]
+}): boolean {
+    if (args.hasCorpus) {
+        return true
+    }
+    return args.effectiveSuggestionRows.length > 0
 }
 
 function useResourcePriceUpdater(args: {
@@ -1182,8 +1339,7 @@ export default function CreateBudgetLineDialog({
             selectedItemTypeStableId,
         }),
     })
-    const parameterConfigRows =
-        parameterConfig?.params ?? EMPTY_PARAMETER_CONFIG_ROWS
+    const parameterConfigRows = resolveParameterConfigRows(parameterConfig)
     const parameterIdByKey = useMemo(
         () =>
             Object.fromEntries(
@@ -1193,6 +1349,16 @@ export default function CreateBudgetLineDialog({
                 ])
             ),
         [parameterConfigRows]
+    )
+    const parameterValuesByKey = useMemo(
+        () =>
+            Object.fromEntries(
+                parameterConfigRows.map((param) => [
+                    param.key,
+                    parameterValuesById[param.parameterDefinitionId] ?? '',
+                ])
+            ),
+        [parameterConfigRows, parameterValuesById]
     )
     const parameterValuesForSubmit = useMemo(
         () =>
@@ -1220,10 +1386,10 @@ export default function CreateBudgetLineDialog({
         queryEnabled,
         hasCorpus,
     } = useBudgetLineDescriptionSuggestions(
-        open,
         activeProject.id,
         accessToken,
-        studioSlug
+        studioSlug,
+        isQueryReady
     )
     const { data: projectItemYields = [] } = useQuery({
         queryKey: qk.itemYields(studioSlug, activeProject.id),
@@ -1234,7 +1400,7 @@ export default function CreateBudgetLineDialog({
             }),
         enabled: isOpenAndQueryReady,
     })
-    const { data: studioCatalogItems } = useQuery({
+    const { data: studioCatalogItems = EMPTY_STUDIO_CATALOG_ITEMS } = useQuery({
         queryKey: qk.studioCatalogItems(studioSlug),
         queryFn: () =>
             getStudioCatalogItems({
@@ -1242,7 +1408,6 @@ export default function CreateBudgetLineDialog({
                 studioSlug,
             }),
         enabled: isOpenAndQueryReady,
-        initialData: EMPTY_STUDIO_CATALOG_ITEMS,
     })
 
     const usedCatalogItemIds = useMemo(
@@ -1253,12 +1418,21 @@ export default function CreateBudgetLineDialog({
         () => toUsedItemYieldIds(existingBudgetLines),
         [existingBudgetLines]
     )
+    const effectiveSuggestionRows = useMemo(
+        () =>
+            resolveEffectiveSuggestionRows({
+                suggestionRows,
+                projectItemYields,
+                studioCatalogItems,
+            }),
+        [suggestionRows, projectItemYields, studioCatalogItems]
+    )
 
     const filteredSuggestionRows = useMemo(
         () =>
             filterUnusedSuggestions({
                 fuse,
-                suggestionRows,
+                suggestionRows: effectiveSuggestionRows,
                 description: values.description,
                 workCategoryId: values.workCategoryId,
                 usedCatalogItemIds,
@@ -1266,7 +1440,7 @@ export default function CreateBudgetLineDialog({
             }),
         [
             fuse,
-            suggestionRows,
+            effectiveSuggestionRows,
             values.description,
             values.workCategoryId,
             usedCatalogItemIds,
@@ -1280,7 +1454,10 @@ export default function CreateBudgetLineDialog({
         suggestionsOpen,
         queryEnabled,
         suggestionsLoading,
-        hasCorpus,
+        hasCorpus: resolveHasCorpus({
+            hasCorpus,
+            effectiveSuggestionRows,
+        }),
     })
 
     useDefaultWorkCategorySync({
@@ -1304,6 +1481,8 @@ export default function CreateBudgetLineDialog({
         lines: yieldLines,
         pricesByResourceId,
         resourcesById,
+        budgetLineQuantity: parseNumOrZero(values.quantityStr),
+        parameterValuesByKey,
         form,
     })
 
